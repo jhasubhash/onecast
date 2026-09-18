@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://onesyntax.in/onecast/sitemap.xml

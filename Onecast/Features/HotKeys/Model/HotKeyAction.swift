@@ -1,0 +1,57 @@
+import Foundation
+
+/// Everything in Onecast a global shortcut can be bound to.
+enum HotKeyAction: Hashable, Sendable {
+    /// The one fixed action with no command row of its own.
+    case togglePalette
+    /// The floating AI Chat bar; also fixed, and shares the launcher's chat and history.
+    case toggleAIBar
+    /// Parameterised over the catalog, so a new built-in command is bindable with no case here.
+    case command(CommandID)
+    case app(bundleID: String)
+    case settingsPane(bundleID: String)
+    case customCommand(id: UUID)
+    case systemAction(id: SystemAction.ID)
+    case windowCommand(id: WindowCommand.ID)
+    case windowLayout(id: UUID)
+    case customWindowSize(id: UUID)
+    case quicklink(id: UUID)
+    case quickAction(id: UUID)
+    case appleShortcut(id: UUID)
+    /// A user-created Assistant chat bar, keyed by its stable id.
+    case assistant(id: UUID)
+    /// Keyed by `AppEntry.id`, which is what survives a reinstall of the extension.
+    case extensionCommand(entryID: String)
+    /// Keyed by `AppEntry.id`, which survives a reinstall of the plugin.
+    case pluginCommand(entryID: String)
+    /// A scheduled task run on demand, keyed by its stable id.
+    case scheduledTask(id: UUID)
+
+    /// The UserDefaults key, and the `HotKeyCenter` registration id: one per action.
+    var defaultsKey: String {
+        switch self {
+        case .togglePalette: "hotkey.togglePalette"
+        case .toggleAIBar: "hotkey.toggleAIBar"
+        case .command(let id): "hotkey." + id.rawValue
+        case .app(let bundleID): "hotkey.app." + bundleID
+        case .settingsPane(let bundleID): "hotkey.pane." + bundleID
+        case .customCommand(let id): "hotkey.customCommand." + id.uuidString.lowercased()
+        case .systemAction(let id): "hotkey.systemAction." + id.rawValue
+        case .windowCommand(let id): "hotkey.windowCommand." + id.rawValue
+        case .windowLayout(let id): "hotkey.windowLayout." + id.uuidString.lowercased()
+        case .customWindowSize(let id):
+            "hotkey.customWindowSize." + id.uuidString.lowercased()
+        case .quicklink(let id): "hotkey.quicklink." + id.uuidString.lowercased()
+        case .quickAction(let id): "hotkey.quickAction." + id.uuidString.lowercased()
+        case .appleShortcut(let id): "hotkey.appleShortcut." + id.uuidString.lowercased()
+        case .assistant(let id): "hotkey.assistant." + id.uuidString.lowercased()
+        case .extensionCommand(let entryID): "hotkey.extensionCommand." + entryID
+        case .pluginCommand(let entryID): "hotkey.pluginCommand." + entryID
+        case .scheduledTask(let id): "hotkey.scheduledTask." + id.uuidString.lowercased()
+        }
+    }
+
+    /// The fixed actions every install can bind; the per-item catalogs extend them at launch.
+    static let builtInActions: [HotKeyAction] =
+        [.togglePalette, .toggleAIBar] + CommandID.allCases.compactMap(\.hotKeyAction)
+}
