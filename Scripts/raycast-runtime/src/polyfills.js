@@ -11,6 +11,15 @@ import {
 
 const g = globalThis;
 
+// Explicit resource management (`using` / `await using`): esbuild lowers the declaration into a helper
+// that resolves `Symbol.dispose`/`Symbol.asyncDispose`, and an extension keys its own disposable by the
+// same well-known symbol. JavaScriptCore predates both, so a missing symbol degrades the computed key
+// and the helper throws "Object not disposable". Define them as the registered symbol the helper falls
+// back to, so the extension's `{ [Symbol.asyncDispose]: … }` and the helper's lookup agree. (The sips
+// extension's Remove Background disposes a temp file this way.)
+if (!Symbol.dispose) Symbol.dispose = Symbol.for("Symbol.dispose");
+if (!Symbol.asyncDispose) Symbol.asyncDispose = Symbol.for("Symbol.asyncDispose");
+
 if (!g.console) g.console = {};
 for (const level of ["log", "info", "warn", "error", "debug", "trace"]) {
   g.console[level] = (...args) => log(level === "debug" || level === "trace" ? "log" : level, args);
@@ -22,6 +31,20 @@ for (const noop of ["group", "groupEnd", "table", "time", "timeEnd", "dir", "ass
 
 if (!g.performance) g.performance = { now: () => Date.now() };
 else if (!g.performance.now) g.performance.now = () => Date.now();
+
+// Node (which real Raycast runs on) exposes both; JavaScriptCore doesn't. Additive, so an extension
+// or a bundled isomorphic library that reads them behaves as it does on Raycast rather than throwing.
+if (!g.reportError) g.reportError = (error) => reportUncaught(error);
+if (!g.navigator) {
+  g.navigator = {
+    userAgent: "Onecast",
+    platform: "MacIntel",
+    language: "en-US",
+    languages: ["en-US"],
+    onLine: true,
+    hardwareConcurrency: 8,
+  };
+}
 
 // ─── Timers ─────────────────────────────────────────────────────────
 // Swift owns the clock: it schedules on its runloop and calls back into `fireTimer`.

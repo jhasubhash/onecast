@@ -56,6 +56,7 @@ Tuist/.build/
 
 # Extension runtime toolchain (Scripts/raycast-runtime)
 node_modules/
+Scripts/raycast-runtime/package-lock.json
 
 # Temporary files
 *.swp

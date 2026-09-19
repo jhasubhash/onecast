@@ -361,6 +361,46 @@ export default async function Command() {
 }
 `;
 
+// A child that writes stdout but nothing to stderr. The sips extension attaches a `stderr` `data`
+// handler that throws on any emission, so an empty stderr must stay silent, as it does under Node.
+const emptyStderrSource = `
+import { spawn } from "node:child_process";
+
+export default async function Command() {
+  const child = spawn("/bin/sh", ["-c", "printf hello"]);
+  let stderrEvents = 0;
+  child.stderr.on("data", () => { stderrEvents++; });
+  const out = await new Promise((resolve) => {
+    const chunks = [];
+    child.stdout.on("data", (c) => chunks.push(c.toString()));
+    child.on("close", () => resolve(chunks.join("")));
+  });
+  globalThis.__emptyStderr = { out, stderrEvents };
+}
+`;
+
+// `await using` on an object keyed by `Symbol.asyncDispose` — the exact shape the sips extension's
+// Remove Background uses for its temp file. Needs the runtime to define the well-known dispose symbols.
+const awaitUsingSource = `
+export default async function Command() {
+  globalThis.__disposed = false;
+  {
+    await using tmp = { path: "/tmp/x", [Symbol.asyncDispose]: async () => { globalThis.__disposed = true; } };
+  }
+}
+`;
+
+// The runtime runs in a bare context, so these are absent unless the runtime installs them.
+const nodeGlobalsSource = `
+export default async function Command() {
+  globalThis.__globals = {
+    reportError: typeof reportError,
+    navigator: typeof navigator,
+    userAgent: (typeof navigator === "object" && navigator) ? navigator.userAgent : null,
+  };
+}
+`;
+
 // node-fetch travels inside `@raycast/utils` and drives `http.request` rather than global `fetch`,
 // then reads the response back by async-iterating a stream it pipes through a `PassThrough`.
 const httpSource = `
@@ -850,6 +890,23 @@ export async function runFixtures() {
     check("async iteration collects stdout", result?.iterated === "hello\n", JSON.stringify(result?.iterated));
     check("a listener attached after exit still gets it", result?.late === "world\n", JSON.stringify(result?.late));
     check("a detached child that pipes stdout is still awaited", result?.grouped === "group\n", JSON.stringify(result?.grouped));
+  });
+
+  await run("empty stderr never fires a data event", emptyStderrSource, "no-view", async (harness) => {
+    const result = harness.call("globalThis.__emptyStderr");
+    check("stdout is still delivered", result?.out === "hello", JSON.stringify(result?.out));
+    check("no data event fires for empty stderr", result?.stderrEvents === 0, String(result?.stderrEvents));
+  });
+
+  await run("await using runs an asyncDispose cleanup", awaitUsingSource, "no-view", async (harness) => {
+    check("the disposable resource was disposed", harness.call("globalThis.__disposed") === true, String(harness.call("globalThis.__disposed")));
+  });
+
+  await run("Node-parity globals are installed", nodeGlobalsSource, "no-view", async (harness) => {
+    const g = harness.call("globalThis.__globals");
+    check("reportError is a function", g?.reportError === "function", String(g?.reportError));
+    check("navigator is an object", g?.navigator === "object", String(g?.navigator));
+    check("navigator exposes a userAgent string", typeof g?.userAgent === "string", String(g?.userAgent));
   });
 
   const httpSpecs = [];

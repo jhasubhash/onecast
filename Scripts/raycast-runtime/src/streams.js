@@ -80,6 +80,9 @@ export class Readable extends Stream {
       else if (!(chunk instanceof Buffer)) chunk = Buffer.from(chunk);
       if (state.encoding) chunk = chunk.toString(state.encoding);
     }
+    // Node ignores a zero-length chunk in byte mode: no buffering, no `data` event. Extensions that
+    // treat any stderr `data` as fatal (the sips extension throws on it) must not fire on empty output.
+    if (!state.objectMode && chunk.length === 0) return state.length < state.highWaterMark;
     state.buffer.push(chunk);
     state.length += sizeOf(chunk, state.objectMode);
     this._schedule();
