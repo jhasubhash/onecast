@@ -166,11 +166,15 @@ final class ExtensionHostBridge: ExtensionHostAPI {
         switch method {
         case "copy", "paste":
             let content = arguments.first?.objectValue ?? [:]
+            // Raycast's `{ concealed: true }` keeps a copy out of history; default records it.
+            let concealed =
+                (arguments.count > 1 ? arguments[1].objectValue : nil)?["concealed"]?.boolValue
+                == true
             // A file goes on the pasteboard as a file, so it pastes as the picture it is.
             if let path = content["file"]?.stringValue, !path.isEmpty {
                 let target = context?.pasteTarget
                 if method == "paste" { context?.closeMainWindow(clearRootSearch: false) }
-                writeFileToPasteboard(path)
+                writeFileToPasteboard(path, concealed: concealed && method == "copy")
                 guard method == "paste" else { return nil }
                 target?.activate()
                 Task { @MainActor in
@@ -181,10 +185,14 @@ final class ExtensionHostBridge: ExtensionHostAPI {
                 return nil
             }
             guard let text = clipboardText(from: content) else { return nil }
-            if method == "copy" {
-                Paster.copyString(text)
-            } else {
+            if method != "copy" {
                 Paster.pasteString(text, previousApp: context?.pasteTarget)
+            } else if concealed {
+                // `concealed` opts a copy out of history; every other copy enters it unmarked,
+                // like the app's own Copy actions. A paste is always marked so it can't re-enter.
+                Paster.copyConcealed(text)
+            } else {
+                Paster.copyPlainText(text)
             }
             return nil
 
@@ -207,7 +215,7 @@ final class ExtensionHostBridge: ExtensionHostAPI {
     }
 
     /// The file, its picture and its path: receivers choose the representation they support.
-    private func writeFileToPasteboard(_ path: String) {
+    private func writeFileToPasteboard(_ path: String, concealed: Bool = false) {
         let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -215,6 +223,8 @@ final class ExtensionHostBridge: ExtensionHostAPI {
         if let image = NSImage(contentsOf: url) { items.append(image) }
         pasteboard.writeObjects(items)
         pasteboard.setString(url.path, forType: .string)
+        // Kept out of history when the copy asked to be concealed.
+        if concealed { pasteboard.setData(Data(), forType: ClipboardManager.concealedType) }
     }
 
     private func clipboardText(from content: [String: RenderValue]) -> String? {

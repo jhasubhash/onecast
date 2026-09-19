@@ -8,9 +8,12 @@ final class ClipboardManager {
     /// Longest text captured; bigger copies are skipped, truncation losing the tail.
     static let maxTextLength = 32_000
 
+    /// Put on a copy the source wants kept out of history; other managers respect it too.
+    static let concealedType = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+
     /// Markers put on secret copies by password managers, browsers and the OS.
     static let sensitiveTypes: Set<NSPasteboard.PasteboardType> = [
-        .init("org.nspasteboard.ConcealedType"),
+        concealedType,
         .init("org.nspasteboard.TransientType"),
         .init("com.apple.is-sensitive")
     ]

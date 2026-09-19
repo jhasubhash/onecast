@@ -39,6 +39,17 @@ enum Paster {
         pb.setString(text, forType: .string)
     }
 
+    /// A copy the source asked to conceal: on the pasteboard for pasting, but marked so history —
+    /// and every other clipboard manager — leaves it alone.
+    @MainActor
+    static func copyConcealed(_ text: String) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.declareTypes([.string, ClipboardManager.concealedType], owner: nil)
+        pb.setString(text, forType: .string)
+        pb.setData(Data(), forType: ClipboardManager.concealedType)
+    }
+
     /// String counterpart of `paste`, marker-stamped so the text doesn't re-enter history.
     @MainActor
     static func pasteString(_ text: String, previousApp: NSRunningApplication?) {
