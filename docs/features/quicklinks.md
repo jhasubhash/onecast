@@ -199,6 +199,12 @@ sheet for editing from **Settings → Quicklinks**; both hosts bind one `Quickli
 shared `QuicklinkFormControls`, so a field and its validation exist once. Choosing an arbitrary "open
 with" app belongs here, through the picker the flat ⌘K menu cannot offer.
 
+Every control is a Tab stop, in both hosts: `⇥` / `⇧⇥` walk name → link → icon → open-with → the two
+toggles and wrap, and `↑`/`↓` step the same ring. Focus is driven by the palette's own field
+selection (the same mechanism an extension form uses), so a field, a picker button and a checkbox all
+take the keyboard the same way — each drawing its own focused edge through `formFocusRing`, with
+AppKit's blue focus ring suppressed rather than shown.
+
 ## Storage
 
 ```text

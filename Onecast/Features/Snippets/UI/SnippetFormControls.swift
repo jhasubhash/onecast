@@ -2,7 +2,11 @@ import SwiftUI
 
 /// The snippet form controls, bound to a shared `SnippetDraft`. Both hosts — the Snippets pane's
 /// sheet and the launcher's in-palette editor — render these same blocks and only differ in how they
-/// arrange them, so a restyle here lands on both surfaces at once.
+/// arrange them. Every control is a Tab stop: it takes `focus`, so ⇥ walks name → keyword → template
+/// → the two toggles in order, and each draws its own focused edge rather than AppKit's blue ring.
+enum SnippetFormField: Int, CaseIterable, Hashable {
+    case name, keyword, template, enabled, showsConfirmation
+}
 
 /// A titled control group, the form's repeated unit.
 struct SnippetField<Content: View>: View {
@@ -21,13 +25,15 @@ struct SnippetField<Content: View>: View {
 
 struct SnippetNameField: View {
     @Bindable var draft: SnippetDraft
-    let focus: FocusState<Bool>.Binding
+    var focus: FocusState<SnippetFormField?>.Binding
+    @Environment(\.metrics) private var metrics
 
     var body: some View {
         SnippetField(title: "Name") {
             TextField("Email Sign-off", text: $draft.name)
                 .dialogTextField()
-                .focused(focus)
+                .focused(focus, equals: .name)
+                .formFocusRing(focus.wrappedValue == .name, radius: metrics.radius.menu)
                 .accessibilityHint("Required. Shown in the library and launcher.")
         }
     }
@@ -35,11 +41,15 @@ struct SnippetNameField: View {
 
 struct SnippetKeywordField: View {
     @Bindable var draft: SnippetDraft
+    var focus: FocusState<SnippetFormField?>.Binding
+    @Environment(\.metrics) private var metrics
 
     var body: some View {
         SnippetField(title: "Keyword") {
             TextField("Optional, for example !notes", text: $draft.keyword)
                 .dialogTextField()
+                .focused(focus, equals: .keyword)
+                .formFocusRing(focus.wrappedValue == .keyword, radius: metrics.radius.menu)
                 .accessibilityHint("Optional. Type this to expand the snippet.")
         }
     }
@@ -47,7 +57,7 @@ struct SnippetKeywordField: View {
 
 struct SnippetTemplateField: View {
     @Bindable var draft: SnippetDraft
-    @FocusState private var isFocused: Bool
+    var focus: FocusState<SnippetFormField?>.Binding
     @State private var selection: TextSelection?
 
     var body: some View {
@@ -70,14 +80,16 @@ struct SnippetTemplateField: View {
                             .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1))
                     .contentShape(Rectangle())
                     .pointerStyle(.horizontalText)
-                    .focused($isFocused)
+                    .focused(focus, equals: .template)
+                    .formFocusRing(focus.wrappedValue == .template, radius: Theme.Radius.row)
                     .accessibilityLabel("Snippet template")
                     .accessibilityHint("Enter the text Onecast expands.")
             }
         }
     }
 
-    /// Every placeholder the engine understands; parameters are in docs/features/snippets.md.
+    /// Every placeholder the engine understands; parameters are in docs/features/snippets.md. Not a
+    /// Tab stop: it seeds the editor beside it, which is where the focus is.
     private var placeholderMenu: some View {
         Menu("Insert…") {
             Section("Text") {
@@ -101,6 +113,7 @@ struct SnippetTemplateField: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
+        .focusEffectDisabled()
         .accessibilityLabel("Insert a placeholder")
     }
 
@@ -119,7 +132,7 @@ struct SnippetTemplateField: View {
         }
         // Those indices belong to the replaced string, so they must not survive the next insert.
         selection = nil
-        isFocused = true
+        focus.wrappedValue = .template
     }
 }
 
@@ -127,18 +140,10 @@ struct SnippetOptionToggle: View {
     let title: String
     @Binding var isOn: Bool
     let detail: String
+    let field: SnippetFormField
+    var focus: FocusState<SnippetFormField?>.Binding
 
     var body: some View {
-        Toggle(isOn: $isOn) {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                Text(title)
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .toggleStyle(.checkbox)
-        .tint(Theme.Colors.textPrimary)
+        FormCheckbox(title: title, detail: detail, isOn: $isOn, field: field, focus: focus)
     }
 }

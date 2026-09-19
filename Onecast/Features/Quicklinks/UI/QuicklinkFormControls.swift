@@ -3,7 +3,12 @@ import SwiftUI
 
 /// The quicklink form controls, bound to a shared `QuicklinkDraft`. Both hosts — the Quicklinks
 /// pane's sheet and the launcher's in-palette editor — render these same blocks and only differ in
-/// how they arrange them, so a restyle here lands on both surfaces at once.
+/// how they arrange them, so a restyle here lands on both surfaces at once. Every control is a Tab
+/// stop: it takes `focus`, so ⇥ walks name → link → icon → open-with → the two toggles in order, and
+/// each draws its own focused edge rather than AppKit's blue ring.
+enum QuicklinkFormField: Int, CaseIterable, Hashable {
+    case name, link, icon, openWith, showInRootSearch, pinned
+}
 
 /// A titled control group, the form's repeated unit.
 struct QuicklinkField<Content: View>: View {
@@ -22,19 +27,23 @@ struct QuicklinkField<Content: View>: View {
 
 struct QuicklinkNameField: View {
     @Bindable var draft: QuicklinkDraft
-    let focus: FocusState<Bool>.Binding
+    var focus: FocusState<QuicklinkFormField?>.Binding
+    @Environment(\.metrics) private var metrics
 
     var body: some View {
         QuicklinkField(title: "Name") {
             TextField("Search GitHub", text: $draft.name)
                 .dialogTextField()
-                .focused(focus)
+                .focused(focus, equals: .name)
+                .formFocusRing(focus.wrappedValue == .name, radius: metrics.radius.menu)
         }
     }
 }
 
 struct QuicklinkLinkField: View {
     @Bindable var draft: QuicklinkDraft
+    var focus: FocusState<QuicklinkFormField?>.Binding
+    @Environment(\.metrics) private var metrics
 
     var body: some View {
         QuicklinkField(title: "Link") {
@@ -42,7 +51,8 @@ struct QuicklinkLinkField: View {
                 HStack(spacing: Theme.Spacing.sm) {
                     TextField("https://github.com/search?q={argument}", text: $draft.link)
                         .dialogTextField()
-                        .font(.body.monospaced())
+                        .focused(focus, equals: .link)
+                        .formFocusRing(focus.wrappedValue == .link, radius: metrics.radius.menu)
                     insertMenu
                 }
                 destinationPreview
@@ -73,7 +83,8 @@ struct QuicklinkLinkField: View {
         }
     }
 
-    /// Only tokens meaningful in a destination; `{cursor}` and `{snippet:…}` stay literal.
+    /// Only tokens meaningful in a destination; `{cursor}` and `{snippet:…}` stay literal. Not a Tab
+    /// stop: it seeds the field beside it, which is where the focus is.
     private var insertMenu: some View {
         Menu("Insert…") {
             Button("Argument") { draft.insert("{argument}") }
@@ -91,11 +102,13 @@ struct QuicklinkLinkField: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
+        .focusEffectDisabled()
     }
 }
 
 struct QuicklinkIconField: View {
     @Bindable var draft: QuicklinkDraft
+    var focus: FocusState<QuicklinkFormField?>.Binding
     @State private var showingPicker = false
 
     private static let symbols = [
@@ -108,18 +121,13 @@ struct QuicklinkIconField: View {
 
     var body: some View {
         QuicklinkField(title: "Icon") {
-            Button {
-                showingPicker = true
-            } label: {
-                HStack(spacing: Theme.Spacing.sm) {
-                    SymbolImage(name: draft.resolvedSymbol, size: 14)
-                    Text(draft.iconSymbol == nil ? "Automatic" : "Custom")
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                }
-                .quicklinkControlSurface(width: 150)
+            FormControlButton(
+                width: 150, field: .icon, focus: focus, action: { showingPicker = true }
+            ) {
+                SymbolImage(name: draft.resolvedSymbol, size: 14)
+                Text(draft.iconSymbol == nil ? "Automatic" : "Custom").lineLimit(1)
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
             .popover(isPresented: $showingPicker, arrowEdge: .bottom) {
                 SymbolPicker(
                     selection: $draft.iconSymbol, fallback: draft.automaticSymbol,
@@ -134,27 +142,24 @@ struct QuicklinkIconField: View {
 
 struct QuicklinkOpenWithField: View {
     @Bindable var draft: QuicklinkDraft
+    var focus: FocusState<QuicklinkFormField?>.Binding
     @Environment(AppIndex.self) private var appIndex
     @State private var showingPicker = false
 
     var body: some View {
         QuicklinkField(title: "Open With") {
-            Button {
-                showingPicker = true
-            } label: {
-                HStack(spacing: Theme.Spacing.sm) {
-                    if let bundleID = draft.openWithBundleID {
-                        let app = AppPresentation.resolve(bundleID: bundleID, in: appIndex)
-                        Image(nsImage: app.icon).resizable().frame(width: 16, height: 16)
-                        Text(app.name).lineLimit(1)
-                    } else {
-                        Text("Default app")
-                    }
-                    Spacer(minLength: 0)
+            FormControlButton(
+                width: 180, field: .openWith, focus: focus, action: { showingPicker = true }
+            ) {
+                if let bundleID = draft.openWithBundleID {
+                    let app = AppPresentation.resolve(bundleID: bundleID, in: appIndex)
+                    Image(nsImage: app.icon).resizable().frame(width: 16, height: 16)
+                    Text(app.name).lineLimit(1)
+                } else {
+                    Text("Default app")
                 }
-                .quicklinkControlSurface(width: 180)
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
             .popover(isPresented: $showingPicker, arrowEdge: .bottom) {
                 AppPickerPopover(clearTitle: "Default app") { bundleID in
                     draft.openWithBundleID = bundleID
@@ -169,32 +174,10 @@ struct QuicklinkOptionToggle: View {
     let title: String
     @Binding var isOn: Bool
     let detail: String
+    let field: QuicklinkFormField
+    var focus: FocusState<QuicklinkFormField?>.Binding
 
     var body: some View {
-        Toggle(isOn: $isOn) {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                Text(title)
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .toggleStyle(.checkbox)
-        .tint(Theme.Colors.textPrimary)
-    }
-}
-
-private extension View {
-    /// The control-surface capsule a picker button sits on, matching `dialogTextField`.
-    func quicklinkControlSurface(width: CGFloat) -> some View {
-        self
-            .font(.body)
-            .padding(.horizontal, Theme.Spacing.md)
-            .frame(width: width, height: Theme.Size.barButtonHeight)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radius.menu, style: .continuous)
-                    .fill(Theme.Colors.controlSurface))
-            .contentShape(Rectangle())
+        FormCheckbox(title: title, detail: detail, isOn: $isOn, field: field, focus: focus)
     }
 }

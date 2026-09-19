@@ -66,6 +66,12 @@ system-wide chord, and HIToolbox's TIS APIs remain the public input-source mecha
 Never break these without an explicit task to do so. Anything feature-specific lives in that
 feature's doc, under its own `## Invariants`.
 
+- **Never `git push` unless explicitly asked.** Commit to `main` directly (see
+  [CUSTOM.md](custom_docs/CUSTOM.md)), but pushing to the remote is always a separate, explicit
+  request — never fold it into finishing a task.
+- **Always relaunch the Debug app after rebuilding.** A rebuild leaves the old `Onecast Dev`
+  instance running against stale binaries; quit and reopen it (`osascript -e 'quit app "Onecast Dev"'`
+  then `open …/Onecast Dev.app`) every time, so a verify never reads a stale build.
 - **`AppCore` is the sole owner.** New long-lived state goes on `AppCore`, wired in `start()` — never a
   competing singleton. Views reach a feature's **coordinator** through `@Environment`, not `AppCore`.
 - **A file under `Features/*/Model/` may not import AppKit or SwiftUI**, and takes every environment

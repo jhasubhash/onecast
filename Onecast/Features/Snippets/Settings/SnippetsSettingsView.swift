@@ -209,7 +209,7 @@ private struct SnippetEditorSheet: View {
     @Environment(SnippetsStore.self) private var store
     @State private var draft: SnippetDraft
     @State private var isSaving = false
-    @FocusState private var nameFocused: Bool
+    @FocusState private var focus: SnippetFormField?
 
     init(record: StoredSnippet?, dismiss: @escaping () -> Void) {
         self.dismiss = dismiss
@@ -221,17 +221,19 @@ private struct SnippetEditorSheet: View {
             Text(draft.title)
                 .font(.title2.weight(.bold))
 
-            SnippetNameField(draft: draft, focus: $nameFocused)
-            SnippetKeywordField(draft: draft)
-            SnippetTemplateField(draft: draft)
+            SnippetNameField(draft: draft, focus: $focus)
+            SnippetKeywordField(draft: draft, focus: $focus)
+            SnippetTemplateField(draft: draft, focus: $focus)
 
             VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
                 SnippetOptionToggle(
                     title: "Enabled", isOn: $draft.isEnabled,
-                    detail: "Disabled snippets cannot be expanded.")
+                    detail: "Disabled snippets cannot be expanded.",
+                    field: .enabled, focus: $focus)
                 SnippetOptionToggle(
                     title: "Show confirmation", isOn: $draft.showsConfirmation,
-                    detail: "Confirm on screen after this snippet is inserted.")
+                    detail: "Confirm on screen after this snippet is inserted.",
+                    field: .showsConfirmation, focus: $focus)
             }
 
             if let errorMessage = draft.errorMessage {
@@ -252,7 +254,20 @@ private struct SnippetEditorSheet: View {
         }
         .padding(Theme.Spacing.xxl)
         .frame(width: Theme.Size.editorSheetWidth)
-        .onAppear { nameFocused = true }
+        .onAppear { focus = .name }
+        .onSubmit(save)
+        // ⇥ walks the fields ourselves, so the toggles are stops too and the caret never escapes to
+        // the window chrome, matching the in-palette editor.
+        .onKeyPress(keys: [.tab], phases: .down) { press in
+            advanceFocus(backwards: press.modifiers.contains(.shift))
+            return .handled
+        }
+    }
+
+    private func advanceFocus(backwards: Bool) {
+        let all = SnippetFormField.allCases
+        let index = focus.flatMap { all.firstIndex(of: $0) } ?? 0
+        focus = all[(index + (backwards ? -1 : 1) + all.count) % all.count]
     }
 
     private func save() {
