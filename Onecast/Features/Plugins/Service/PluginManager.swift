@@ -312,6 +312,30 @@ final class PluginManager {
         refresh()
     }
 
+    // MARK: - Import
+
+    /// Copies a folder — a `manifest.json` with Swift sources beside it — into the plugins directory,
+    /// where the directory-watcher compiles and lists it. An existing install of the same folder name
+    /// is replaced. Throws when the folder isn't a plugin or the copy fails.
+    @discardableResult
+    func importPlugin(from source: URL) throws -> PluginInstall {
+        guard PluginCatalog.plugin(at: source) != nil else { throw PluginImportError.notAPlugin }
+        let dest = PluginCatalog.pluginsDirectory()
+            .appendingPathComponent(source.lastPathComponent, isDirectory: true)
+        let fm = FileManager.default
+        do {
+            if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
+            try fm.copyItem(at: source, to: dest)
+        } catch {
+            throw PluginImportError.copyFailed(error.localizedDescription)
+        }
+        guard let installed = PluginCatalog.plugin(at: dest) else {
+            throw PluginImportError.copyFailed("The copied plugin could not be read back.")
+        }
+        refresh()
+        return installed
+    }
+
     // MARK: - Helpers
 
     private func context(query: String, route: [String: String]? = nil) -> PluginContext {
@@ -329,6 +353,20 @@ final class PluginManager {
             row.title.lowercased().contains(needle)
                 || (row.subtitle?.lowercased().contains(needle) ?? false)
                 || row.keywords.contains { $0.lowercased().contains(needle) }
+        }
+    }
+}
+
+enum PluginImportError: LocalizedError {
+    case notAPlugin
+    case copyFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notAPlugin:
+            return "That folder isn’t a plugin — it needs a manifest.json with Swift sources beside it."
+        case .copyFailed(let detail):
+            return "Couldn’t copy the plugin: \(detail)"
         }
     }
 }

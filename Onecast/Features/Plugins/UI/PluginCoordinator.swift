@@ -194,6 +194,30 @@ final class PluginCoordinator {
         }
     }
 
+    /// Settings ▸ Plugins "Import Plugin…": pick a folder and copy it into the plugins directory, where
+    /// the watcher compiles and lists it. Native code runs in-process, so importing needs the feature on.
+    func importPluginFromFolder() {
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Import"
+        panel.message = "Choose a plugin folder — a manifest.json with Swift sources beside it."
+        guard panel.runModal() == .OK, let source = panel.url else { return }
+        do {
+            let install = try plugins.importPlugin(from: source)
+            core.showMessage("Imported \(install.manifest.name)")
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            Task {
+                await core.showNotice(
+                    title: "Couldn’t Import Plugin", message: message,
+                    symbol: "puzzlepiece.extension", tone: .danger)
+            }
+        }
+    }
+
     /// What no index prunes: a shortcut or a rank keyed to a plugin that is now gone.
     func removePluginReferences(entryIDs: [String]) {
         for entryID in entryIDs {

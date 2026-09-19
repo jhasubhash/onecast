@@ -60,24 +60,27 @@ enum PluginCatalog {
             (try? FileManager.default.contentsOfDirectory(
                 at: root, includingPropertiesForKeys: [.isDirectoryKey],
                 options: [.skipsHiddenFiles])) ?? []
-        let decoder = JSONDecoder()
         return
             dirs
-            .compactMap { dir -> PluginInstall? in
-                guard
-                    (try? dir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
-                    let data = try? Data(contentsOf: dir.appendingPathComponent("manifest.json")),
-                    let manifest = try? decoder.decode(PluginManifest.self, from: data)
-                else { return nil }
-                let sources = swiftSources(in: dir)
-                guard !sources.isEmpty else { return nil }
-                return PluginInstall(
-                    manifest: manifest, directory: dir,
-                    sources: sources, sourceHash: fingerprint(of: sources, base: dir))
-            }
+            .compactMap(plugin(at:))
             .sorted {
                 $0.manifest.name.localizedCaseInsensitiveCompare($1.manifest.name) == .orderedAscending
             }
+    }
+
+    /// One directory read as a plugin, or nil when it lacks a readable `manifest.json` or any `.swift`
+    /// source — the same rule `scan` applies per folder, exposed so an import can validate one first.
+    nonisolated static func plugin(at dir: URL) -> PluginInstall? {
+        guard
+            (try? dir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
+            let data = try? Data(contentsOf: dir.appendingPathComponent("manifest.json")),
+            let manifest = try? JSONDecoder().decode(PluginManifest.self, from: data)
+        else { return nil }
+        let sources = swiftSources(in: dir)
+        guard !sources.isEmpty else { return nil }
+        return PluginInstall(
+            manifest: manifest, directory: dir,
+            sources: sources, sourceHash: fingerprint(of: sources, base: dir))
     }
 
     /// Every `.swift` under the plugin folder, sorted for a stable module order. `build`/`.build`

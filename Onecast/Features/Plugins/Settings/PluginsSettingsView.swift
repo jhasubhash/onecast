@@ -38,6 +38,9 @@ struct PluginsSettingsView: View {
                         PluginRowView(install: install)
                     }
                 }
+                Button("Import Plugin…") {
+                    core.pluginCoordinator.importPluginFromFolder()
+                }
                 Button("Reveal Plugins Folder…") {
                     NSWorkspace.shared.activateFileViewerSelecting([PluginCatalog.pluginsDirectory()])
                 }
