@@ -392,7 +392,7 @@ struct RootPaletteView: View {
                 scroll = ScrollIntent(kind: .top)
                 fileSearch.search(vm.query, filter: vm.fileSearchFilter)
             }
-            .onChange(of: vm.mode) {
+            .onChange(of: vm.mode) { old, _ in
                 vm.selection = 0
                 vm.clipboardFilter = .all
                 vm.fileSearchFilter = .all
@@ -401,7 +401,13 @@ struct RootPaletteView: View {
                 vm.fileSearchQuickLook = false
                 if menuOpen { closeMenus() }
                 scroll = ScrollIntent(kind: .top)
-                searchFocused = !screen.hidesSearchField
+                // Leaving `.ai` mounts a new field; `searchFocused` won't re-seat it, so toggle.
+                if old == .ai, !screen.hidesSearchField {
+                    searchFocused = false
+                    Task { @MainActor in searchFocused = true }
+                } else {
+                    searchFocused = !screen.hidesSearchField
+                }
                 // Every way out of the Uninstall screen: back chevron, bare backspace, a fresh summon.
                 if vm.mode != .uninstall { uninstall.cancel() }
                 // Entering with no query is the blank screen's own request for recents.
