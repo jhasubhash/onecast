@@ -170,7 +170,8 @@ Accessibility because it begins from an explicit user action.
 
 `Search Snippets` and `Create Snippet` are launcher commands of their own, and either switch takes
 them out with the rows: "Show in launcher" off means the feature reaches launcher search not at all.
-The browser stays reachable by its global shortcut, and the editor from the pane.
+The browser stays reachable by its global shortcut; the editor opens as an in-palette form from
+`Create Snippet` and the browser's ⌘K, and as a sheet from the pane.
 
 Automatic keyword expansion comes with the feature switch: enabling snippets in
 **Settings → Snippets** first shows an explanation, then stores the flag and requests Accessibility if
@@ -226,8 +227,8 @@ file name and character count.
 which reads `previousApp` before hiding the panel and then calls the same `expandSnippet` funnel a
 launcher row does — so template expansion, cursor placement, the Accessibility prompt, the
 confirmation HUD and the pasteboard lease are the ones described below, not a second copy of them.
-The rest of the menu is **Edit Snippet** and **Create Snippet**, which hand off to the pane's editor
-through `AppCore.pendingSnippetEdit`, and **Show in Finder**.
+The rest of the menu is **Edit Snippet** and **Create Snippet**, which open the in-palette editor form
+(pushed over the browser, so ⎋ returns to it), and **Show in Finder**.
 
 `Create Snippet` is a launcher command as well as a menu row because the palette swallows ⌘K when a
 screen has no rows: an empty library would otherwise open a browser with nothing to do.
@@ -235,7 +236,7 @@ screen has no rows: an empty library would otherwise open a browser with nothing
 ## Confirmation HUD
 
 The confirmation is per snippet and off by default: the only gate is `show_confirmation: true`, set
-from the snippet's editor in **Settings → Snippets**. Nothing about it reaches settings backups.
+from the snippet's editor. Nothing about it reaches settings backups.
 The feature switch — which carries keyword-monitoring consent — is likewise excluded from backups.
 
 `MessageHUDController` is shared rather than snippet-specific. It takes a message and a `DialogTone`

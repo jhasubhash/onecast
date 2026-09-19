@@ -14,14 +14,17 @@ final class QuicklinkCoordinator {
     private let aliases: AliasStore
     private let windowController: PaletteWindowController
     private let paletteCoordinator: PaletteCoordinator
-    private let settingsCoordinator: SettingsCoordinator
     /// `{clipboard offset=N}` reads the history a snippet expansion does; one owner, one depth.
     private let clipboardHistory: @MainActor () -> [String]
-    /// Dialogs, the HUD, and the `pendingQuicklinkEdit` handoff to the Settings pane.
+    /// Dialogs and the HUD; the editor is the launcher's own in-palette form.
     private unowned let core: AppCore
 
     /// The quicklink whose ⌘↵ override must survive the trip to the header's argument fields.
     private var pendingDefaultAppOverride: UUID?
+
+    /// The draft the in-palette editor form binds to, replaced on each open so re-editing shows the
+    /// right quicklink.
+    private(set) var editorDraft = QuicklinkDraft(quicklink: nil)
 
     init(
         store: QuicklinkStore,
@@ -35,7 +38,6 @@ final class QuicklinkCoordinator {
         aliases: AliasStore,
         windowController: PaletteWindowController,
         paletteCoordinator: PaletteCoordinator,
-        settingsCoordinator: SettingsCoordinator,
         clipboardHistory: @escaping @MainActor () -> [String],
         core: AppCore
     ) {
@@ -50,7 +52,6 @@ final class QuicklinkCoordinator {
         self.aliases = aliases
         self.windowController = windowController
         self.paletteCoordinator = paletteCoordinator
-        self.settingsCoordinator = settingsCoordinator
         self.clipboardHistory = clipboardHistory
         self.core = core
     }
@@ -202,15 +203,16 @@ final class QuicklinkCoordinator {
     }
 
     /// Deletes and unwinds every reference; `confirming: false` is for the pane, which asked.
-    func deleteQuicklink(id: UUID, confirming: Bool = true) async {
-        guard let quicklink = store.quicklink(id: id) else { return }
+    @discardableResult
+    func deleteQuicklink(id: UUID, confirming: Bool = true) async -> Bool {
+        guard let quicklink = store.quicklink(id: id) else { return false }
         if confirming, settings.quicklinkConfirmsBeforeDelete {
             guard
                 await core.confirm(
                     title: "Delete “\(quicklink.name)”?",
                     message: "Its shortcut, favorite slot and learned ranking go with it.",
                     symbol: quicklink.iconSymbol ?? Quicklink.sfSymbol, confirmTitle: "Delete")
-            else { return }
+            else { return false }
         }
         // Unwound only once the row is gone: a failed delete must not strand its references.
         do {
@@ -219,9 +221,10 @@ final class QuicklinkCoordinator {
             await core.showNotice(
                 title: "Couldn’t Delete “\(quicklink.name)”", message: error.localizedDescription,
                 symbol: quicklink.iconSymbol ?? Quicklink.sfSymbol, tone: .danger)
-            return
+            return false
         }
         removeQuicklinkReferences(ids: [id], entryIDs: [quicklink.entryID])
+        return true
     }
 
     func toggleQuicklinkPinned(id: UUID) {
@@ -250,10 +253,45 @@ final class QuicklinkCoordinator {
         }
     }
 
-    /// Opens the Quicklinks pane with the editor showing `quicklink`; nil is a new one.
+    /// Opens the in-palette editor form on `quicklink`; nil is a new one. Pushes over an open
+    /// launcher so ⎋ returns to it; a bare entry opens the form as the root.
     func editQuicklink(_ quicklink: Quicklink?) {
-        core.pendingQuicklinkEdit = QuicklinkEditRequest(quicklink: quicklink)
-        settingsCoordinator.showSettings(tab: .quicklinks)
+        editorDraft = QuicklinkDraft(quicklink: quicklink)
+        if paletteCoordinator.isVisible {
+            paletteCoordinator.navigate(to: .quicklinkEditor)
+        } else {
+            paletteCoordinator.showPalette(mode: .quicklinkEditor)
+        }
+    }
+
+    /// The form's primary action: persist the draft, then leave the editor. A refused write keeps
+    /// the form up with the reason, since quicklinks are authored data.
+    func saveEditor() {
+        let draft = editorDraft
+        guard draft.isValid else { return }
+        do {
+            let quicklink = draft.build()
+            if draft.isEditing {
+                try updateQuicklink(quicklink)
+            } else {
+                try addQuicklink(quicklink)
+            }
+            finishEditing()
+            core.showMessage(draft.isEditing ? "Quicklink updated" : "Quicklink created")
+        } catch {
+            draft.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// The editor's ⌘K Delete: remove the quicklink it is open on, then leave once confirmed.
+    func deleteEditing() {
+        guard let id = editorDraft.editingID else { return }
+        Task { if await deleteQuicklink(id: id) { finishEditing() } }
+    }
+
+    /// Back to whatever screen opened the editor, or hide when it was the root.
+    func finishEditing() {
+        paletteCoordinator.closeScreen()
     }
 
     /// Opens the inline rename editor on the quicklink's ⌘K row, seeded with its name; ↵ commits.

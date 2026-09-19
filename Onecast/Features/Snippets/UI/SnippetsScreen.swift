@@ -87,11 +87,9 @@ enum SnippetActionsMenu {
                     core.snippetCoordinator.expandSnippetFromPalette(id: record.id)
                 },
                 PopoverMenuItem(title: "Edit Snippet", systemImage: "pencil", startsSection: true) {
-                    core.paletteCoordinator.hidePalette(restoreFocus: false)
                     core.snippetCoordinator.editSnippet(record)
                 },
                 PopoverMenuItem(title: "Create Snippet", systemImage: "plus") {
-                    core.paletteCoordinator.hidePalette(restoreFocus: false)
                     core.snippetCoordinator.editSnippet(nil)
                 },
                 PopoverMenuItem(title: "Show in Finder", systemImage: "folder", startsSection: true) {

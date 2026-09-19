@@ -189,6 +189,16 @@ Choosing an _arbitrary_ app belongs to the editor, which has a picker; `PopoverM
 with no nesting, so the palette offers the one alternative that always exists — bypass the saved app
 and use the system handler, once, without changing what is saved.
 
+## Editing
+
+`Create Quicklink` and the Search Quicklinks ⌘K **Edit** open the editor as an **in-palette form**,
+not the Settings pane: the launcher panel morphs to host it, the search field is hidden, and the
+palette's own footer carries the actions — **Create Quicklink** / **Save Quicklink** on ↵ and, when
+editing, **Delete** under ⌘K. Pushed over an open launcher, ⎋ returns to it. The pane keeps its own
+sheet for editing from **Settings → Quicklinks**; both hosts bind one `QuicklinkDraft` and render the
+shared `QuicklinkFormControls`, so a field and its validation exist once. Choosing an arbitrary "open
+with" app belongs here, through the picker the flat ⌘K menu cannot offer.
+
 ## Storage
 
 ```text

@@ -11,11 +11,14 @@ final class SnippetCoordinator {
     private let settings: AppSettings
     private let windowController: PaletteWindowController
     private let paletteCoordinator: PaletteCoordinator
-    private let settingsCoordinator: SettingsCoordinator
     /// Routed out so `MessageHUDController` stays owned by `AppCore`.
     private let showMessage: @MainActor (String) -> Void
-    /// The consent dialog and the `pendingSnippetEdit` handoff to the Settings pane.
+    /// The consent dialog and the app's own dialogs.
     private unowned let core: AppCore
+
+    /// The draft the in-palette editor form binds to, replaced on each open so re-editing shows the
+    /// right snippet.
+    private(set) var editorDraft = SnippetDraft(record: nil)
 
     init(
         store: SnippetsStore,
@@ -26,7 +29,6 @@ final class SnippetCoordinator {
         settings: AppSettings,
         windowController: PaletteWindowController,
         paletteCoordinator: PaletteCoordinator,
-        settingsCoordinator: SettingsCoordinator,
         showMessage: @escaping @MainActor (String) -> Void,
         core: AppCore
     ) {
@@ -38,7 +40,6 @@ final class SnippetCoordinator {
         self.settings = settings
         self.windowController = windowController
         self.paletteCoordinator = paletteCoordinator
-        self.settingsCoordinator = settingsCoordinator
         self.showMessage = showMessage
         self.core = core
     }
@@ -106,10 +107,67 @@ final class SnippetCoordinator {
         paletteCoordinator.togglePalette(mode: .snippets)
     }
 
-    /// Opens the Snippets pane with the editor showing `record`; nil is a new snippet.
+    /// Opens the in-palette editor form on `record`; nil is a new snippet. Pushes over an open
+    /// launcher so ⎋ returns to it; a bare entry opens the form as the root.
     func editSnippet(_ record: StoredSnippet?) {
-        core.pendingSnippetEdit = SnippetEditRequest(record: record)
-        settingsCoordinator.showSettings(tab: .snippets)
+        editorDraft = SnippetDraft(record: record)
+        if paletteCoordinator.isVisible {
+            paletteCoordinator.navigate(to: .snippetEditor)
+        } else {
+            paletteCoordinator.showPalette(mode: .snippetEditor)
+        }
+    }
+
+    /// The form's primary action: persist the draft, then leave the editor. A refused write keeps the
+    /// form up with the reason (a revision conflict or a write failure).
+    func saveEditor() {
+        let draft = editorDraft
+        guard draft.isValid else { return }
+        Task {
+            do {
+                if var updated = draft.editingRecord {
+                    updated.snippet = draft.build()
+                    try await store.save(updated)
+                } else {
+                    try await store.create(draft.build())
+                }
+                finishEditing()
+                showMessage(draft.isEditing ? "Snippet updated" : "Snippet created")
+            } catch {
+                draft.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    /// The editor's ⌘K Delete: remove the snippet it is open on, then leave once confirmed.
+    func deleteEditing() {
+        guard let record = editorDraft.editingRecord else { return }
+        Task {
+            guard
+                await core.confirm(
+                    title: "Delete “\(record.snippet.name)”?",
+                    message:
+                        "This removes \(record.fileURL.lastPathComponent) from your snippets folder.",
+                    symbol: "curlybraces", confirmTitle: "Delete")
+            else { return }
+            do {
+                try await store.delete(id: record.id)
+                finishEditing()
+            } catch {
+                editorDraft.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    /// The editor's ⌘K Show in Finder: reveal the file the snippet it is open on is stored in.
+    func revealEditingInFinder() {
+        guard let record = editorDraft.editingRecord else { return }
+        showSnippetInFinder(record)
+    }
+
+    /// Back to whatever screen opened the editor, or hide when it was the root.
+    func finishEditing() {
+        paletteCoordinator.closeScreen()
     }
 
     func showSnippetInFinder(_ record: StoredSnippet) {

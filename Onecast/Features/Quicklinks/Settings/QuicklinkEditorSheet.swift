@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 /// Identifies the editor to present; nil is "add", and the UUID keeps two opens distinct.
@@ -7,73 +6,45 @@ struct QuicklinkEditRequest: Identifiable {
     var quicklink: Quicklink?
 }
 
-/// Add / edit sheet for a single quicklink, presented from the Quicklinks pane.
+/// Add / edit sheet for a single quicklink, hosted by the Quicklinks pane. The launcher's in-palette
+/// editor renders the same controls (`QuicklinkFormControls`) in its own layout; both bind a
+/// `QuicklinkDraft`, so only chrome — title, buttons, width — differs between them.
 struct QuicklinkEditorSheet: View {
-    let quicklink: Quicklink?
+    let dismiss: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
-    @Environment(AppIndex.self) private var appIndex
     @Environment(AppCore.self) private var core
-    @State private var name: String
-    @State private var link: String
-    @State private var iconSymbol: String?
-    @State private var openWithBundleID: String?
-    @State private var showsInRootSearch: Bool
-    @State private var isPinned: Bool
-    @State private var errorMessage: String?
-    @State private var showingAppPicker = false
-    @State private var showingIconPicker = false
+    @State private var draft: QuicklinkDraft
+    @FocusState private var nameFocused: Bool
 
-    init(quicklink: Quicklink?) {
-        self.quicklink = quicklink
-        _name = State(initialValue: quicklink?.name ?? "")
-        _link = State(initialValue: quicklink?.link ?? "")
-        _iconSymbol = State(initialValue: quicklink?.iconSymbol)
-        _openWithBundleID = State(initialValue: quicklink?.openWithBundleID)
-        _showsInRootSearch = State(initialValue: quicklink?.showsInRootSearch ?? true)
-        _isPinned = State(initialValue: quicklink?.isPinned ?? false)
+    init(quicklink: Quicklink?, dismiss: @escaping () -> Void) {
+        self.dismiss = dismiss
+        _draft = State(initialValue: QuicklinkDraft(quicklink: quicklink))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-            Text(quicklink == nil ? "Add Quicklink" : "Edit Quicklink")
+            Text(draft.title)
                 .font(.title2.weight(.bold))
 
-            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-                Text("Name")
-                    .font(.callout.weight(.medium))
-                TextField("Search GitHub", text: $name)
-                    .textFieldStyle(.roundedBorder)
-            }
+            QuicklinkNameField(draft: draft, focus: $nameFocused)
+            QuicklinkLinkField(draft: draft)
 
-            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-                HStack {
-                    Text("Link")
-                        .font(.callout.weight(.medium))
-                    Spacer()
-                    insertMenu
-                }
-                TextField("https://github.com/search?q={argument}", text: $link)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.body.monospaced())
-                destinationPreview
-            }
-
-            HStack(spacing: Theme.Spacing.xl) {
-                iconField
-                openWithField
+            HStack(alignment: .bottom, spacing: Theme.Spacing.xl) {
+                QuicklinkIconField(draft: draft)
+                QuicklinkOpenWithField(draft: draft)
+                Spacer(minLength: 0)
             }
 
             VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
-                optionToggle(
-                    "Show in root search", isOn: $showsInRootSearch,
+                QuicklinkOptionToggle(
+                    title: "Show in root search", isOn: $draft.showsInRootSearch,
                     detail: "List this quicklink alongside apps and commands.")
-                optionToggle(
-                    "Pin to top", isOn: $isPinned,
+                QuicklinkOptionToggle(
+                    title: "Pin to top", isOn: $draft.isPinned,
                     detail: "Keep it above the other quicklinks.")
             }
 
-            if let errorMessage {
+            if let errorMessage = draft.errorMessage {
                 Text(errorMessage)
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -85,171 +56,25 @@ struct QuicklinkEditorSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("Save", action: save)
                     .keyboardShortcut(.defaultAction)
-                    .disabled(trimmed(name).isEmpty || trimmed(link).isEmpty)
+                    .disabled(!draft.isValid)
             }
         }
         .padding(Theme.Spacing.xxl)
         .frame(width: Theme.Size.editorSheetWidth)
-    }
-
-    // MARK: - Fields
-
-    /// The destination as it will be opened: all the feedback a templated link can give.
-    @ViewBuilder
-    private var destinationPreview: some View {
-        let value = trimmed(link)
-        if value.isEmpty {
-            EmptyView()
-        } else if QuicklinkDestination.containsPlaceholder(value) {
-            Text("Resolved when you open it — placeholders are filled in first.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else if let destination = QuicklinkDestination.detect(value) {
-            Label(destination.displayText, systemImage: destination.defaultSymbol)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-        } else {
-            Text("This doesn't look like a URL, file path, or deeplink.")
-                .font(.caption)
-                .foregroundStyle(.orange)
-        }
-    }
-
-    /// Only tokens meaningful in a destination; `{cursor}` and `{snippet:…}` stay literal.
-    private var insertMenu: some View {
-        Menu("Insert…") {
-            Button("Argument") { insert("{argument}") }
-            Button("Named Argument") { insert("{argument name=\"Query\"}") }
-            Divider()
-            Button("Clipboard") { insert("{clipboard}") }
-            Button("Selected Text") { insert("{selection}") }
-            Divider()
-            Button("Date") { insert("{date}") }
-            Button("Time") { insert("{time}") }
-            Button("Date & Time") { insert("{datetime}") }
-            Button("Custom Date Format") { insert("{date format=\"yyyy-MM-dd\"}") }
-            Divider()
-            Button("UUID") { insert("{uuid}") }
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-    }
-
-    private static let iconSymbols = [
-        "globe", "folder", "doc.text", "link", "star", "bookmark", "magnifyingglass", "cart",
-        "envelope", "message", "calendar", "clock", "checklist", "chart.bar", "hammer", "wrench",
-        "ladybug", "terminal", "chevron.left.forwardslash.chevron.right", "cloud", "server.rack",
-        "lock", "person.2", "building.2", "graduationcap", "book", "music.note", "play.rectangle",
-        "photo", "paintbrush", "creditcard", "map"
-    ]
-
-    private var iconField: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text("Icon")
-                .font(.callout.weight(.medium))
-            Button {
-                showingIconPicker = true
-            } label: {
-                HStack(spacing: Theme.Spacing.sm) {
-                    SymbolImage(name: resolvedSymbol, size: 14)
-                    Text(iconSymbol == nil ? "Automatic" : "Custom")
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                }
-                .frame(width: 150)
-            }
-            .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
-                SymbolPicker(
-                    selection: $iconSymbol, fallback: automaticSymbol, symbols: Self.iconSymbols
-                ) {
-                    showingIconPicker = false
-                }
-            }
-        }
-    }
-
-    private var openWithField: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text("Open With")
-                .font(.callout.weight(.medium))
-            Button {
-                showingAppPicker = true
-            } label: {
-                HStack(spacing: Theme.Spacing.sm) {
-                    if let openWithBundleID {
-                        let app = AppPresentation.resolve(bundleID: openWithBundleID, in: appIndex)
-                        Image(nsImage: app.icon).resizable().frame(width: 16, height: 16)
-                        Text(app.name).lineLimit(1)
-                    } else {
-                        Text("Default app")
-                    }
-                    Spacer(minLength: 0)
-                }
-                .frame(width: 180)
-            }
-            .popover(isPresented: $showingAppPicker, arrowEdge: .bottom) {
-                AppPickerPopover(clearTitle: "Default app") { bundleID in
-                    openWithBundleID = bundleID
-                    showingAppPicker = false
-                }
-            }
-        }
-    }
-
-    private func optionToggle(_ title: String, isOn: Binding<Bool>, detail: String) -> some View {
-        Toggle(isOn: isOn) {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                Text(title)
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .toggleStyle(.checkbox)
-    }
-
-    // MARK: - Behaviour
-
-    private var automaticSymbol: String {
-        QuicklinkDestination.detect(trimmed(link))?.defaultSymbol ?? Quicklink.sfSymbol
-    }
-
-    private var resolvedSymbol: String { iconSymbol ?? automaticSymbol }
-
-    private func insert(_ token: String) {
-        link += token
-    }
-
-    private func trimmed(_ value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines)
+        .onAppear { nameFocused = true }
     }
 
     private func save() {
-        // Editing keeps the UUID, and with it the quicklink's shortcut, favorite and visibility.
-        let existing = quicklink
-        let draft = Quicklink(
-            id: existing?.id ?? UUID(), name: name, link: link,
-            openWithBundleID: openWithBundleID, iconSymbol: iconSymbol,
-            // The pane's row owns the checkbox; an edit carries the flag rather than resetting it.
-            isEnabled: existing?.isEnabled ?? true,
-            showsInRootSearch: showsInRootSearch,
-            // Re-pinning keeps the original stamp, so saving an edit doesn't move the row.
-            pinnedAt: isPinned ? (existing?.pinnedAt ?? Date()) : nil,
-            createdAt: existing?.createdAt ?? Date())
         do {
-            if existing == nil {
-                try core.quicklinkCoordinator.addQuicklink(draft)
+            let quicklink = draft.build()
+            if draft.isEditing {
+                try core.quicklinkCoordinator.updateQuicklink(quicklink)
             } else {
-                try core.quicklinkCoordinator.updateQuicklink(draft)
+                try core.quicklinkCoordinator.addQuicklink(quicklink)
             }
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            draft.errorMessage = error.localizedDescription
         }
     }
 }
-
-/// A small fixed grid, not a symbol browser; "Automatic" is first, being the better default.

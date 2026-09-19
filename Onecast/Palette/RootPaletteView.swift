@@ -115,6 +115,10 @@ struct RootPaletteView: View {
                 openActions: openActions)
         case .schedulerEditor:
             return SchedulerEditorScreen(coordinator: core.schedulerEditorCoordinator, vm: vm)
+        case .quicklinkEditor:
+            return QuicklinkEditorScreen(coordinator: core.quicklinkCoordinator, vm: vm)
+        case .snippetEditor:
+            return SnippetEditorScreen(coordinator: core.snippetCoordinator, vm: vm)
         case .extensionCommand:
             return ExtensionCommandScreen(
                 screen: extensionScreen, extensions: extensions, vm: vm, openActions: openActions)

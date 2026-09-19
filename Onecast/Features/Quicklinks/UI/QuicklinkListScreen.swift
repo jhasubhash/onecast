@@ -137,7 +137,6 @@ enum QuicklinkActionsMenu {
         }
         items.append(
             PopoverMenuItem(title: "Edit Quicklink", systemImage: "pencil", startsSection: true) {
-                core.paletteCoordinator.hidePalette(restoreFocus: false)
                 core.quicklinkCoordinator.editQuicklink(quicklink)
             })
         items.append(

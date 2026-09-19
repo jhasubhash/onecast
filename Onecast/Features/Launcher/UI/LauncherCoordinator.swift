@@ -224,7 +224,6 @@ final class LauncherCoordinator {
         case .searchSnippets:
             snippetCoordinator.showSnippets()
         case .createSnippet:
-            dismissPalette()
             snippetCoordinator.editSnippet(nil)
         case .createScheduledTask:
             core.schedulerEditorCoordinator.createTask()
@@ -235,7 +234,6 @@ final class LauncherCoordinator {
             dismissPalette()
             windowLayoutCoordinator.captureWindowLayout()
         case .createQuicklink:
-            dismissPalette()
             quicklinkCoordinator.editQuicklink(nil)
         case .importQuicklinks:
             dismissPalette()
