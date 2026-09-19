@@ -84,6 +84,12 @@ struct LauncherList: View {
             + fallbacks.entries.enumerated().map { Row.fallback($1, index: $0) }
     }
 
+    /// The launcher's section order, derived from an exhaustive rank so a kind can never be dropped:
+    /// `AppEntry.Kind.launcherSectionRank` is a `switch` that fails to compile until a new case is
+    /// placed. Computed once, not per render.
+    private static let sectionOrder: [AppEntry.Kind] =
+        AppEntry.Kind.allCases.sorted { $0.launcherSectionRank < $1.launcherSectionRank }
+
     private var rows: [Row] {
         var cardRows: [Row] = []
         if let card { cardRows = [.header(card.sectionTitle), .card(card)] }
@@ -104,22 +110,12 @@ struct LauncherList: View {
                     .app($1, slot: FavoriteSlots.digit(at: $0))
                 })
         }
-        // Publication order, so rows match the flat index.
-        let kinds: [AppEntry.Kind] = [
-            .meeting, .application, .systemSettings, .extensionCommand, .plugin, .quicklink, .appleShortcut,
-            .snippet, .systemAction, .windowLayout, .windowCommand, .customCommand, .quickAction,
-            .command
-        ]
-        for kind in kinds {
+        // Every kind that has entries, in section order; see `sectionOrder`.
+        for kind in Self.sectionOrder {
             guard let group = grouped[kind], !group.isEmpty else { continue }
             rows.append(.header(kind.descriptor.sectionTitle))
             rows.append(contentsOf: group.map { .app($0, slot: nil) })
         }
-        // A missing kind would make every later row activate its neighbour: assert instead.
-        assert(
-            grouped.keys.allSatisfy(kinds.contains),
-            "kind missing from the launcher's section order: "
-                + grouped.keys.filter { !kinds.contains($0) }.map(\.rawValue).joined(separator: ", "))
         return rows + fallbackRows
     }
 
@@ -184,6 +180,32 @@ struct LauncherList: View {
                         scroll, row: selectedRowID, atOrigin: firstRowSelected, proxy: proxy)
                 }
             }
+        }
+    }
+}
+
+extension AppEntry.Kind {
+    /// The launcher's section order. An exhaustive `switch`, so adding a `Kind` is a compile error
+    /// here until it is given a position — the grouped list can never silently drop a kind (the bug
+    /// the old runtime assert only caught, and only at render time).
+    fileprivate var launcherSectionRank: Int {
+        switch self {
+        case .meeting: 0
+        case .application: 1
+        case .systemSettings: 2
+        case .extensionCommand: 3
+        case .plugin: 4
+        case .quicklink: 5
+        case .appleShortcut: 6
+        case .snippet: 7
+        case .systemAction: 8
+        case .windowLayout: 9
+        case .windowCommand: 10
+        case .customCommand: 11
+        case .scheduledTask: 12
+        case .assistant: 13
+        case .quickAction: 14
+        case .command: 15
         }
     }
 }
