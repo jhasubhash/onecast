@@ -39,17 +39,48 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
 
     /// Opens `install`'s current view as a standalone window, restoring it through `route`. A window
     /// already showing this exact route is raised instead of duplicated.
-    func open(install: PluginInstall, route: PluginRoute, activating: Bool = true) {
+    func open(
+        install: PluginInstall, route: PluginRoute, activating: Bool = true,
+        allSpaces: Bool = false, keepInFront: Bool = false
+    ) {
         let key = PluginRouteURL.encode(identifier: install.manifest.identifier, payload: route.payload)
         if let existing = windows[key] {
             if activating { existing.panel.makeKeyAndOrderFront(nil) }
             existing.panel.orderFrontRegardless()
             return
         }
+        // Build off-main — a cold cache would otherwise block the launch that restores saved windows.
+        Task { [weak self] in
+            let built = await Task.detached(priority: .userInitiated) {
+                PluginBuilder.buildResult(install)
+            }.value
+            guard let self else { return }
+            if let existing = self.windows[key] {  // opened while we were building
+                if activating { existing.panel.makeKeyAndOrderFront(nil) }
+                existing.panel.orderFrontRegardless()
+                return
+            }
+            switch built {
+            case .failure:
+                self.core.showMessage(
+                    "Couldn't open \(install.manifest.name) in a window", tone: .danger)
+            case .success(let dylib):
+                self.present(
+                    install: install, route: route, key: key, dylib: dylib,
+                    activating: activating, allSpaces: allSpaces, keepInFront: keepInFront)
+            }
+        }
+    }
 
+    /// Loads the built plugin and puts its window on screen — the main-actor half, run after the
+    /// build resolves, so a compile never blocks the launcher or the restore.
+    private func present(
+        install: PluginInstall, route: PluginRoute, key: String, dylib: URL,
+        activating: Bool, allSpaces: Bool, keepInFront: Bool
+    ) {
         let plugin: any OnecastPlugin
         do {
-            plugin = try PluginLoader.load(install)
+            plugin = try PluginLoader.load(install, builtDylib: dylib)
         } catch {
             core.showMessage("Couldn't open \(install.manifest.name) in a window", tone: .danger)
             return
@@ -91,6 +122,8 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
         }
 
         windows[key] = Entry(panel: panel, plugin: plugin)
+        if allSpaces { setShowsOnAllSpaces(true, key: key) }
+        if keepInFront { setKeepsInFront(true, key: key) }
         if activating { panel.makeKeyAndOrderFront(nil) }
         panel.orderFrontRegardless()
         persist()
@@ -116,9 +149,9 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
             guard let route = PluginRouteURL.decode(saved.route),
                 let install = core.plugins.install(forIdentifier: route.identifier)
             else { continue }
-            open(install: install, route: PluginRoute(payload: route.payload, title: ""), activating: false)
-            if saved.allSpaces { setShowsOnAllSpaces(true, key: saved.route) }
-            if saved.keepInFront { setKeepsInFront(true, key: saved.route) }
+            open(
+                install: install, route: PluginRoute(payload: route.payload, title: ""),
+                activating: false, allSpaces: saved.allSpaces, keepInFront: saved.keepInFront)
         }
         persist()
     }

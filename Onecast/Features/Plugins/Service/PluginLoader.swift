@@ -19,7 +19,7 @@ enum PluginLoadError: LocalizedError {
     }
 }
 
-/// Loads a plugin's dylib and hands back its instance.
+/// Loads a plugin's freshly built dylib and hands back its instance.
 ///
 /// dlopen caches by path and a Swift dylib can't be safely dlclosed while its types are still
 /// referenced, so opening a *rebuilt* plugin from its canonical path would return the stale image
@@ -30,8 +30,8 @@ enum PluginLoadError: LocalizedError {
 /// quits.
 enum PluginLoader {
     @MainActor
-    static func load(_ install: PluginInstall) throws -> any OnecastPlugin {
-        let path = stagedCopy(of: install) ?? install.dylibURL.path
+    static func load(_ install: PluginInstall, builtDylib: URL) throws -> any OnecastPlugin {
+        let path = stagedCopy(install, dylib: builtDylib) ?? builtDylib.path
         guard let handle = dlopen(path, RTLD_NOW | RTLD_LOCAL) else {
             throw PluginLoadError.openFailed(dlerror().map { String(cString: $0) } ?? "unknown error")
         }
@@ -45,14 +45,14 @@ enum PluginLoader {
         return plugin
     }
 
-    /// Copies the dylib to `…/onecast-plugin-<identifier>-<sha>.dylib`, reusing an identical
+    /// Copies the built dylib to `…/onecast-plugin-<identifier>-<sha>.dylib`, reusing an identical
     /// existing copy and sweeping older ones for the same plugin. Returns nil on any failure, so
     /// the caller falls back to the canonical path. The ad-hoc signature is content-based, so the
     /// copy stays valid, and `@rpath/OnecastPluginKit.framework` resolves via the host executable
     /// regardless of where the dylib sits.
-    private static func stagedCopy(of install: PluginInstall) -> String? {
+    private static func stagedCopy(_ install: PluginInstall, dylib: URL) -> String? {
         let fm = FileManager.default
-        guard let data = try? Data(contentsOf: install.dylibURL) else { return nil }
+        guard let data = try? Data(contentsOf: dylib) else { return nil }
         let sha = SHA256.hash(data: data).prefix(8)
             .map { String(format: "%02x", $0) }.joined()
         let slug =

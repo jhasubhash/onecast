@@ -74,6 +74,30 @@ targets:
         Debug:
           PRODUCT_NAME: Onecast Dev
           PRODUCT_BUNDLE_IDENTIFIER: com.onecast.app.dev
+    # Xcode strips OnecastPluginKit's Swift module when it embeds the framework, leaving the shipped
+    # copy with no `.swiftinterface` — so the app couldn't compile a plugin against its own framework.
+    # Restore just the stable textual interface (the binary swiftmodule is compiler-version-specific
+    # and would shadow it), wire the top-level `Modules` symlink, and re-sign so the seal stays valid.
+    postBuildScripts:
+      - name: Restore OnecastPluginKit interface
+        basedOnDependencyAnalysis: false
+        shell: /bin/bash
+        script: |
+          set -euo pipefail
+          fw="${CODESIGNING_FOLDER_PATH}/Contents/Frameworks/OnecastPluginKit.framework"
+          src="${BUILT_PRODUCTS_DIR}/OnecastPluginKit.framework/Versions/A/Modules"
+          [ -d "$src" ] && [ -d "$fw" ] || exit 0
+          dst="$fw/Versions/A/Modules"
+          rm -rf "$dst"; mkdir -p "$dst"
+          cp -R "$src/" "$dst/"
+          find "$dst" -type f ! -name '*.swiftinterface' ! -name '*.swiftdoc' -delete
+          ln -sfh "Versions/Current/Modules" "$fw/Modules"
+          id="${EXPANDED_CODE_SIGN_IDENTITY:--}"
+          if [ "${ENABLE_HARDENED_RUNTIME:-NO}" = "YES" ]; then
+            codesign --force --sign "$id" --options runtime "$fw"
+          else
+            codesign --force --sign "$id" "$fw"
+          fi
 
   ClipboardTextHelper:
     type: tool

@@ -544,7 +544,7 @@ enum SettingsSearchCatalog {
     private static let plugins: [SettingsSearchEntry] = [
         .init(
             pane: .plugins,
-            keywords: ["native", "swift", "dylib", "compiled", "plugin"])
+            keywords: ["native", "swift", "source", "compiled", "plugin"])
     ]
 
     private static let scheduler: [SettingsSearchEntry] = [

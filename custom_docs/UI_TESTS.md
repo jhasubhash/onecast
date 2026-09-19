@@ -30,12 +30,13 @@ would have caught it.
 | What changed | Command | Restart |
 | --- | --- | --- |
 | The app | the Debug `xcodebuild` line in [CUSTOM.md](CUSTOM.md) | yes |
-| A native plugin | `extensions/<name>/build.sh install` | yes — dylibs load at launch |
+| A native plugin | copy `manifest.json` + `.swift` into `…/plugins/<name>/` (the app compiles it) | leave & reopen the plugin, or restart |
 | A Raycast extension | `npm run ship` (build + `install.sh`) | rescan in Settings, or restart |
 
-Two traps: a `OnecastPluginKit` signature change (even a defaulted init param) breaks every
-installed plugin — rebuild *all* of them. Restart via `pkill`; closing the palette leaves the old
-dylib loaded.
+Two traps: a `OnecastPluginKit` signature change (even a defaulted init param) invalidates every
+cached plugin build — the app rebuilds each against the new framework on the next scan, but a plugin
+already running keeps its old mapped image, so `pkill` and relaunch to be sure. Closing the palette
+alone leaves the loaded dylib mapped.
 
 ```sh
 pkill -f "Onecast Dev.app/Contents/MacOS"; sleep 2

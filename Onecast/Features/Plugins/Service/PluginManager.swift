@@ -54,6 +54,7 @@ final class PluginManager {
     @ObservationIgnored private weak var appIndex: AppIndex?
     @ObservationIgnored private var loaded: (any OnecastPlugin)?
     @ObservationIgnored private var runningID: String?
+    @ObservationIgnored private var launchToken = 0
     @ObservationIgnored private var environment = PluginEnvironment()
     @ObservationIgnored private var directoryWatcher: DispatchSourceFileSystemObject?
     @ObservationIgnored private var watcherGeneration = 0
@@ -81,9 +82,9 @@ final class PluginManager {
 
     // MARK: - Live install detection
 
-    /// Watches the plugins folder so a plugin dropped in while Onecast runs appears without a
-    /// relaunch. Mirrors `SnippetsStore`'s directory watcher. Updating a *loaded* dylib still needs
-    /// a restart — `dlopen` reference-counts and the old image stays mapped.
+    /// Watches the plugins folder so a plugin dropped in — or a source file edited — while Onecast
+    /// runs is picked up without a relaunch: the debounced rescan rebuilds it, and reopening the
+    /// plugin maps the fresh dylib. The running session keeps its current image until you leave it.
     private func armDirectoryWatcher() {
         directoryWatcher?.cancel()
         let descriptor = Darwin.open(PluginCatalog.pluginsDirectory().path, O_EVTONLY)
@@ -138,6 +139,16 @@ final class PluginManager {
             self.installed = found
             self.publishLauncherEntries()
             self.onDidRefresh?()
+            self.prewarm(found)
+        }
+    }
+
+    /// Compiles every installed plugin ahead of first use, off-main, so launching one is instant and
+    /// an edit the watcher caught is already built by the time it reopens. A failure is ignored here —
+    /// a launch surfaces the compiler diagnostic if the plugin is genuinely broken.
+    private func prewarm(_ installs: [PluginInstall]) {
+        Task.detached(priority: .utility) {
+            for install in installs { _ = try? PluginBuilder.build(install) }
         }
     }
 
@@ -177,27 +188,47 @@ final class PluginManager {
 
     // MARK: - Session
 
-    /// Loads the plugin and enters its root. Any previous session is torn down first, exactly as
-    /// `ExtensionManager.run` does, so an orphaned surface never outlives the switch.
+    /// Builds the plugin off-main, then loads it and enters its root. Any previous session is torn
+    /// down first, exactly as `ExtensionManager.run` does, so an orphaned surface never outlives the
+    /// switch, and a stale build finishing after a newer launch is dropped via the launch token.
     func launch(_ install: PluginInstall, environment: PluginEnvironment, route: [String: String]? = nil) {
         stop()
         self.environment = environment
         state = .loading
-        do {
-            let plugin = try PluginLoader.load(install)
-            loaded = plugin
-            runningID = install.id
-            metadata = type(of: plugin).metadata
-            // A surface plugin opens straight into its screen; no root row list to step through.
-            if let root = plugin.rootSurface(context: context(query: "", route: route)) {
-                levels = [.surface(id: "__root__", view: root)]
-            } else {
-                levels = [.root]
-            }
-            plugin.bind { [weak self] in self?.reloadRows() }
-            state = .active
-        } catch {
+        runningID = install.id
+        launchToken &+= 1
+        let token = launchToken
+        Task { [weak self] in
+            let built = await Task.detached(priority: .userInitiated) {
+                PluginBuilder.buildResult(install)
+            }.value
+            guard let self, self.launchToken == token else { return }
+            self.finishLaunch(install, built: built, route: route)
+        }
+    }
+
+    private func finishLaunch(
+        _ install: PluginInstall, built: Result<URL, PluginBuildError>, route: [String: String]?
+    ) {
+        switch built {
+        case .failure(let error):
             state = .failed(error.localizedDescription)
+        case .success(let dylib):
+            do {
+                let plugin = try PluginLoader.load(install, builtDylib: dylib)
+                loaded = plugin
+                metadata = type(of: plugin).metadata
+                // A surface plugin opens straight into its screen; no root row list to step through.
+                if let root = plugin.rootSurface(context: context(query: "", route: route)) {
+                    levels = [.surface(id: "__root__", view: root)]
+                } else {
+                    levels = [.root]
+                }
+                plugin.bind { [weak self] in self?.reloadRows() }
+                state = .active
+            } catch {
+                state = .failed(error.localizedDescription)
+            }
         }
     }
 

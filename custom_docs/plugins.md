@@ -1,8 +1,9 @@
 # Native plugins
 
-Onecast loads **native Swift plugins** — compiled dynamic libraries that render into the command
-palette with SwiftUI. This is separate from [extensions](../docs/features/extensions.md), which run
-Raycast's JavaScript in JavaScriptCore. A plugin is first-party Swift the user builds and trusts.
+Onecast loads **native Swift plugins** — SwiftUI the app **compiles from source** and renders into
+the command palette. This is separate from [extensions](../docs/features/extensions.md), which run
+Raycast's JavaScript in JavaScriptCore. A plugin is first-party Swift the user drops in and trusts;
+the develop → build → install workflow is [plugins_and_extensions.md](../docs/plugins_and_extensions.md).
 
 **Trust model.** A plugin runs **in-process, unsandboxed, with the app's full privileges**
 (Accessibility, Automation, the lot) — the same trust model BetterTouchTool states for its Swift
@@ -18,11 +19,12 @@ can load under the hardened runtime.
 ## Invariants
 
 - **The contract is the framework, and there is exactly one copy.** `OnecastPluginKit.framework`
-  is built by this project and embedded in the app. A plugin links *that* framework — never a
-  vendored copy — so a plugin's `OnecastPlugin` and the host's are the **same** type across the
-  `dlopen` boundary. Two copies would give two unrelated protocols and every cast would fail.
-- **A plugin is prebuilt, never compiled by the app.** The app `dlopen`s a finished `.dylib`; it
-  never shells out to `swiftc`. This mirrors extensions ("run `ray build` first").
+  is built by this project and embedded in the app. Every plugin compiles against *that* embedded
+  framework, so a plugin's `OnecastPlugin` and the host's are the **same** type across the `dlopen`
+  boundary. Two copies would give two unrelated protocols and every cast would fail.
+- **The app compiles a plugin from source, on demand.** `PluginBuilder` shells out to `swiftc`
+  (through `xcrun`) against the embedded framework, ad-hoc signs the dylib, and caches it keyed on a
+  source fingerprint — no author-run build step, and no prebuilt dylib in the folder.
 - **`PluginManager` is the sole owner of the running session**, wired on `AppCore` in `start()`.
   It never touches a window; `PluginCoordinator` owns every palette move.
 - **A plugin surfaces as exactly one launcher row** (`AppEntry.Kind.plugin`). Activating it enters
@@ -35,15 +37,16 @@ can load under the hardened runtime.
 ## How it fits together
 
 ```
-┌ Plugin dylib (built by the author) ──────────────────────────────┐
+┌ Plugin sources (the author writes; the app builds) ──────────────┐
 │  final class MyPlugin: NSObject, OnecastPlugin { … }             │
 │  @_cdecl("onecastPluginCreate") -> OnecastPluginRuntime.export  │
 │  links → @rpath/OnecastPluginKit.framework                       │
 └───────────────────────────────┬──────────────────────────────────┘
                                  │ dlopen + dlsym("onecastPluginCreate")
 ┌ Host (Onecast) ──────────────▼──────────────────────────────────┐
+│ PluginBuilder  swiftc vs. the embedded framework, sign, cache dylib│
 │ PluginLoader   dlopen, cast the opaque pointer to OnecastPlugin  │
-│ PluginCatalog  scans …/plugins/<name>/manifest.json → PluginInstall│
+│ PluginCatalog  scans …/plugins/<name>/ (manifest + .swift) → Install│
 │ PluginManager  @Observable session: rows, children, surface, run  │
 │ PluginScreen   a PaletteScreen; hosts the plugin's list or AnyView │
 │ PluginCoordinator  launch, navigate, exit, consent, uninstall     │
@@ -54,9 +57,10 @@ can load under the hardened runtime.
 Files: `OnecastPluginKit/` (the framework), `Onecast/Features/Plugins/` (the host feature).
 
 Installed plugins live at `~/Library/Application Support/<bundle id>/plugins/<name>/`, each a
-folder with a `manifest.json` and the dylib it names. The bundle id is per channel — `Onecast
-Dev.app` is `com.onecast.app.dev`, a release build is `com.onecast.app` — so a dev build never
-shares plugins with a release build.
+folder with a `manifest.json` and the `.swift` sources beside it. The bundle id is per channel —
+`Onecast Dev.app` is `com.onecast.app.dev`, a release build is `com.onecast.app` — so a dev build
+never shares plugins with a release build. Built dylibs are cached separately under
+`~/Library/Caches/<bundle id>/PluginBuilds/`.
 
 ## The plugin contract
 
@@ -125,44 +129,28 @@ and JS extensions render (the app builds it in `RootPaletteView.bottomBar` with 
 — give scroll views `.contentMargins(.bottom, …)` so the last row clears it.
 
 The full authoring guide — focus/layout gotchas and a worked example — lives beside the plugins:
-`onecast_addons/extensions/SWIFT_PLUGINS.md`. The worked row-model example is
-[`hello-plugin`](../../onecast_addons/extensions/hello-plugin/) — a run action, a drill-in child
-list, a SwiftUI surface and an external link, all in one plugin. The worked surface-only example is
-[`stock-quotes-plugin`](../../onecast_addons/extensions/stock-quotes-plugin/).
+`onecast_addons/plugins/SWIFT_PLUGINS.md`. The worked row-model example is
+[`hello`](../../onecast_addons/plugins/hello/) — a run action, a drill-in child list, a SwiftUI
+surface and an external link, all in one plugin. The worked surface-only example is
+[`stock-quotes`](../../onecast_addons/plugins/stock-quotes/).
 
 ## Build a plugin
 
-Compile against the **build-products** `OnecastPluginKit.framework`, not the copy embedded in the
-app — Xcode strips its Swift `Modules/` on embed. Build Onecast once to produce a compilable copy:
+There is no build step you run — the app compiles the plugin. A plugin is a folder with a
+`manifest.json` and its `.swift` sources; drop it into the plugins directory and Onecast builds it
+against its own embedded framework. The end-to-end workflow, the caching and the toolchain
+requirement are in [plugins_and_extensions.md](../docs/plugins_and_extensions.md).
 
-```sh
-cd ~/Developer/onecast
-xcodebuild -project Onecast.xcodeproj -scheme Onecast -configuration Debug \
-    -derivedDataPath build/DerivedData build
-```
-
-| | Path |
-|---|---|
-| Framework to compile against | `build/DerivedData/Build/Products/Debug/OnecastPluginKit.framework` |
-| The app to load into | `build/DerivedData/Build/Products/Debug/Onecast Dev.app` (`com.onecast.app.dev`) |
-
-Verify the framework carries its module (the thing that trips people up) — if this path is
-missing, you're looking at a stripped copy; rebuild Onecast:
-
-```sh
-ls "$HOME/Developer/onecast/build/DerivedData/Build/Products/Debug/OnecastPluginKit.framework/Versions/A/Modules/OnecastPluginKit.swiftmodule"
-```
-
-**Folder layout** (anywhere; the shipped samples live in `onecast_addons/extensions/`):
+**Folder layout** — the source sits beside the manifest (any `.swift` under the folder is compiled
+as one module; a `Sources/` tree also works):
 
 ```
 my-plugin/
-├── Sources/MyPlugin/MyPlugin.swift
-├── manifest.json
-└── build.sh
+├── MyPlugin.swift
+└── manifest.json
 ```
 
-**A minimal plugin** — a surface-only shape (`Sources/MyPlugin/MyPlugin.swift`):
+**A minimal plugin** — a surface-only shape (`MyPlugin.swift`):
 
 ```swift
 import AppKit
@@ -202,85 +190,46 @@ public func onecastPluginCreate() -> UnsafeMutableRawPointer {
 ```
 
 For the row-model shape instead, implement `results(for:)` and `perform(resultID:context:)` per
-the contract above — see `hello-plugin`.
+the contract above — see `hello`.
 
-**The manifest** (`manifest.json`) — the launcher row's identity and the dylib it loads:
+**The manifest** (`manifest.json`) — the launcher row's identity:
 
 ```json
 {
   "name": "My Plugin",
   "identifier": "com.example.my",
   "subtitle": "A native SwiftUI plugin",
-  "icon": "star",
-  "dylib": "libMyPlugin.dylib"
+  "icon": "star"
 }
 ```
 
-`icon` is an SF Symbol name; `dylib` must match the file `build.sh` produces.
+`name` and `identifier` are required; `subtitle`, `icon` (an SF Symbol) and `module` (the Swift
+`-module-name`, derived from `name` when omitted) are optional.
 
-**The build script.** One `swiftc` line, wrapped in a `build.sh`
-([see the sample's](../../onecast_addons/extensions/hello-plugin/build.sh)). Two subtleties it
-handles:
-
-- **`-F` points at the build-products framework** (the one with `Modules/`), never the app's copy.
-- **`-rpath @executable_path/../Frameworks`** — in a `dlopen`ed dylib, `@executable_path` is the
-  *host* (Onecast) executable, so this resolves the plugin's `@rpath` framework dependency to the
-  framework already loaded inside the app. No second copy is loaded.
+**Install, enable, run.** Copy the folder's contents into the per-channel plugins directory:
 
 ```sh
-#!/bin/bash
-set -euo pipefail
-cd "$(dirname "$0")"
-
-NAME="MyPlugin"
-DYLIB="libMyPlugin.dylib"
-APP="${ONECAST_APP:-$HOME/Developer/onecast/build/DerivedData/Build/Products/Debug/Onecast Dev.app}"
-FW="${ONECAST_FRAMEWORKS:-$HOME/Developer/onecast/build/DerivedData/Build/Products/Debug}"
-
-mkdir -p build
-swiftc -emit-library -O \
-  -module-name "$NAME" \
-  -F "$FW" -framework OnecastPluginKit \
-  -Xlinker -rpath -Xlinker "@executable_path/../Frameworks" \
-  -o "build/$DYLIB" \
-  Sources/MyPlugin/*.swift
-
-# Ad-hoc sign so the hardened runtime will load it (the host disables library validation).
-codesign --force --sign - "build/$DYLIB"
-echo "built build/$DYLIB"
-
-if [[ "${1:-}" == "install" ]]; then
-  BID="$(defaults read "$APP/Contents/Info" CFBundleIdentifier)"
-  DEST="$HOME/Library/Application Support/$BID/plugins/my-plugin"
-  mkdir -p "$DEST"
-  cp "build/$DYLIB" manifest.json "$DEST/"
-  echo "installed to $DEST"
-fi
+DEST="$HOME/Library/Application Support/com.onecast.app.dev/plugins/my-plugin"
+mkdir -p "$DEST" && cp manifest.json MyPlugin.swift "$DEST/"
 ```
 
-**Build, install, enable, run:**
+Open Onecast → **Settings → Plugins** and turn plugins on (it confirms the first time — plugins are
+unsandboxed native code), then summon the palette and search for the plugin by name. Activating its
+row enters the plugin's own mode, where it owns the whole screen. Building needs a Swift toolchain
+(Xcode or the Command Line Tools); a compile error surfaces in the palette where the plugin would run.
 
-```sh
-chmod +x build.sh
-./build.sh            # -> build/libMyPlugin.dylib, ad-hoc signed
-./build.sh install    # copies dylib + manifest.json into the per-channel plugins folder
-```
-
-Open Onecast → **Settings → Plugins** and turn plugins on (it confirms the first time — plugins
-are unsandboxed native code), then summon the palette and search for the plugin by name.
-Activating its row enters the plugin's own mode, where it owns the whole screen.
-
-## Installing while Onecast runs
+## Installing and editing while Onecast runs
 
 `PluginManager` watches the plugins folder with a `DispatchSourceFileSystemObject` (the same idiom
-as `SnippetsStore`), so a plugin dropped in — e.g. by `build.sh install` — appears in the launcher
-within a moment, no relaunch needed. The rescan is debounced, so a burst of file copies from one
-install collapses into a single refresh.
+as `SnippetsStore`), so a plugin dropped in — or a source file edited — appears and rebuilds within
+a moment, no relaunch needed. The rescan is debounced, so a burst of file copies from one install
+collapses into a single refresh, and each installed plugin is pre-warmed off-main so launching it is
+instant.
 
-The one case a restart is still required: **updating a plugin that is already loaded.** Once a
-plugin has been launched this session its dylib is mapped, and `dlopen` reference-counts —
-rebuilding the same path won't replace the running image. Quit and reopen Onecast to pick up a
-rebuilt dylib.
+A rebuild needs no app relaunch: `PluginLoader` maps a **content-addressed** copy of the built dylib,
+so fresh bytes load on the next open. The one holdover — a plugin already running *this session*
+keeps its mapped image until you leave it and reopen, because `dlopen` reference-counts and the old
+image stays until the session is torn down.
 
 ## Pop-out windows
 
@@ -312,8 +261,8 @@ and restores its content; a surface with no route offers no Pop Out.
 
 | Symptom | Cause & fix |
 |---|---|
-| `swiftc` error: no such module `OnecastPluginKit` | `-F` points at the stripped app copy. Point it at the build-products `OnecastPluginKit.framework` (the one with `Modules/`), or rebuild Onecast. |
-| Plugin row never appears | Plugins disabled (Settings → Plugins), or `manifest.json`/dylib not in `…/Application Support/<bundle id>/plugins/<name>/`, or `dylib` in the manifest doesn't match the built filename. |
-| Loads but casts fail / crashes at launch | A vendored/duplicate `OnecastPluginKit` was linked. There must be exactly one framework across the `dlopen` boundary — always the build-products copy. |
-| Rebuild has no effect | The old dylib is still mapped. Quit and reopen Onecast (see above). |
-| Won't load under the hardened runtime | The dylib isn't signed. `codesign --force --sign - build/libMyPlugin.dylib` (the build script does this). |
+| Build fails: "No Swift toolchain found" | Install Xcode or the Command Line Tools (`xcode-select --install`). |
+| Plugin row never appears | Plugins disabled (Settings → Plugins), or the folder under `…/Application Support/<bundle id>/plugins/<name>/` has no `manifest.json` or no `.swift` source. |
+| Build fails with a compiler error | The diagnostic shows in the palette where the plugin would run — fix the source; the watcher rebuilds on save. |
+| Rebuild not reflected in a running plugin | Its image is still mapped for this session — leave the plugin and reopen it (no app relaunch needed). |
+| "OnecastPluginKit's module interface is missing" | The app build didn't restore the embedded interface — rebuild Onecast (the `project.yml` post-build step does it). |

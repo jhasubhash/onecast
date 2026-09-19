@@ -428,6 +428,7 @@
 		9C4B31984E5D553F61F025E0 /* CommandArgumentsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A939DE62022990F3BDAE809 /* CommandArgumentsRow.swift */; };
 		9C9E23D1BEFCAFAE2A88D279 /* ExtensionRegistriesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F0A28C7AA8B2782D7FC684 /* ExtensionRegistriesSheet.swift */; };
 		9CCB1A2F8AE810041DCCC8DC /* ClipboardTextWorker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3745C4891601873A69F9B63 /* ClipboardTextWorker.swift */; };
+		9D83F57F18F2332E0B096F62 /* PluginBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122B17C3DCAFB745FED6C8B5 /* PluginBuilder.swift */; };
 		9DD14DBE14C9ACB299A0B973 /* MenuBarSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C32F0245CDADDAF1D2171E04 /* MenuBarSummary.swift */; };
 		9DFDE5AC98DCC84E341AF21D /* EventDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C2E638433C941B6DF48907 /* EventDraft.swift */; };
 		9E000132686B50CD3721CAE8 /* EmojiIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB7BB4D760FFE3832D0F82C /* EmojiIndex.swift */; };
@@ -767,6 +768,7 @@
 		10215E5DDC9EC64835ADEA66 /* SchedulerEditorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulerEditorScreen.swift; sourceTree = "<group>"; };
 		1186FC98FAE2A32F58EF42F6 /* QuicklinkEditorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuicklinkEditorScreen.swift; sourceTree = "<group>"; };
 		1225B6749110E424E1DFB78E /* RaycastSnippetImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastSnippetImport.swift; sourceTree = "<group>"; };
+		122B17C3DCAFB745FED6C8B5 /* PluginBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginBuilder.swift; sourceTree = "<group>"; };
 		12D8FA8DFEFA1803AA952E40 /* QuickActionFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionFailure.swift; sourceTree = "<group>"; };
 		142C7CC086F8E6C0442551E5 /* SettingsCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCoordinator.swift; sourceTree = "<group>"; };
 		14B984EE8FFCDA2E4AA77EFB /* ThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailCache.swift; sourceTree = "<group>"; };
@@ -1390,7 +1392,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_B89E6E96-6D67-4750-868F-322CF873DE57" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_FA7F0169-F1D1-4409-B882-6C8A5E6106D3" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2231,6 +2233,7 @@
 		6B428903C9C0EAE471F82C1E /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				122B17C3DCAFB745FED6C8B5 /* PluginBuilder.swift */,
 				00AB5A8EC49333C56BA8BF49 /* PluginCatalog.swift */,
 				ECF7DB99CBF4C7FE9FC680BF /* PluginLoader.swift */,
 				4F26A1DBFA3C860BF1BCE2E8 /* PluginManager.swift */,
@@ -3305,10 +3308,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_AD39B452-2169-4726-A92A-546B483B865F" /* onecast */ = {
+		"TEMP_32AC4F60-1C34-4543-885B-2F4F23E3C166" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_B89E6E96-6D67-4750-868F-322CF873DE57" /* Signing.xcconfig */,
+				"TEMP_FA7F0169-F1D1-4409-B882-6C8A5E6106D3" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -3359,6 +3362,7 @@
 				F63CC1799430C9CA18307EA3 /* Frameworks */,
 				0CA8F20302FE84CEFF90339A /* Embed Frameworks */,
 				10900887AA0147B0A1601D13 /* Embed Dependencies */,
+				E4FA32C271E2EB9089DE76C0 /* Restore OnecastPluginKit interface */,
 			);
 			buildRules = (
 			);
@@ -3430,6 +3434,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		E4FA32C271E2EB9089DE76C0 /* Restore OnecastPluginKit interface */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Restore OnecastPluginKit interface";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\nfw=\"${CODESIGNING_FOLDER_PATH}/Contents/Frameworks/OnecastPluginKit.framework\"\nsrc=\"${BUILT_PRODUCTS_DIR}/OnecastPluginKit.framework/Versions/A/Modules\"\n[ -d \"$src\" ] && [ -d \"$fw\" ] || exit 0\ndst=\"$fw/Versions/A/Modules\"\nrm -rf \"$dst\"; mkdir -p \"$dst\"\ncp -R \"$src/\" \"$dst/\"\nfind \"$dst\" -type f ! -name '*.swiftinterface' ! -name '*.swiftdoc' -delete\nln -sfh \"Versions/Current/Modules\" \"$fw/Modules\"\nid=\"${EXPANDED_CODE_SIGN_IDENTITY:--}\"\nif [ \"${ENABLE_HARDENED_RUNTIME:-NO}\" = \"YES\" ]; then\n  codesign --force --sign \"$id\" --options runtime \"$fw\"\nelse\n  codesign --force --sign \"$id\" \"$fw\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0F7002B213A992CF38596E5C /* Sources */ = {
@@ -3874,6 +3900,7 @@
 				584127567E618E5A8D827F0F /* Permissions.swift in Sources */,
 				E3AA03F84CB0F1B93EB18FFD /* PermissionsSettingsView.swift in Sources */,
 				8E96A65B358D5DCC760D7A2C /* PinnedEmojiStore.swift in Sources */,
+				9D83F57F18F2332E0B096F62 /* PluginBuilder.swift in Sources */,
 				D84B255614D732D2AC598E0D /* PluginCatalog.swift in Sources */,
 				305F172C6494401FA731BE1E /* PluginCoordinator.swift in Sources */,
 				BB0C58969C1B5C609F2A4869 /* PluginLoader.swift in Sources */,
@@ -4132,7 +4159,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_B89E6E96-6D67-4750-868F-322CF873DE57" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_FA7F0169-F1D1-4409-B882-6C8A5E6106D3" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -4319,7 +4346,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_B89E6E96-6D67-4750-868F-322CF873DE57" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_FA7F0169-F1D1-4409-B882-6C8A5E6106D3" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
