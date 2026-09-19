@@ -24,7 +24,8 @@ final class QuicklinkStore {
           in_root_search INTEGER NOT NULL DEFAULT 1,
           pinned_at REAL,
           created_at REAL NOT NULL,
-          is_enabled INTEGER NOT NULL DEFAULT 1
+          is_enabled INTEGER NOT NULL DEFAULT 1,
+          triggers TEXT
         );
         """
 
@@ -119,6 +120,14 @@ final class QuicklinkStore {
         try write(value)
     }
 
+    func setTriggers(_ triggers: [String], id: UUID) throws(QuicklinkError) {
+        guard var value = quicklink(id: id) else { return }
+        let normalized = Quicklink.normalized(triggers: triggers)
+        guard value.triggers != normalized else { return }
+        value.triggers = normalized
+        try write(value)
+    }
+
     /// "Duplicate": a new identity, so references stay with the original, plus a distinct name.
     @discardableResult
     func duplicate(id: UUID) throws(QuicklinkError) -> Quicklink {
@@ -128,7 +137,7 @@ final class QuicklinkStore {
                 name: Self.uniqueName(basedOn: source.name, taken: quicklinks.map(\.name)),
                 link: source.link, openWithBundleID: source.openWithBundleID,
                 iconSymbol: source.iconSymbol, isEnabled: source.isEnabled,
-                showsInRootSearch: source.showsInRootSearch))
+                showsInRootSearch: source.showsInRootSearch, triggers: source.triggers))
     }
 
     /// Adds a batch, skipping anything invalid — the import and backup path. Returns what landed.
@@ -165,6 +174,7 @@ final class QuicklinkStore {
             sqlite3_bind_null(stmt, 8)
         }
         sqlite3_bind_double(stmt, 9, value.createdAt.timeIntervalSince1970)
+        bind(stmt, 10, value.triggers.isEmpty ? nil : value.triggers.joined(separator: "\n"))
         let status = sqlite3_step(stmt)
         sqlite3_reset(stmt)
         sqlite3_clear_bindings(stmt)
@@ -200,6 +210,7 @@ final class QuicklinkStore {
         value.openWithBundleID =
             draft.openWithBundleID?
             .trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        value.triggers = Quicklink.normalized(triggers: draft.triggers)
         guard !value.name.isEmpty else { throw .emptyName }
         guard !value.link.isEmpty else { throw .emptyLink }
         guard !value.name.contains("\0"), !value.link.contains("\0") else {
@@ -250,6 +261,7 @@ final class QuicklinkStore {
         sqlite3_exec(
             db, "ALTER TABLE quicklinks ADD COLUMN is_enabled INTEGER NOT NULL DEFAULT 1", nil, nil,
             nil)
+        sqlite3_exec(db, "ALTER TABLE quicklinks ADD COLUMN triggers TEXT", nil, nil, nil)
         // After the schema, so a column added later can be indexed the same way.
         sqlite3_exec(
             db,
@@ -257,18 +269,19 @@ final class QuicklinkStore {
             nil, nil, nil)
         upsertStmt = prepare(
             """
-            INSERT INTO quicklinks(id, name, link, open_with, icon, is_enabled, in_root_search, pinned_at, created_at)
-            VALUES(?,?,?,?,?,?,?,?,?)
+            INSERT INTO quicklinks(id, name, link, open_with, icon, is_enabled, in_root_search, pinned_at, created_at, triggers)
+            VALUES(?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET
               name = excluded.name, link = excluded.link, open_with = excluded.open_with,
               icon = excluded.icon, is_enabled = excluded.is_enabled,
-              in_root_search = excluded.in_root_search, pinned_at = excluded.pinned_at
+              in_root_search = excluded.in_root_search, pinned_at = excluded.pinned_at,
+              triggers = excluded.triggers
             """
         )
         // Both statements name columns in the struct's order, which `is_enabled` was appended after.
         loadStmt = prepare(
             """
-            SELECT id, name, link, open_with, icon, is_enabled, in_root_search, pinned_at, created_at
+            SELECT id, name, link, open_with, icon, is_enabled, in_root_search, pinned_at, created_at, triggers
             FROM quicklinks
             """
         )
@@ -301,7 +314,8 @@ final class QuicklinkStore {
             isEnabled: sqlite3_column_int(stmt, 5) != 0,
             showsInRootSearch: sqlite3_column_int(stmt, 6) != 0,
             pinnedAt: columnDate(stmt, 7),
-            createdAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 8)))
+            createdAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 8)),
+            triggers: columnString(stmt, 9).map { $0.split(separator: "\n").map(String.init) } ?? [])
     }
 
     private static func columnDate(_ stmt: OpaquePointer?, _ index: Int32) -> Date? {

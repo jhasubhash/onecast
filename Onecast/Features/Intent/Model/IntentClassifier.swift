@@ -12,6 +12,11 @@ extension QueryIntent {
     static let shellCommand = QueryIntent("shellCommand")
     static let fileSearch = QueryIntent("fileSearch")
     static let aiQuestion = QueryIntent("aiQuestion")
+    /// One intent per quicklink, keyed by its id, so a user-authored trigger can float exactly
+    /// that quicklink's fallback without colliding with any built-in or another quicklink.
+    static func quicklink(_ id: UUID) -> QueryIntent {
+        QueryIntent("quicklink:" + id.uuidString.lowercased())
+    }
 }
 
 /// One intent paired with the strength of its signal; a higher score wins.
@@ -63,11 +68,15 @@ struct IntentClassifier: Sendable {
 }
 
 extension IntentClassifier {
-    /// The intents Onecast recognises today, ordered specific-first so a tie favours the narrower one.
-    static let standard = IntentClassifier(detectors: [
+    /// The built-in detectors, ordered specific-first so a tie favours the narrower one. Exposed so
+    /// a caller can append its own — the launcher adds one per trigger-bearing quicklink.
+    static let standardDetectors: [any IntentDetector] = [
         ReminderIntentDetector(),
         ShellCommandIntentDetector(),
         FileSearchIntentDetector(),
         AIQuestionIntentDetector(),
-    ])
+    ]
+
+    /// The intents Onecast recognises without any user configuration.
+    static let standard = IntentClassifier(detectors: standardDetectors)
 }

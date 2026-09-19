@@ -40,6 +40,15 @@ enum Fallback: Hashable, Sendable {
         return nil
     }
 
+    /// The intent that floats this fallback to the top when a query expresses it: a built-in's fixed
+    /// intent, or a quicklink's own id-keyed intent, which its user-authored triggers answer.
+    var intent: QueryIntent? {
+        switch self {
+        case .builtin(let builtin): return builtin.intent
+        case .quicklink(let id): return .quicklink(id)
+        }
+    }
+
     /// The row's `AppEntry` id, so a stored order outlives a rename and survives a reinstall.
     var id: String {
         switch self {
@@ -83,7 +92,7 @@ enum Fallback: Hashable, Sendable {
     static func prioritised(_ offered: [Fallback], forIntents ranked: [QueryIntent]) -> [Fallback] {
         var front: [Fallback] = []
         for intent in ranked {
-            for fallback in offered where fallback.builtin?.intent == intent && !front.contains(fallback) {
+            for fallback in offered where fallback.intent == intent && !front.contains(fallback) {
                 front.append(fallback)
             }
         }

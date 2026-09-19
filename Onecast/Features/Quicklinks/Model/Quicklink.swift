@@ -20,11 +20,14 @@ struct Quicklink: Codable, Hashable, Identifiable, Sendable {
     /// A stamp rather than a flag, so the pinned block is ordered by *when* you pinned.
     var pinnedAt: Date?
     var createdAt: Date
+    /// User-authored words that, when the typed query contains one, float this quicklink to the top
+    /// of the fallback list. Normalised lowercase; empty means it is never promoted, only offered.
+    var triggers: [String]
 
     init(
         id: UUID = UUID(), name: String, link: String, openWithBundleID: String? = nil,
         iconSymbol: String? = nil, isEnabled: Bool = true, showsInRootSearch: Bool = true,
-        pinnedAt: Date? = nil, createdAt: Date = Date()
+        pinnedAt: Date? = nil, createdAt: Date = Date(), triggers: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -35,6 +38,7 @@ struct Quicklink: Codable, Hashable, Identifiable, Sendable {
         self.showsInRootSearch = showsInRootSearch
         self.pinnedAt = pinnedAt
         self.createdAt = createdAt
+        self.triggers = triggers
     }
 
     var isPinned: Bool { pinnedAt != nil }
@@ -69,7 +73,7 @@ struct Quicklink: Codable, Hashable, Identifiable, Sendable {
     // Hand-written, so an added field keeps old exports importable and imports stay minimal.
     private enum CodingKeys: String, CodingKey {
         case id, name, link, openWithBundleID, iconSymbol, isEnabled, showsInRootSearch, pinnedAt
-        case createdAt
+        case createdAt, triggers
     }
 
     init(from decoder: Decoder) throws {
@@ -84,6 +88,20 @@ struct Quicklink: Codable, Hashable, Identifiable, Sendable {
             try container.decodeIfPresent(Bool.self, forKey: .showsInRootSearch) ?? true
         pinnedAt = try container.decodeIfPresent(Date.self, forKey: .pinnedAt)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        triggers = try container.decodeIfPresent([String].self, forKey: .triggers) ?? []
+    }
+
+    /// Lowercased, trimmed, newline-free and de-duplicated — the one form the matcher compares
+    /// against, so the store, the editor and an import all agree on what a trigger is.
+    static func normalized(triggers: [String]) -> [String] {
+        var seen = Set<String>()
+        return
+            triggers
+            .map {
+                $0.replacingOccurrences(of: "\n", with: " ")
+                    .trimmingCharacters(in: .whitespaces).lowercased()
+            }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 }
 

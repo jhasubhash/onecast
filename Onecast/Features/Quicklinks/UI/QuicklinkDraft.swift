@@ -15,8 +15,8 @@ final class QuicklinkDraft {
     /// Surfaced by the host when a save is refused; quicklinks are authored data, never dropped silently.
     var errorMessage: String?
 
-    /// The quicklink being edited, kept so a save preserves its id, shortcut, favorite slot and
-    /// visibility; nil on add.
+    /// The quicklink being edited, kept so a save preserves its id, shortcut, favorite slot,
+    /// visibility and trigger words — the editor never shows triggers, so it must carry them through.
     private let existing: Quicklink?
 
     var isEditing: Bool { existing != nil }
@@ -58,6 +58,8 @@ final class QuicklinkDraft {
             showsInRootSearch: showsInRootSearch,
             // Re-pinning keeps the original stamp, so saving an edit doesn't move the row.
             pinnedAt: isPinned ? (existing?.pinnedAt ?? Date()) : nil,
-            createdAt: existing?.createdAt ?? Date())
+            createdAt: existing?.createdAt ?? Date(),
+            // Triggers are edited in the Fallbacks pane, not here, so a save must not drop them.
+            triggers: existing?.triggers ?? [])
     }
 }

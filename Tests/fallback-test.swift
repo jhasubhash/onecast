@@ -136,7 +136,11 @@ struct FallbackTests {
         check("ai chat maps to a question", Fallback.Builtin.aiChat.intent == .aiQuestion)
         // Every built-in carries an intent, or a query could never float it up.
         check("every built-in has an intent", Fallback.Builtin.allCases.allSatisfy { $0.intent != nil })
-        check("a quicklink has no intent", Fallback.quicklink(UUID()).builtin?.intent == nil)
+        let linkID = UUID()
+        check(
+            "a quicklink's intent is keyed by its id",
+            Fallback.quicklink(linkID).intent == .quicklink(linkID))
+        check("a quicklink carries no built-in intent", Fallback.quicklink(linkID).builtin?.intent == nil)
 
         let offered: [Fallback] = Fallback.Builtin.allCases.map(Fallback.builtin)
         check(
@@ -151,5 +155,29 @@ struct FallbackTests {
             Array(ranked.prefix(2)) == [.builtin(.scheduleReminder), .builtin(.searchFiles)],
             "got \(ranked)")
         check("prioritised is a permutation", Set(ranked) == Set(offered) && ranked.count == offered.count)
+
+        let link = Fallback.quicklink(linkID)
+        let withLink = offered + [link]
+        check(
+            "a matched quicklink intent floats its fallback first",
+            Fallback.prioritised(withLink, forIntents: [.quicklink(linkID)]).first == link)
+        check(
+            "an unmatched quicklink keeps its place",
+            Fallback.prioritised(withLink, forIntents: [.reminder]).last == link)
+
+        let classifier = IntentClassifier(
+            detectors: IntentClassifier.standardDetectors
+                + [QuicklinkIntentDetector(intent: .quicklink(linkID), triggers: ["~/"])])
+        check(
+            "a quicklink trigger outranks the shell path signal",
+            classifier.ranked("~/Documents").first?.intent == .quicklink(linkID),
+            "got \(classifier.ranked("~/Documents"))")
+        check(
+            "a trigger the query lacks scores nothing",
+            QuicklinkIntentDetector(intent: .quicklink(linkID), triggers: ["deploy"])
+                .score(QueryText("~/Documents")) == 0)
+        check(
+            "triggers normalise to lowercase, trimmed and de-duplicated",
+            Quicklink.normalized(triggers: [" Foo ", "foo", "", "Bar\nBaz"]) == ["foo", "bar baz"])
     }
 }

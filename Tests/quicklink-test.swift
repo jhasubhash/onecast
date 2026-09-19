@@ -17,6 +17,7 @@ struct QuicklinkTests {
         placeholderDetection()
         displayOrder()
         storeCRUD()
+        editorPreservesTriggers()
         storeValidation()
         pinning()
         persistence()
@@ -217,6 +218,27 @@ struct QuicklinkTests {
                 (try? store.update(renamed)) != nil,
                 "a quicklink does not collide with its own name when edited")
             expect(store.quicklinks[0].name == "Search", "names are trimmed on save")
+        }
+    }
+
+    // A field the editor form never shows must survive a save through it — the rename bug: build()
+    // dropped triggers because it rebuilt the quicklink without them.
+    static func editorPreservesTriggers() {
+        var q = link("Open Folder", "{argument}")
+        q.triggers = ["~/", "folder"]
+        let rebuilt = QuicklinkDraft(quicklink: q).build()
+        expect(rebuilt.triggers == ["~/", "folder"], "editing a quicklink preserves its trigger words")
+        expect(rebuilt.id == q.id, "editing keeps the identity the triggers belong to")
+
+        withStore { store in
+            guard let saved = try? store.add(q) else { return fail("adding a triggered quicklink succeeds") }
+            try? store.setTriggers(["deploy"], id: saved.id)
+            var renamed = store.quicklink(id: saved.id) ?? saved
+            renamed.name = "Renamed Folder"
+            try? store.update(renamed)
+            expect(
+                store.quicklink(id: saved.id)?.triggers == ["deploy"],
+                "a rename preserves the stored triggers through SQLite")
         }
     }
 

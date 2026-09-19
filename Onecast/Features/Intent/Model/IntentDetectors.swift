@@ -85,3 +85,17 @@ struct AIQuestionIntentDetector: IntentDetector {
         "draft", "tell", "describe", "compare", "suggest", "recommend",
     ]
 }
+
+/// A user-authored quicklink trigger: the query contains one of its words. Scored above a bare path
+/// or filename so a deliberately-configured quicklink beats the catch-all shell and file detectors,
+/// but below an explicit shell command word, which stays the stronger signal.
+struct QuicklinkIntentDetector: IntentDetector {
+    let intent: QueryIntent
+    let triggers: [String]
+
+    func score(_ query: QueryText) -> Double {
+        query.containsAny(of: triggers) ? Self.matchScore : 0
+    }
+
+    static let matchScore = 0.85
+}

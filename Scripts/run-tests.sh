@@ -345,7 +345,8 @@ run quicklink-test         Onecast/Features/Quicklinks/Model/Quicklink.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkStore.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkArchive.swift \
-                           Onecast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift
+                           Onecast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift \
+                           Onecast/Features/Quicklinks/UI/QuicklinkDraft.swift
 run slow snippets-test     Onecast/Platform/NotificationToken.swift \
                            Onecast/Platform/HealthTicker.swift \
                            Onecast/Platform/AccessibilityText.swift \

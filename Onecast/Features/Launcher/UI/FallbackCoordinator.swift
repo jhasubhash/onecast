@@ -25,8 +25,16 @@ final class FallbackCoordinator {
         let rows = available.filter(store.isEnabled).compactMap { fallback in
             entry(for: fallback).map { (fallback: fallback, entry: $0) }
         }
-        // What the query reads as floats its fallback to the top; the stored order is untouched.
-        let intents = IntentClassifier.standard.ranked(query).map(\.intent)
+        // Each trigger-bearing quicklink contributes its own detector, so what the query reads as —
+        // a built-in's intent or a quicklink's triggers — floats that fallback to the top.
+        let quicklinkDetectors: [any IntentDetector] = rows.compactMap { row in
+            guard case .quicklink(let id) = row.fallback,
+                let link = quicklinks.quicklink(id: id), !link.triggers.isEmpty
+            else { return nil }
+            return QuicklinkIntentDetector(intent: .quicklink(id), triggers: link.triggers)
+        }
+        let classifier = IntentClassifier(detectors: IntentClassifier.standardDetectors + quicklinkDetectors)
+        let intents = classifier.ranked(query).map(\.intent)
         let order = Fallback.prioritised(rows.map(\.fallback), forIntents: intents)
         return order.compactMap { fallback in rows.first { $0.fallback == fallback } }
     }
