@@ -177,6 +177,11 @@ struct PopOutWindowChrome<Content: View>: View {
     @State private var hovering = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// A borderless pop-out is dragged by its background, but a hosted plugin surface can fill every
+    /// pixel with hit-testing content, defeating that. This top strip is the host's own drag handle,
+    /// won on the way down like the palette's header, so a packed surface can still be moved.
+    private static var dragStrip: CGFloat { 24 }
+
     init(
         menu: PopOutWindowMenu,
         commands: @escaping () -> [PopOutWindowCommand],
@@ -194,6 +199,9 @@ struct PopOutWindowChrome<Content: View>: View {
                     .background(VisualEffectView())
             }
             .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))
+            .overlay(alignment: .top) {
+                Color.clear.frame(height: Self.dragStrip).windowDraggable(true)
+            }
             // A click anywhere off the palette closes it, as the app's own ⌘K menus do. Sits below
             // the pill and the palette overlays (added after), so their own clicks still register.
             .overlay {
