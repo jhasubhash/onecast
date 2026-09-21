@@ -1,12 +1,12 @@
-import Darwin
 import Foundation
+import Network
 
 /// A zero-capability MCP relay: captures nothing, forwards each tools/call to the app's bridge.
 @main
 enum ComputerUseHelper {
-    static func main() {
+    static func main() async {
         let handshakePath = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : nil
-        ComputerMCPServer(handshake: handshakePath.flatMap(Handshake.read)).run()
+        await ComputerMCPServer(handshake: handshakePath.flatMap(Handshake.read)).run()
     }
 }
 
@@ -30,19 +30,19 @@ private struct Handshake {
 private struct ComputerMCPServer {
     let handshake: Handshake?
 
-    func run() {
+    func run() async {
         while let line = readLine(strippingNewline: true) {
             guard !line.isEmpty,
                 let data = line.data(using: .utf8),
                 let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             else { continue }
-            guard let response = handle(message) else { continue }
+            guard let response = await handle(message) else { continue }
             emit(response)
         }
     }
 
     /// Returns the response object, or nil for a notification (no id) that takes no reply.
-    private func handle(_ message: [String: Any]) -> [String: Any]? {
+    private func handle(_ message: [String: Any]) async -> [String: Any]? {
         let id = message["id"]
         let method = message["method"] as? String
         guard let id else { return nil }
@@ -60,13 +60,13 @@ private struct ComputerMCPServer {
         case "tools/list":
             return success(id, ["tools": handshake?.tools ?? []])
         case "tools/call":
-            return call(id, params: message["params"] as? [String: Any] ?? [:])
+            return await call(id, params: message["params"] as? [String: Any] ?? [:])
         default:
             return failure(id, code: -32601, message: "Method not found: \(method ?? "nil").")
         }
     }
 
-    private func call(_ id: Any, params: [String: Any]) -> [String: Any] {
+    private func call(_ id: Any, params: [String: Any]) async -> [String: Any] {
         guard let handshake else { return toolError(id, "Onecast computer use is not configured.") }
         guard let name = params["name"] as? String else {
             return toolError(id, "Missing tool name.")
@@ -76,7 +76,7 @@ private struct ComputerMCPServer {
             "token": handshake.token, "action": name, "arguments": arguments,
         ]
         guard let requestData = try? JSONSerialization.data(withJSONObject: request),
-            let replyData = Bridge.roundTrip(port: handshake.port, request: requestData),
+            let replyData = await Bridge.roundTrip(port: handshake.port, request: requestData),
             let reply = try? JSONSerialization.jsonObject(with: replyData) as? [String: Any]
         else {
             return toolError(id, "Onecast is not reachable. Is it running?")
@@ -116,55 +116,17 @@ private struct ComputerMCPServer {
     }
 }
 
-/// The loopback client to the app's bridge: one request line, read the reply to EOF, close.
+/// The loopback client to the app's bridge: one TLV request, one TLV reply, then the connection ends.
 private enum Bridge {
-    static func roundTrip(port: UInt16, request: Data) -> Data? {
-        let fd = socket(AF_INET, SOCK_STREAM, 0)
-        guard fd >= 0 else { return nil }
-        defer { close(fd) }
-        var on: Int32 = 1
-        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
-        var addr = sockaddr_in()
-        addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
-        addr.sin_family = sa_family_t(AF_INET)
-        addr.sin_port = port.bigEndian
-        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
-        let connected = withUnsafePointer(to: &addr) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
-            }
+    static func roundTrip(port: UInt16, request: Data) async -> Data? {
+        guard let port = NWEndpoint.Port(rawValue: port) else { return nil }
+        let endpoint = NWEndpoint.hostPort(host: .ipv4(.loopback), port: port)
+        let connection = NetworkConnection(to: endpoint) { TLV { TCP { IP() } } }
+        do {
+            try await connection.send(request, type: 1, lastMessage: true)
+            return try await connection.receive().content
+        } catch {
+            return nil
         }
-        guard connected == 0 else { return nil }
-        var frame = request
-        frame.append(0x0A)
-        guard write(fd, frame) else { return nil }
-        return readToEnd(fd)
-    }
-
-    private static func write(_ fd: Int32, _ payload: Data) -> Bool {
-        payload.withUnsafeBytes { raw -> Bool in
-            guard var pointer = raw.baseAddress else { return true }
-            var remaining = raw.count
-            while remaining > 0 {
-                let n = Darwin.write(fd, pointer, remaining)
-                if n <= 0 { return false }
-                pointer = pointer.advanced(by: n)
-                remaining -= n
-            }
-            return true
-        }
-    }
-
-    /// Chunked read: a screenshot reply is a base64 blob framed by EOF; strip trailing newline.
-    private static func readToEnd(_ fd: Int32) -> Data? {
-        var data = Data()
-        var chunk = [UInt8](repeating: 0, count: 1 << 16)
-        while true {
-            let n = chunk.withUnsafeMutableBytes { read(fd, $0.baseAddress, $0.count) }
-            if n <= 0 { break }
-            data.append(contentsOf: chunk[0..<n])
-        }
-        if data.last == 0x0A { data.removeLast() }
-        return data.isEmpty ? nil : data
     }
 }

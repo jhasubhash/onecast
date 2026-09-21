@@ -527,6 +527,18 @@ run installed-ai-test     Onecast/Features/AI/Model/*.swift \
                           Onecast/Features/AI/Service/InstalledCLIProvider.swift \
                           Onecast/Features/AI/Service/InstalledAIManager.swift
 run computer-use-token-test Onecast/Features/AI/Model/ComputerUseTokenLedger.swift
+run slow computer-use-bridge-test \
+                           Onecast/Features/AI/Service/ComputerUseBridge.swift \
+                           Onecast/Features/AI/Service/ComputerController.swift \
+                           Onecast/Features/AI/Service/ComputerUseTool.swift \
+                           Onecast/Features/AI/Model/ComputerUseTokenLedger.swift \
+                           Onecast/Features/AI/Model/AICLIToolConfig.swift \
+                           Onecast/Features/AI/Model/AITool.swift \
+                           Onecast/Features/AI/Model/AIRequest.swift \
+                           Onecast/Features/AI/Model/JSONValue.swift \
+                           Onecast/Platform/Permissions.swift \
+                           Onecast/Platform/CameraAccess.swift \
+                           Onecast/Platform/CalendarAccess.swift
 run assistant-store-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Model/*.swift \
                            Onecast/Features/AI/Service/AssistantStore.swift \

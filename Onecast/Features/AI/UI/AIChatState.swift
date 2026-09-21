@@ -40,7 +40,9 @@ final class AIChatState {
 
     @discardableResult
     func send(
-        _ input: String, using provider: any AIProvider, webSearch: Bool = false,
+        _ input: String,
+        using makeProvider: @escaping @MainActor () async throws -> any AIProvider,
+        webSearch: Bool = false,
         instructions: String? = nil, contextBudget: Int = ChatSession.defaultTextBudget
     ) -> Bool {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -65,8 +67,10 @@ final class AIChatState {
 
         replyGeneration += 1
         let generation = replyGeneration
-        replyTask = Task { [weak self, provider] in
+        replyTask = Task { [weak self, makeProvider] in
             do {
+                let provider = try await makeProvider()
+                try Task.checkCancellation()
                 for try await event in provider.stream(request) {
                     guard let self, !Task.isCancelled, self.replyGeneration == generation else {
                         return

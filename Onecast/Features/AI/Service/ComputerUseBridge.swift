@@ -1,5 +1,5 @@
-import Darwin
 import Foundation
+import Network
 
 /// In-app half of computer use: the CLI's helper relays MCP calls here, where the TCC grants live.
 @MainActor
@@ -17,19 +17,20 @@ final class ComputerUseBridge {
         tool = ComputerUseTool(controller: controller)
     }
 
-    /// Serves requests off the main thread; hops to @MainActor only to run the tool.
-    private let queue = DispatchQueue(
-        label: "com.onecast.computer-use-bridge", qos: .userInitiated, attributes: .concurrent)
-
-    private var listenFD: Int32?
+    /// One loopback listener on a kernel-assigned port, kept alive across arms for its accept loop.
+    private var listener: NetworkListener<TLV>?
+    private var listenerTask: Task<Void, Never>?
     private var port: UInt16?
+    private var bindTask: Task<UInt16?, Never>?
+    /// Identifies the live attempt; a stale accept loop's failure only tears down its own generation.
+    private var generation = 0
 
     /// The token gate; refuses an unknown, disarmed, or expired token. Bounded vs dead helpers.
     private var ledger = ComputerUseTokenLedger()
 
-    /// Builds the MCP server the CLI spawns; `armed` is captured, read at each call, not now.
-    func server(armed: @escaping @MainActor () -> Bool) -> AICLIMCPServer? {
-        guard let port = ensureListening() else { return nil }
+    /// Builds the MCP server the CLI spawns; awaits `.ready` so its handshake names a bound port.
+    func server(armed: @escaping @MainActor () -> Bool) async -> AICLIMCPServer? {
+        guard let port = await ensureListening() else { return nil }
         Self.sweepStaleHandshakes()
         let token = Self.newToken()
         ledger.issue(token, armed: armed, now: Date())
@@ -42,39 +43,83 @@ final class ComputerUseBridge {
             headerValue: "", environment: [:])
     }
 
-    private func ensureListening() -> UInt16? {
+    /// Deduplicates the bind: a second send while one is in flight awaits it, never a second listener.
+    private func ensureListening() async -> UInt16? {
         if let port { return port }
-        guard let bound = Self.openLoopbackListener() else { return nil }
-        listenFD = bound.fd
-        port = bound.port
-        queue.async { [weak self] in self?.acceptLoop(bound.fd) }
-        return bound.port
+        if let bindTask { return await bindTask.value }
+        let task = Task { [weak self] () -> UInt16? in
+            let bound = await self?.bind()
+            self?.bindTask = nil
+            return bound
+        }
+        bindTask = task
+        return await task.value
     }
 
-    nonisolated private func acceptLoop(_ listenFD: Int32) {
-        while true {
-            let client = accept(listenFD, nil, nil)
-            if client < 0 {
-                if errno == EINTR { continue }
-                return
+    /// Binds once, to a kernel-assigned loopback port, and keeps the accept loop for later arms.
+    private func bind() async -> UInt16? {
+        generation += 1
+        let attempt = generation
+        let parameters = NWParametersBuilder({ TLV { TCP { IP() } } })
+            .localEndpoint(.hostPort(host: .ipv4(.loopback), port: .any))
+            .localOnly(true)
+        guard let listener = try? NetworkListener(using: parameters) else {
+            listenerFailed(attempt)
+            return nil
+        }
+        self.listener = listener
+        guard let bound = await readyPort(of: listener, generation: attempt), attempt == generation
+        else {
+            listenerFailed(attempt)
+            return nil
+        }
+        port = bound
+        return bound
+    }
+
+    /// Starts the accept loop and resolves once bound, to the port the kernel handed out.
+    private func readyPort(of listener: NetworkListener<TLV>, generation: Int) async -> UInt16? {
+        await withCheckedContinuation { continuation in
+            let gate = ContinuationGate(continuation)
+            listener.onStateUpdate { listener, state in
+                switch state {
+                case .ready: gate.resume(returning: listener.port?.rawValue)
+                case .failed, .cancelled: gate.resume(returning: nil)
+                default: break
+                }
             }
-            var on: Int32 = 1
-            setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
-            queue.async { [weak self] in self?.serve(client) }
+            listenerTask = Task { [weak self] in
+                do {
+                    try await listener.run { [weak self] connection in
+                        await self?.serve(connection)
+                    }
+                } catch {
+                    gate.resume(returning: nil)
+                    self?.listenerFailed(generation)
+                }
+            }
         }
     }
 
-    nonisolated private func serve(_ fd: Int32) {
-        guard let line = Self.readFrame(fd), let request = Self.parse(line) else {
-            Self.sendFrame(fd, Self.encode(["ok": false, "error": "Bad request."]))
-            Self.closeSocket(fd)
-            return
+    /// A stale attempt's failure is ignored, so it can't tear down a listener a later arm rebound.
+    private func listenerFailed(_ generation: Int) {
+        guard generation == self.generation else { return }
+        self.generation += 1
+        listenerTask?.cancel()
+        listenerTask = nil
+        listener = nil
+        port = nil
+    }
+
+    /// One TLV request in, one TLV reply out; returning closes the connection.
+    private func serve(_ connection: NetworkConnection<TLV>) async {
+        let reply: Data
+        if let request = try? await connection.receive().content, let parsed = Self.parse(request) {
+            reply = await execute(parsed)
+        } else {
+            reply = Self.encode(["ok": false, "error": "Bad request."])
         }
-        Task { @MainActor [weak self] in
-            guard let self else { Self.closeSocket(fd); return }
-            let reply = await self.execute(request)
-            self.queue.async { Self.sendFrame(fd, reply); Self.closeSocket(fd) }
-        }
+        try? await connection.send(reply, type: 1, lastMessage: true)
     }
 
     private func execute(_ request: Request) async -> Data {
@@ -92,66 +137,10 @@ final class ComputerUseBridge {
         return Self.encode(object)
     }
 
-    // MARK: Socket
+    // MARK: Wire
 
-    private static func openLoopbackListener() -> (fd: Int32, port: UInt16)? {
-        let fd = socket(AF_INET, SOCK_STREAM, 0)
-        guard fd >= 0 else { return nil }
-        var reuse: Int32 = 1
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size))
-        var addr = sockaddr_in()
-        addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
-        addr.sin_family = sa_family_t(AF_INET)
-        addr.sin_port = 0
-        // Loopback only: nothing off this machine can reach the bridge.
-        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
-        let bound = withUnsafePointer(to: &addr) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
-            }
-        }
-        guard bound == 0, listen(fd, 16) == 0 else { close(fd); return nil }
-        var assigned = sockaddr_in()
-        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
-        let named = withUnsafeMutablePointer(to: &assigned) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(fd, $0, &length) }
-        }
-        guard named == 0 else { close(fd); return nil }
-        return (fd, UInt16(bigEndian: assigned.sin_port))
-    }
-
-    /// Reads one newline-framed request; the helper holds its write side open, so newline ends it.
-    nonisolated private static func readFrame(_ fd: Int32, limit: Int = 1 << 16) -> String? {
-        var data = Data()
-        var byte: UInt8 = 0
-        while data.count < limit {
-            let n = read(fd, &byte, 1)
-            if n <= 0 { return data.isEmpty ? nil : String(data: data, encoding: .utf8) }
-            if byte == 0x0A { break }
-            data.append(byte)
-        }
-        return String(data: data, encoding: .utf8)
-    }
-
-    nonisolated private static func sendFrame(_ fd: Int32, _ payload: Data) {
-        var frame = payload
-        frame.append(0x0A)
-        frame.withUnsafeBytes { raw in
-            guard var pointer = raw.baseAddress else { return }
-            var remaining = raw.count
-            while remaining > 0 {
-                let n = write(fd, pointer, remaining)
-                if n <= 0 { return }
-                pointer = pointer.advanced(by: n)
-                remaining -= n
-            }
-        }
-    }
-
-    nonisolated private static func closeSocket(_ fd: Int32) { close(fd) }
-
-    nonisolated private static func parse(_ line: String) -> Request? {
-        guard let object = try? JSONSerialization.jsonObject(with: Data(line.utf8)),
+    private static func parse(_ data: Data) -> Request? {
+        guard let object = try? JSONSerialization.jsonObject(with: data),
             let dictionary = object as? [String: Any],
             let token = dictionary["token"] as? String,
             let action = dictionary["action"] as? String
@@ -164,7 +153,7 @@ final class ComputerUseBridge {
             arguments: arguments.flatMap { String(data: $0, encoding: .utf8) } ?? "{}")
     }
 
-    nonisolated private static func encode(_ object: [String: Any]) -> Data {
+    private static func encode(_ object: [String: Any]) -> Data {
         (try? JSONSerialization.data(withJSONObject: object)) ?? Data("{\"ok\":false}".utf8)
     }
 
@@ -210,10 +199,26 @@ final class ComputerUseBridge {
         let cutoff = Date().addingTimeInterval(-120)
         for name in names where name.hasPrefix(handshakePrefix) {
             let path = (directory as NSString).appendingPathComponent(name)
-            let modified = (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate]
+            let modified = (try? FileManager.default.attributesOfItem(atPath: path))?[
+                .modificationDate]
             if let modified = modified as? Date, modified < cutoff {
                 try? FileManager.default.removeItem(atPath: path)
             }
         }
+    }
+}
+
+/// Guards a checked continuation so the listener's repeated state callbacks resume it exactly once.
+@MainActor
+private final class ContinuationGate {
+    private var continuation: CheckedContinuation<UInt16?, Never>?
+
+    init(_ continuation: CheckedContinuation<UInt16?, Never>) {
+        self.continuation = continuation
+    }
+
+    func resume(returning value: UInt16?) {
+        continuation?.resume(returning: value)
+        continuation = nil
     }
 }

@@ -199,39 +199,40 @@ final class AIChatCoordinator {
     @discardableResult
     func send(_ input: String) -> Bool {
         guard settings.aiEnabled else { return false }
-        do {
-            let assistant = activeAssistant
-            let webSearch =
-                (assistant?.webSearch ?? core.aiSettings.webSearchEnabled) && capabilities.webSearch
-            let address = MCPComposerAddress.parse(input, slugs: core.mcpCoordinator.slugs)
-            let skills = assistant.map { core.skills.enabledSkills(ids: $0.skillIDs) } ?? []
-            let skillBudget: Int
-            if effectiveModel?.isOnDevice == true {
-                skillBudget = AISkillBudget.onDevice
-            } else if effectiveModel?.source.installedKind != nil {
-                skillBudget = AISkillBudget.cli
-            } else {
-                skillBudget = AISkillBudget.default
-            }
-            let composed = AIInstructions.compose(
-                userPrompt: assistant?.systemPrompt ?? core.aiSettings.systemPrompt,
-                skills: skills, skillBudget: skillBudget,
-                allowsSkillScripts: assistant?.allowShellTools ?? false,
-                isEnabled: assistant?.systemPromptEnabled ?? core.aiSettings.systemPromptEnabled)
-            let sent = chat.send(
-                address.rest,
-                using: try toolAware(
-                    effectiveProvider(), scopedTo: address.slug, allowed: assistant?.mcpServerIDs),
-                webSearch: webSearch,
-                instructions: composed,
-                contextBudget: contextBudget)
-            // The first message grows the bar past its composer into the transcript.
-            if sent, isDynamic { palette.aiBarExpanded = true }
-            return sent
-        } catch {
-            chat.report(error.localizedDescription)
-            return false
+        let assistant = activeAssistant
+        let webSearch =
+            (assistant?.webSearch ?? core.aiSettings.webSearchEnabled) && capabilities.webSearch
+        let address = MCPComposerAddress.parse(input, slugs: core.mcpCoordinator.slugs)
+        let skills = assistant.map { core.skills.enabledSkills(ids: $0.skillIDs) } ?? []
+        let skillBudget: Int
+        if effectiveModel?.isOnDevice == true {
+            skillBudget = AISkillBudget.onDevice
+        } else if effectiveModel?.source.installedKind != nil {
+            skillBudget = AISkillBudget.cli
+        } else {
+            skillBudget = AISkillBudget.default
         }
+        let composed = AIInstructions.compose(
+            userPrompt: assistant?.systemPrompt ?? core.aiSettings.systemPrompt,
+            skills: skills, skillBudget: skillBudget,
+            allowsSkillScripts: assistant?.allowShellTools ?? false,
+            isEnabled: assistant?.systemPromptEnabled ?? core.aiSettings.systemPromptEnabled)
+        let slug = address.slug
+        let allowed = assistant?.mcpServerIDs
+        // Provider build defers into the reply task, so a bind failure fails the reply, not input.
+        let sent = chat.send(
+            address.rest,
+            using: { [weak self] in
+                guard let self else { throw CancellationError() }
+                return self.toolAware(
+                    try await self.effectiveProvider(), scopedTo: slug, allowed: allowed)
+            },
+            webSearch: webSearch,
+            instructions: composed,
+            contextBudget: contextBudget)
+        // The first message grows the bar past its composer into the transcript.
+        if sent, isDynamic { palette.aiBarExpanded = true }
+        return sent
     }
 
     /// Only chat wraps a route in the tool loop; a text rewrite has nothing to call.
@@ -402,8 +403,8 @@ final class AIChatCoordinator {
         }
     }
 
-    private func effectiveProvider() throws -> any AIProvider {
-        let cliTools = cliToolConfig()
+    private func effectiveProvider() async throws -> any AIProvider {
+        let cliTools = await cliToolConfig()
         if let model = activeAssistant?.model {
             return try core.aiProvider(for: model, cliTools: cliTools)
         }
@@ -411,10 +412,10 @@ final class AIChatCoordinator {
     }
 
     /// CLI-tools payload: assistant MCP/shell opt-in plus the computer-use server on an armed CLI.
-    private func cliToolConfig() -> AICLIToolConfig? {
+    private func cliToolConfig() async -> AICLIToolConfig? {
         var config = activeAssistant.flatMap(assistantCLIToolConfig) ?? defaultRouteCLIToolConfig()
         guard computerUseArmed, effectiveModel?.source.installedKind?.acceptsInjectedMCP == true,
-            let server = core.computerUseBridge.server(armed: computerUseArmPredicate())
+            let server = await core.computerUseBridge.server(armed: computerUseArmPredicate())
         else { return config }
         if config == nil {
             config = AICLIToolConfig(servers: [server])
