@@ -34,6 +34,7 @@ final class AppCore {
     let fallbacks = FallbackStore()
     let calcHistory = CalculatorHistoryStore()
     let currencyRates = CurrencyRateStore()
+    let regionNumberFormat = RegionNumberFormatMonitor()
     let calendarStore = CalendarStore()
     let meetingClock = MeetingClock()
     let updateChecker = UpdateCheckStore()

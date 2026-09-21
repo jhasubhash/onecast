@@ -16,6 +16,7 @@ enum SettingsBackupCoverage {
         "popToRootSeconds": .popToRootTimeout,
         "escapeKeyBehavior": .escapeKeyBehavior,
         "appearance": .appearance,
+        "calcNumberStyle": .calcNumberStyle,
         "interfaceSize": .interfaceSize,
         "paletteTransparency": .paletteTransparency,
         "compactMode": .compactMode,
@@ -93,6 +94,8 @@ enum SettingsBackupCoverage {
             "A per-Mac UI behaviour for the AI bar, kept out of backups like its position.",
         AppSettingsKey.autoSwitchInputSource.rawValue:
             "Names a keyboard input source installed on this Mac; another Mac may not have it.",
+        AppSettingsKey.meetingBrowser.rawValue:
+            "Names a browser installed on this Mac; another Mac may not have it.",
         AppSettingsKey.calendarEnabled.rawValue:
             "Doubles as consent to read your calendar; an import must not grant calendar access.",
         AppSettingsKey.autoJoinMeetings.rawValue:

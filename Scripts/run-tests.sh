@@ -300,6 +300,7 @@ run ext-icon-test          Onecast/Platform/Appearance.swift \
                            Onecast/Features/Extensions/Model/ExtensionBootConfig.swift \
                            Onecast/Features/Extensions/Model/ExtensionLaunchType.swift \
                            Onecast/Features/Extensions/Model/ExtensionManifest.swift \
+                           Onecast/Platform/AppDisplayName.swift \
                            Onecast/Features/Extensions/Model/ExtensionRefreshPolicy.swift \
                            Onecast/Features/Extensions/Model/ExtensionRefreshState.swift \
                            Onecast/Features/Extensions/Model/RenderNode.swift \
@@ -311,7 +312,9 @@ run ext-icon-test          Onecast/Platform/Appearance.swift \
                            Onecast/Features/Extensions/Service/ExtensionRuntime.swift \
                            Onecast/Features/Extensions/Service/ExtensionIconCache.swift \
                            Onecast/Features/Extensions/UI/ExtensionAnimatedImage.swift \
-                           Onecast/Features/Extensions/UI/ExtensionImage.swift
+                           Onecast/Features/Extensions/UI/ExtensionImage.swift \
+                           Onecast/Features/Clipboard/Model/ColorValue.swift \
+                           Onecast/Features/Clipboard/Model/ColorSpaces.swift
 run system-action-test     Onecast/Features/SystemActions/Model/SystemAction.swift
 run volume-test            Onecast/Features/SystemActions/Model/VolumeLevel.swift
 run window-command-test    Onecast/Features/WindowManagement/Model/WindowCommand.swift \
@@ -383,10 +386,12 @@ run symbols-test           $E/Service/SymbolCatalog.swift
 run ext-cleanup-test       $E/Service/ExtensionCleanup.swift \
                            $E/Service/ExtensionCatalog.swift \
                            $E/Model/ExtensionManifest.swift \
+                           Onecast/Platform/AppDisplayName.swift \
                            $E/Model/ExtensionLaunchType.swift \
                            $E/Model/ExtensionRefreshPolicy.swift \
                            $E/Model/ExtensionRefreshState.swift
 run ext-refresh-test       $E/Model/ExtensionManifest.swift \
+                           Onecast/Platform/AppDisplayName.swift \
                            $E/Model/ExtensionLaunchType.swift \
                            $E/Model/ExtensionRefreshPolicy.swift \
                            $E/Model/ExtensionRefreshState.swift
@@ -401,6 +406,7 @@ run ext-form-test          $E/Model/ExtensionFormMetrics.swift \
                            $E/Model/ExtensionDateExpression.swift \
                            $E/UI/ExtensionListKey.swift \
                            Tests/ext-list-key-test.swift
+run ext-image-size-test    $E/Model/ExtensionImageSize.swift
 run ext-accessory-test     $E/Model/RenderNode.swift \
                            $E/Model/ExtensionPickerItem.swift \
                            $E/Model/ExtensionSearchAccessory.swift \
@@ -417,6 +423,7 @@ run slow ext-test          -parse-as-library \
                            $E/Model/ExtensionFormField.swift \
                            $E/Model/ExtensionGridLayout.swift \
                            $E/Model/ExtensionManifest.swift \
+                           Onecast/Platform/AppDisplayName.swift \
                            $E/Model/ExtensionRefreshPolicy.swift \
                            $E/Model/ExtensionRefreshState.swift \
                            $E/Model/RenderNode.swift \
@@ -433,7 +440,9 @@ run slow ext-test          -parse-as-library \
                            $E/UI/ExtensionImage.swift \
                            $E/UI/ExtensionScreen.swift \
                            $L/SearchRelevance.swift \
-                           Onecast/Platform/Compression/Zlib.swift
+                           Onecast/Platform/Compression/Zlib.swift \
+                           Onecast/Features/Clipboard/Model/ColorValue.swift \
+                           Onecast/Features/Clipboard/Model/ColorSpaces.swift
 run settings-history-test  Onecast/Features/Settings/SettingsTab.swift \
                            Onecast/Features/Settings/SettingsHistory.swift \
                            Onecast/Features/Settings/SettingsAnchor.swift \

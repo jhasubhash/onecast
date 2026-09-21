@@ -196,6 +196,11 @@ final class AppSettings {
         didSet { defaults.set(appearance.rawValue, forKey: Key.appearance.rawValue) }
     }
 
+    /// Which separators the calculator reads and writes; `.system` follows Language & Region.
+    var calcNumberStyle: CalcNumberStyle {
+        didSet { defaults.set(calcNumberStyle.rawValue, forKey: Key.calcNumberStyle.rawValue) }
+    }
+
     /// Scales the palette and its floating siblings only. Read through `InterfaceSize.metrics`.
     var interfaceSize: InterfaceSize {
         didSet { defaults.set(interfaceSize.rawValue, forKey: Key.interfaceSize.rawValue) }
@@ -457,6 +462,17 @@ final class AppSettings {
         didSet { defaults.set(cameraPreview, forKey: Key.cameraPreview.rawValue) }
     }
 
+    /// Nil opens meeting links in the default browser.
+    var meetingBrowserBundleID: String? {
+        didSet {
+            guard let meetingBrowserBundleID else {
+                defaults.removeObject(forKey: Key.meetingBrowser.rawValue)
+                return
+            }
+            defaults.set(meetingBrowserBundleID, forKey: Key.meetingBrowser.rawValue)
+        }
+    }
+
     var menuBarEvents: MenuBarEvents {
         didSet { defaults.set(menuBarEvents.rawValue, forKey: Key.menuBarEvents.rawValue) }
     }
@@ -598,6 +614,9 @@ final class AppSettings {
             ?? .navigateBackOrClose
         appearance =
             defaults.string(forKey: Key.appearance.rawValue).flatMap(AppAppearance.init) ?? .system
+        calcNumberStyle =
+            defaults.string(forKey: Key.calcNumberStyle.rawValue).flatMap(CalcNumberStyle.init)
+            ?? .system
         interfaceSize =
             defaults.string(forKey: Key.interfaceSize.rawValue).flatMap(InterfaceSize.init)
             ?? .standard
@@ -671,7 +690,7 @@ final class AppSettings {
         calendarLauncherLimit =
             defaults.object(forKey: Key.calendarLauncherLimit.rawValue)
             .flatMap { $0 as? Int }
-            .flatMap(CalendarLauncherLimit.init(rawValue:)) ?? .three
+            .flatMap(CalendarLauncherLimit.init(rawValue:)) ?? .five
         calendarIncludesTomorrow =
             defaults.object(forKey: Key.calendarIncludesTomorrow.rawValue) == nil
             || defaults.bool(forKey: Key.calendarIncludesTomorrow.rawValue)
@@ -682,6 +701,7 @@ final class AppSettings {
             defaults.object(forKey: Key.autoJoinConfirms.rawValue) == nil
             || defaults.bool(forKey: Key.autoJoinConfirms.rawValue)
         cameraPreview = defaults.bool(forKey: Key.cameraPreview.rawValue)
+        meetingBrowserBundleID = defaults.string(forKey: Key.meetingBrowser.rawValue)
         // Both default to their zero case, so an unset key needs no presence check.
         menuBarEvents =
             MenuBarEvents(rawValue: defaults.integer(forKey: Key.menuBarEvents.rawValue)) ?? .today

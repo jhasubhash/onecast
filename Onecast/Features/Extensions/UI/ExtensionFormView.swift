@@ -459,6 +459,8 @@ private struct ExtensionFilePicker: View {
         panel.allowsMultipleSelection = node.bool("allowMultipleSelection") ?? true
         panel.canChooseDirectories = node.bool("canChooseDirectories") ?? false
         panel.canChooseFiles = node.bool("canChooseFiles") ?? true
+        // The palette floats above modal panels, so bring ours forward or it opens buried.
+        NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK else { return }
         onChange(node, panel.urls.map(\.path))
     }

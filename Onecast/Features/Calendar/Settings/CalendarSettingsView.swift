@@ -84,6 +84,7 @@ struct CalendarSettingsView: View {
                     SettingsRowTitle(.calendarJoining, "Camera Preview")
                     Text("Open camera preview before joining meetings.")
                 }
+                MeetingBrowserPicker(selection: $settings.meetingBrowserBundleID)
             } header: {
                 SettingsSectionHeader(.calendarJoining)
             }
@@ -149,6 +150,33 @@ struct CalendarSettingsView: View {
         Binding(
             get: { settings.calendarEnabled },
             set: { core.calendarCoordinator.setCalendarEnabled($0) }
+        )
+    }
+}
+
+private struct MeetingBrowserPicker: View {
+    @Binding var selection: String?
+    @State private var browsers: [MeetingLauncher.Browser] = []
+
+    var body: some View {
+        Picker(selection: installedSelection) {
+            Text("Default Browser").tag(String?.none)
+            Divider()
+            ForEach(browsers) { browser in
+                Text(browser.name).tag(Optional(browser.id))
+            }
+        } label: {
+            SettingsRowTitle(.calendarJoining, "Open Meeting Links In")
+            Text("Used when no meeting app opens the link.")
+        }
+        .onAppear { browsers = MeetingLauncher.installedBrowsers() }
+    }
+
+    /// A browser since removed reads as the default, which is what joining falls back to.
+    private var installedSelection: Binding<String?> {
+        Binding(
+            get: { browsers.contains { $0.id == selection } ? selection : nil },
+            set: { selection = $0 }
         )
     }
 }

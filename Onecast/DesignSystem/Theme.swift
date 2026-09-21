@@ -94,6 +94,13 @@ enum Theme {
         /// A `BarButton`'s hover capsule, shared by the footer group and the header's filter.
         static let barButtonHeight: CGFloat = 28
         static let rowIcon: CGFloat = 24
+        /// Colour-codes a secondary label, as Calendar.app marks an event's calendar.
+        static let colorDot: CGFloat = 8
+        /// The calendar-colour bar between a meeting row's icon and its title.
+        static let calendarBarWidth: CGFloat = 3
+        static let calendarBarHeight: CGFloat = 18
+        /// The same bar in the menu bar and its menu, sized to the system's 13pt menu text.
+        static let menuBarCalendarBarHeight: CGFloat = 12
         static let keyCap: CGFloat = 18
         /// Settings shortcut-recorder keycap — smaller than the palette's `keyCap` chip.
         static let recorderKeyCap: CGFloat = 16
