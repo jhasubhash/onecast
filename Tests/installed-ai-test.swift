@@ -161,7 +161,7 @@ private final class Fixture {
     func events(kind: InstalledAIKind, model: String, effort: String?) async -> [AIStreamEvent] {
         guard let executable = executables[kind] else { return [] }
         let provider = InstalledCLIProvider(
-            kind: kind, executable: kind == .openCode ? nil : executable,
+            kind: kind, executable: executable,
             model: model, effort: effort, workspace: workspace)
         let request = AIRequest(
             instructions: "Follow the custom instruction.",
