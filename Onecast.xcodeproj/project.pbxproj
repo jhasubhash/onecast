@@ -250,6 +250,7 @@
 		55FB72234CF0046FFCB77868 /* ScheduledTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5953FEE652624F5705BBBEAD /* ScheduledTask.swift */; };
 		5617283FA8F834ACB9FE52ED /* FocusRelease.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0713F95336ED4D598D9B9860 /* FocusRelease.swift */; };
 		566FB8BE782D71E62AA64028 /* FilePreviewThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 744428CC66404F807B2B06FB /* FilePreviewThumbnail.swift */; };
+		574EA469DC556782CF026262 /* WindowTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24E62F133C05DF41F9FEB190 /* WindowTarget.swift */; };
 		5778DA988D9F631DDD4FF6E1 /* PaletteFilterAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38A00DBED89F5EC42AAEF70 /* PaletteFilterAction.swift */; };
 		584127567E618E5A8D827F0F /* Permissions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EDD40F66BC06D5E944D88BD /* Permissions.swift */; };
 		585122BFE93C0B8EB77E00B5 /* RunningAppsMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AD191BEFA75F53845CE1C7 /* RunningAppsMonitor.swift */; };
@@ -805,6 +806,7 @@
 		24174CAB4B879067E1F2511C /* ExtensionAnimatedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionAnimatedImage.swift; sourceTree = "<group>"; };
 		244D7F1035ABD0A9F39DD3B2 /* ExtensionLaunchType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionLaunchType.swift; sourceTree = "<group>"; };
 		24574957628BE5282A410281 /* ExtensionRefreshState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionRefreshState.swift; sourceTree = "<group>"; };
+		24E62F133C05DF41F9FEB190 /* WindowTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTarget.swift; sourceTree = "<group>"; };
 		252ADF26C96B203F8E4F845C /* RowClick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RowClick.swift; sourceTree = "<group>"; };
 		260205B65193459D6DB514B2 /* BackupSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSettingsView.swift; sourceTree = "<group>"; };
 		262A412CD0360C4E65A9CC7C /* ChatHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryStore.swift; sourceTree = "<group>"; };
@@ -1390,7 +1392,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_27D54ED6-AA70-427B-9E2E-9117C4C9BB06" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_DED7371C-9438-4803-A17B-836D83095DE0" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1764,6 +1766,7 @@
 				BE92E58C3E865CB1E32E10FF /* WindowInventory.swift */,
 				45DC4934AE168D266E57032D /* WindowLayoutRunner.swift */,
 				90C710CCC5D58704748E4510 /* WindowMover.swift */,
+				24E62F133C05DF41F9FEB190 /* WindowTarget.swift */,
 			);
 			path = Service;
 			sourceTree = "<group>";
@@ -3305,10 +3308,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_01A9E4E9-B7DD-445E-9B12-D530679EA2BB" /* onecast */ = {
+		"TEMP_E57385C8-993E-4E2B-88F7-61C629952466" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_27D54ED6-AA70-427B-9E2E-9117C4C9BB06" /* Signing.xcconfig */,
+				"TEMP_DED7371C-9438-4803-A17B-836D83095DE0" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -4115,6 +4118,7 @@
 				48D21C86D34A15DC636FBAB6 /* WindowSwitchScreen.swift in Sources */,
 				E72E9D5100F6C494012B510A /* WindowSwitchSession.swift in Sources */,
 				7E99FB29A8BF86A9E8026EA1 /* WindowSwitchSweep.swift in Sources */,
+				574EA469DC556782CF026262 /* WindowTarget.swift in Sources */,
 				48509E01051A29BB49232B83 /* WindowZOrder.swift in Sources */,
 				BC5E8764037A43653F1FFFE3 /* Zlib.swift in Sources */,
 			);
@@ -4155,7 +4159,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_27D54ED6-AA70-427B-9E2E-9117C4C9BB06" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_DED7371C-9438-4803-A17B-836D83095DE0" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -4342,7 +4346,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_27D54ED6-AA70-427B-9E2E-9117C4C9BB06" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_DED7371C-9438-4803-A17B-836D83095DE0" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

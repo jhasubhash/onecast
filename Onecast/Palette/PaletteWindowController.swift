@@ -9,7 +9,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     private var panel: PalettePanel?
     private(set) var previousApp: NSRunningApplication?
     /// Our key window at summon time, so hiding hands focus back to Settings, not a stale app.
-    private weak var previousOwnWindow: NSWindow?
+    private(set) weak var previousOwnWindow: NSWindow?
     private var popToRootTimer: Timer?
     // Reopen beat the timeout, so select the preserved query.
     private var queryWasPreserved = false
@@ -53,17 +53,17 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         Signposts.interval("PaletteWindowController.show") {
             // Summoned over one of our own windows: there is no external paste or focus target.
             let frontmost = NSWorkspace.shared.frontmostApplication
-            if frontmost?.processIdentifier == NSRunningApplication.current.processIdentifier {
-                previousApp = nil
-                // Never the palette itself: a mode switch re-shows it while it already holds key.
-                if let key = NSApp.keyWindow, key !== panel { previousOwnWindow = key }
-            } else {
-                previousApp = frontmost
-                previousOwnWindow = nil
-            }
+            let ownPID = NSRunningApplication.current.processIdentifier
+            previousApp = frontmost?.processIdentifier == ownPID ? nil : frontmost
+            // Recorded even when another app is frontmost: our panels take key without activating.
+            let key = NSApp.keyWindow
+            // A mode switch re-shows the palette while it holds key; keep what it recorded then.
+            if key !== panel { previousOwnWindow = key }
             // Once per summon, and from `previousApp`, so the label names the paste target.
             core.palette.pasteTarget = PasteTarget(app: previousApp)
             let panel = ensurePanel()
+            // A modal file panel may have sunk us last time; restore unless one is still up.
+            if NSApp.modalWindow == nil { panel.level = .palette }
             // Open disarmed: a pointer already over a row must not highlight it.
             core.palette.disarmHoverHighlight(pointerAt: NSEvent.mouseLocation)
             // Re-resolve the anchor now, then hold it so resizes never move the window.
@@ -223,11 +223,17 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         guard isVisible, !core.isShowingDialog else { return }
         // The floating AI bar can be pinned to survive a click into another app.
         if core.palette.aiBar, core.settings.aiBarStaysOpen { return }
+        // A file panel takes key as a modal: sink below it and wait, never tear the command down.
+        if NSApp.modalWindow != nil {
+            panel?.level = .normal
+            return
+        }
         core.paletteCoordinator.hidePalette(restoreFocus: false)
     }
 
     /// Re-bump a turn later: on the first show a synchronous bump lands before `onChange`.
     func windowDidBecomeKey(_ notification: Notification) {
+        panel?.level = .palette
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             core.palette.focusToken = UUID()
