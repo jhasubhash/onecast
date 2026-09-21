@@ -7,13 +7,17 @@ struct ScopesTest {
         let root = fm.temporaryDirectory
             .appendingPathComponent("onecast-scopes-\(UUID().uuidString)")
 
+        // Injected rather than read, so the walk and the path arithmetic never depend on the machine.
+        let home = URL(fileURLWithPath: "/Users/fixture")
+        let homePath = home.path
+
         var failures = 0
 
         func check(_ description: String, _ condition: @autoclosure () -> Bool) {
             if condition() {
-                print("PASS  \(description)")
+                print("PASS \(description)")
             } else {
-                print("FAIL  \(description)")
+                print("FAIL \(description)")
                 failures += 1
             }
         }
@@ -33,7 +37,8 @@ struct ScopesTest {
         let deep = vendor.appendingPathComponent("Deeper")
         makeDir(deep.appendingPathComponent("TooDeep.app"))
 
-        let found = SearchScopes.appBundles(in: [apps.path]).map(\.lastPathComponent)
+        let found = AppBundleScanner.appBundles(in: [apps.path], homeDirectory: home)
+            .map(\.lastPathComponent)
         check(
             "direct and one-level-nested .app children are indexed",
             Set(found) == ["Alpha.app", "Beta.app", "Nested.app"])
@@ -42,19 +47,23 @@ struct ScopesTest {
         check("bundles nested two levels deep are not indexed", !found.contains("TooDeep.app"))
         check(
             "a deeply nested folder works as its own scope",
-            SearchScopes.appBundles(in: [deep.path]).map(\.lastPathComponent) == ["TooDeep.app"])
+            AppBundleScanner.appBundles(in: [deep.path], homeDirectory: home)
+                .map(\.lastPathComponent) == ["TooDeep.app"])
 
         // A scope may be a single bundle: that is how Finder ships as a default.
         check(
             "an .app scope is indexed directly",
-            SearchScopes.appBundles(in: [apps.appendingPathComponent("Alpha.app").path])
+            AppBundleScanner.appBundles(
+                in: [apps.appendingPathComponent("Alpha.app").path], homeDirectory: home)
                 .map(\.lastPathComponent) == ["Alpha.app"])
         check(
             "a missing .app scope yields nothing",
-            SearchScopes.appBundles(in: [apps.appendingPathComponent("Gone.app").path]).isEmpty)
+            AppBundleScanner.appBundles(
+                in: [apps.appendingPathComponent("Gone.app").path], homeDirectory: home).isEmpty)
         check(
             "a missing directory scope is skipped without failing the rest",
-            SearchScopes.appBundles(in: [root.appendingPathComponent("Nope").path, deep.path])
+            AppBundleScanner.appBundles(
+                in: [root.appendingPathComponent("Nope").path, deep.path], homeDirectory: home)
                 .map(\.lastPathComponent) == ["TooDeep.app"])
 
         // Xcode ships Instruments and Simulator inside its own bundle.
@@ -63,53 +72,65 @@ struct ScopesTest {
         makeDir(xcode.appendingPathComponent("Contents/Applications/Instruments.app"))
         makeDir(xcode.appendingPathComponent("Contents/Developer/Applications/Simulator.app"))
         makeDir(xcode.appendingPathComponent("Contents/Frameworks/Helper.app"))
-        let embedded = Set(SearchScopes.appBundles(in: [tools.path]).map(\.lastPathComponent))
+        let embedded = Set(
+            AppBundleScanner.appBundles(in: [tools.path], homeDirectory: home)
+                .map(\.lastPathComponent))
         check(
             "apps embedded in a bundle's application folders are indexed",
             embedded == ["Xcode.app", "Instruments.app", "Simulator.app"])
         check(
             "an .app scope also yields its embedded apps",
-            Set(SearchScopes.appBundles(in: [xcode.path]).map(\.lastPathComponent)) == embedded)
+            Set(
+                AppBundleScanner.appBundles(in: [xcode.path], homeDirectory: home)
+                    .map(\.lastPathComponent)) == embedded)
 
         check(
             "scopes are scanned in order",
-            SearchScopes.appBundles(in: [deep.path, apps.path]).map(\.lastPathComponent).first
-                == "TooDeep.app")
+            AppBundleScanner.appBundles(in: [deep.path, apps.path], homeDirectory: home)
+                .map(\.lastPathComponent).first == "TooDeep.app")
         check(
             "overlapping scopes yield each app once, at its first scope's position",
-            SearchScopes.appBundles(in: [xcode.path, tools.path, deep.path, vendor.path])
+            AppBundleScanner.appBundles(
+                in: [xcode.path, tools.path, deep.path, vendor.path], homeDirectory: home)
                 .map(\.lastPathComponent)
                 == ["Xcode.app", "Instruments.app", "Simulator.app", "TooDeep.app", "Nested.app"])
 
-        let home = fm.homeDirectoryForCurrentUser.path
         check(
             "expand resolves a tilde",
-            SearchScopes.expand("~/Applications") == home + "/Applications")
+            SearchScopes.expand("~/Applications", homeDirectory: home) == homePath + "/Applications")
         check(
             "abbreviate restores the tilde",
-            SearchScopes.abbreviate(home + "/Applications") == "~/Applications")
+            SearchScopes.abbreviate(homePath + "/Applications", homeDirectory: home)
+                == "~/Applications")
         check(
             "tilde survives a round trip",
-            SearchScopes.abbreviate(SearchScopes.expand("~/Applications")) == "~/Applications")
+            SearchScopes.abbreviate(
+                SearchScopes.expand("~/Applications", homeDirectory: home), homeDirectory: home)
+                == "~/Applications")
         check(
             "expand leaves an absolute path alone",
-            SearchScopes.expand("/Applications") == "/Applications")
+            SearchScopes.expand("/Applications", homeDirectory: home) == "/Applications")
         check(
             "a trailing slash is trimmed",
-            SearchScopes.abbreviate("/Applications/") == "/Applications")
-        check("root survives trimming", SearchScopes.abbreviate("/") == "/")
+            SearchScopes.abbreviate("/Applications/", homeDirectory: home) == "/Applications")
+        check("root survives trimming", SearchScopes.abbreviate("/", homeDirectory: home) == "/")
 
         check(
             "normalize dedups after abbreviating",
-            SearchScopes.normalize([
-                "/Applications", "/Applications/", home + "/Applications", "~/Applications"
-            ])
+            SearchScopes.normalize(
+                ["/Applications", "/Applications/", homePath + "/Applications", "~/Applications"],
+                homeDirectory: home)
                 == ["/Applications", "~/Applications"])
-        check("normalize preserves order", SearchScopes.normalize(["/B", "/A"]) == ["/B", "/A"])
-        check("normalize drops blanks", SearchScopes.normalize(["  ", "/A"]) == ["/A"])
+        check(
+            "normalize preserves order",
+            SearchScopes.normalize(["/B", "/A"], homeDirectory: home) == ["/B", "/A"])
+        check(
+            "normalize drops blanks",
+            SearchScopes.normalize(["  ", "/A"], homeDirectory: home) == ["/A"])
         check(
             "defaults are already normalized",
-            SearchScopes.normalize(SearchScopes.defaults) == SearchScopes.defaults)
+            SearchScopes.normalize(SearchScopes.defaults, homeDirectory: home)
+                == SearchScopes.defaults)
 
         try? fm.removeItem(at: root)
         print(failures == 0 ? "\nALL PASSED" : "\n\(failures) FAILED")

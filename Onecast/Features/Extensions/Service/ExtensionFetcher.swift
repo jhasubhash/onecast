@@ -9,6 +9,7 @@ final class ExtensionFetcher: Sendable {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 60
         configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
         // Extensions cache through the Cache API; a shared URL cache would surprise them.
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         session = URLSession(configuration: configuration)

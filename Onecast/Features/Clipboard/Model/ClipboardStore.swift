@@ -312,11 +312,14 @@ final class ClipboardStore {
     func addFiles(_ paths: [String], sourceBundleID: String?) {
         // Only a single file can be a ⌘C repeat, which is the case `addText` also guards.
         if paths.count == 1, items.first?.kind == .file, items.first?.text == paths[0] { return }
+        let batched = paths.count > 1
+        if batched, let db { sqlite3_exec(db, "BEGIN", nil, nil, nil) }
         for path in paths {
             let item = ClipboardItem(filePath: path, sourceBundleID: sourceBundleID)
             if let stmt = insertStmt { Self.bindAndInsert(stmt, item) }
             items.insert(item, at: 0)
         }
+        if batched, let db { sqlite3_exec(db, "COMMIT", nil, nil, nil) }
         trimWindow()
         prune()
     }

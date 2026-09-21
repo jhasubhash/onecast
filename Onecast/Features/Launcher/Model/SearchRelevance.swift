@@ -46,8 +46,12 @@ enum FuzzyMatch {
     }
 
     static func match(_ query: Query, candidate: String) -> Match? {
+        match(query, normalizedCandidate: normalized(candidate))
+    }
+
+    /// The candidate is already folded, so an alias built once per index change never re-folds it.
+    static func match(_ query: Query, normalizedCandidate c: String) -> Match? {
         let q = query.text
-        let c = normalized(candidate)
         let length = c.count
         guard !q.isEmpty else {
             return Match(
@@ -200,11 +204,14 @@ struct SearchAlias: Sendable, Hashable {
     }
 
     let text: String
+    /// Folded once when the entry's alias list is built, so matching never re-folds per keystroke.
+    let normalizedText: String
     let role: Role
     let looseness: Looseness
 
     init(_ text: String, _ role: Role, looseness: Looseness? = nil) {
         self.text = text
+        self.normalizedText = FuzzyMatch.normalized(text)
         self.role = role
         self.looseness = looseness ?? role.looseness
     }
@@ -289,7 +296,7 @@ enum SearchRelevance {
         guard !query.isEmpty else { return 0 }
         var best: Int?
         for alias in fields.aliases {
-            guard let match = FuzzyMatch.match(query, candidate: alias.text),
+            guard let match = FuzzyMatch.match(query, normalizedCandidate: alias.normalizedText),
                 alias.looseness.accepts(match.tier)
             else { continue }
             // A user alias earns its own cell only from its start; inside, it is a translation.

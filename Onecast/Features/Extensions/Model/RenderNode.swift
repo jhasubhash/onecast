@@ -187,20 +187,6 @@ struct RenderNode: Sendable, Equatable, Identifiable {
     var textContent: String {
         children.compactMap { $0.isText ? $0.text : nil }.joined()
     }
-
-    /// Depth-first search for the first descendant of `type`, following hoisted slot props too.
-    func firstDescendant(ofType type: String) -> RenderNode? {
-        if self.type == type { return self }
-        for child in children {
-            if let hit = child.firstDescendant(ofType: type) { return hit }
-        }
-        for value in props.values {
-            for node in value.nodesValue {
-                if let hit = node.firstDescendant(ofType: type) { return hit }
-            }
-        }
-        return nil
-    }
 }
 
 /// The root the runtime pushes after every commit: one `__screen` per stack entry.

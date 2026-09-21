@@ -57,6 +57,10 @@ struct SymbolTests {
         check(
             "bluetooth is reachable",
             catalog.search("bluetooth", in: .all).contains("bluetooth"))
+        // 'brandgithub' is in no search term: it matches only by folding the mixed-case name.
+        check(
+            "a mixed-case name folds to lowercase",
+            catalog.search("brandgithub", in: .all).contains("BrandGitHub"))
         check("subject categories exist", catalog.categories.count > 10)
         let empty = catalog.categories.filter { catalog.symbols(in: $0).isEmpty }
         check("no empty category", empty.isEmpty, "got \(empty.map(\.title))")

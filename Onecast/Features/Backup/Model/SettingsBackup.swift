@@ -235,9 +235,11 @@ extension SettingsBackup {
     }
 
     @discardableResult
-    func apply(to core: AppCore) -> ApplySummary {
+    func apply(to core: AppCore, homeDirectory: URL) -> ApplySummary {
         var summary = ApplySummary()
-        if let s = settings { summary.settingsFields = applySettings(s, to: core) }
+        if let s = settings {
+            summary.settingsFields = applySettings(s, to: core, homeDirectory: homeDirectory)
+        }
         if let customCommands {
             summary.customCommands = core.customCommandCoordinator.replaceCustomCommands(customCommands)
         }
@@ -277,7 +279,7 @@ extension SettingsBackup {
         return summary
     }
 
-    private func applySettings(_ s: SettingsData, to core: AppCore) -> Int {
+    private func applySettings(_ s: SettingsData, to core: AppCore, homeDirectory: URL) -> Int {
         let settings = core.settings
         var count = 0
         if let flag = s.clipboardEnabled {
@@ -358,7 +360,7 @@ extension SettingsBackup {
             count += 1
         }
         if let scopes = s.searchScopes {
-            settings.searchScopes = SearchScopes.normalize(scopes)
+            settings.searchScopes = SearchScopes.normalize(scopes, homeDirectory: homeDirectory)
             count += 1
         }
         if let flag = s.openOnCursorScreen {

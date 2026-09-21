@@ -37,8 +37,11 @@ struct SearchScopesSection: View {
 
     private func refreshMissing() {
         let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser
         missing = Set(
-            settings.searchScopes.filter { !fm.fileExists(atPath: SearchScopes.expand($0)) })
+            settings.searchScopes.filter {
+                !fm.fileExists(atPath: SearchScopes.expand($0, homeDirectory: home))
+            })
     }
 
     private func addScopes() {
@@ -55,7 +58,8 @@ struct SearchScopesSection: View {
         NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK else { return }
         settings.searchScopes = SearchScopes.normalize(
-            settings.searchScopes + panel.urls.map(\.path))
+            settings.searchScopes + panel.urls.map(\.path),
+            homeDirectory: FileManager.default.homeDirectoryForCurrentUser)
     }
 }
 

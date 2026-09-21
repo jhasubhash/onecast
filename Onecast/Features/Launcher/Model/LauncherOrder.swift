@@ -7,17 +7,14 @@ enum LauncherOrder {
         _ items: [Item], query: FuzzyMatch.Query, limit: Int,
         fields: (Item) -> SearchFields, usage: (Item) -> Int, name: (Item) -> String
     ) -> [Item] {
-        let scored = items.enumerated().compactMap { position, item -> (Item, Int, Int)? in
+        var scored = items.enumerated().compactMap { position, item -> (Item, Int, Int)? in
             guard let quality = SearchRelevance.quality(query, fields: fields(item)) else {
                 return nil
             }
             return (item, quality + usage(item), position)
         }
-        return
-            scored
-            .sorted { precedes($0, $1, name: name) }
-            .prefix(limit)
-            .map(\.0)
+        scored.sort { precedes($0, $1, name: name) }
+        return scored.prefix(limit).map(\.0)
     }
 
     /// Score, then the user's own alphabet, then publication order — a total order either way.

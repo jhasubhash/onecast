@@ -581,12 +581,14 @@ final class AppIndex {
         repeat {
             refreshPending = false
             let scopes = settings?.searchScopes ?? SearchScopes.defaults
+            let home = FileManager.default.homeDirectoryForCurrentUser
             let reusingPanes = paneCache
             let languages = BundleLocalization.indexedLanguages(Locale.preferredLanguages)
             let reusing = BundleNameCache(reusing: nameCache, languages: languages)
             let (found, cache, panes) = await Task.detached(priority: .utility) {
                 AppIndex.scan(
-                    scopes: scopes, languages: languages, cache: reusing, paneCache: reusingPanes)
+                    scopes: scopes, homeDirectory: home, languages: languages, cache: reusing,
+                    paneCache: reusingPanes)
             }.value
             nameCache = cache
             paneCache = panes
@@ -597,14 +599,14 @@ final class AppIndex {
     }
 
     nonisolated private static func scan(
-        scopes: [String], languages: [String], cache: BundleNameCache,
+        scopes: [String], homeDirectory: URL, languages: [String], cache: BundleNameCache,
         paneCache: SettingsPaneScanner.Cache?
     ) -> ([AppEntry], BundleNameCache, SettingsPaneScanner.Cache?) {
         Signposts.interval("AppIndex.scan") {
             var cache = cache
             var indexByBundleID: [String: Int] = [:]
             var result: [AppEntry] = []
-            for url in SearchScopes.appBundles(in: scopes) {
+            for url in AppBundleScanner.appBundles(in: scopes, homeDirectory: homeDirectory) {
                 let bundle = Bundle(url: url)
                 let bundleID = bundle?.bundleIdentifier
                 let fileName = EntryNaming.strippingAppExtension(url.lastPathComponent)

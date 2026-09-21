@@ -227,7 +227,11 @@ final class ExtensionCoordinator {
     var pasteTarget: NSRunningApplication? { paletteCoordinator.targetApp }
 
     /// `getApplications()` reports what the launcher itself indexes, so the two never disagree.
-    var applicationURLs: [URL] { SearchScopes.appBundles(in: settings.searchScopes) }
+    var applicationURLs: [URL] {
+        AppBundleScanner.appBundles(
+            in: settings.searchScopes,
+            homeDirectory: FileManager.default.homeDirectoryForCurrentUser)
+    }
 
     /// True while the palette is on screen — a toast has somewhere to render only then.
     var isPaletteVisible: Bool { paletteCoordinator.isVisible }

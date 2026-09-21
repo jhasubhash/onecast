@@ -124,6 +124,7 @@
 		287B0735D5866C475B95E527 /* ReleaseNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F64A4CF2C03DBB774B28C3 /* ReleaseNotesView.swift */; };
 		292B8885098A09AAC7AA71F7 /* CalcMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEB8D7AC2B6B3DC15E0D456A /* CalcMath.swift */; };
 		295B230214790062DF23ED7F /* SchedulerTaskEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DEF6B5B3B4ECBBE8177C11 /* SchedulerTaskEditorSheet.swift */; };
+		29AF9619544207E5F0E65D8B /* AppBundleScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3132156A22D3F8CC10709DD /* AppBundleScanner.swift */; };
 		2A8A8A93EF723B32669124EB /* ExtensionRefreshState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24574957628BE5282A410281 /* ExtensionRefreshState.swift */; };
 		2A8B09CE5237BACA6645944B /* ExtensionInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C52C00DB6C58BC7C93D629 /* ExtensionInstaller.swift */; };
 		2B98E0DBF3A22D38743D97D9 /* NoteSwitcherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EFE98C9ADF8FD03971BED6 /* NoteSwitcherView.swift */; };
@@ -1366,6 +1367,7 @@
 		EF192CB018F738E1D5E4B790 /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		EF519264FCB60FABF0F1B972 /* SnippetsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetsSettingsView.swift; sourceTree = "<group>"; };
 		F0B5D45EDBC461D75F860D55 /* CalculatorCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorCardView.swift; sourceTree = "<group>"; };
+		F3132156A22D3F8CC10709DD /* AppBundleScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBundleScanner.swift; sourceTree = "<group>"; };
 		F378EDA933224E9C617F900C /* CalendarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarStore.swift; sourceTree = "<group>"; };
 		F4DEF6B5B3B4ECBBE8177C11 /* SchedulerTaskEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulerTaskEditorSheet.swift; sourceTree = "<group>"; };
 		F4E37DC02F95A12807A127FE /* SectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
@@ -1402,7 +1404,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_4B98CA1D-1B27-43F3-BA13-3A5170FEFC3A" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_DD22A6E8-A833-450D-A3F3-D190A8681620" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2315,6 +2317,7 @@
 			isa = PBXGroup;
 			children = (
 				CEF8C5633EB9CBFDE2C89A55 /* AliasStore.swift */,
+				F3132156A22D3F8CC10709DD /* AppBundleScanner.swift */,
 				3CD85E73020B706F502F199A /* AppIndex.swift */,
 				80F6096E3A4B4DD484F626C5 /* AppLauncher.swift */,
 				FB14A0DBA8FB570E183B86FA /* BundleNameCache.swift */,
@@ -3323,10 +3326,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_89A82D6C-37FF-4BB7-A9D2-F68CA259985A" /* onecast */ = {
+		"TEMP_2BA7669C-1516-40AE-AFCC-84F2742EB0F9" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_4B98CA1D-1B27-43F3-BA13-3A5170FEFC3A" /* Signing.xcconfig */,
+				"TEMP_DD22A6E8-A833-450D-A3F3-D190A8681620" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -3514,6 +3517,7 @@
 				4AA4CE2B67C44F495EB73DEB /* AliasStore.swift in Sources */,
 				A2FEFE3C67329ACFAE4664AA /* AppActionsMenu.swift in Sources */,
 				3455568A4E8B6F29CF67C84C /* AppAppearance.swift in Sources */,
+				29AF9619544207E5F0E65D8B /* AppBundleScanner.swift in Sources */,
 				17D6AE2A0F37218B6C27A783 /* AppCore.swift in Sources */,
 				950C53E2EA0B5A741395418E /* AppDelegate.swift in Sources */,
 				8BE9F8E8C4978C088CB13513 /* AppDisplayName.swift in Sources */,
@@ -4179,7 +4183,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_4B98CA1D-1B27-43F3-BA13-3A5170FEFC3A" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_DD22A6E8-A833-450D-A3F3-D190A8681620" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -4366,7 +4370,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_4B98CA1D-1B27-43F3-BA13-3A5170FEFC3A" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_DD22A6E8-A833-450D-A3F3-D190A8681620" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

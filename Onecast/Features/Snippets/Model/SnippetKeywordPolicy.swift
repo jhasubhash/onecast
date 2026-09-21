@@ -126,6 +126,7 @@ struct SnippetKeywordPolicy: Sendable {
             }
         }
 
+        guard !keywords.isEmpty else { return nil }
         let normalizedBuffer = buffer.lowercased()
         guard let keyword = keywords.first(where: { normalizedBuffer.hasSuffix($0.value) }) else {
             return nil

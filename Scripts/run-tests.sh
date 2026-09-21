@@ -135,7 +135,8 @@ run index file-search-performance Onecast/Platform/Signposts.swift \
                            Onecast/Features/FileSearch/Model/*.swift \
                            Onecast/Features/FileSearch/Service/FileSearchService.swift
 run ranking-test           $L/SearchRelevance.swift $L/LauncherRankingStore.swift
-run scopes-test            $L/SearchScopes.swift
+run scopes-test            $L/SearchScopes.swift \
+                           Onecast/Features/Launcher/Service/AppBundleScanner.swift
 run app-name-test          Onecast/Platform/AppDisplayName.swift \
                            Onecast/Platform/BundleLocalization.swift \
                            $L/SearchRelevance.swift

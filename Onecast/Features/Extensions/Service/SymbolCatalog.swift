@@ -16,7 +16,25 @@ struct SymbolCatalog: Sendable {
     let categories: [SymbolCategory]
 
     private let byCategory: [String: [String]]
-    private let searchTerms: [String: [String]]
+
+    /// Name + terms folded once per symbol into one lowercase haystack, so search never re-folds.
+    private let haystacks: [String: String]
+
+    init(
+        symbols: [String], categories: [SymbolCategory],
+        byCategory: [String: [String]], searchTerms: [String: [String]]
+    ) {
+        self.symbols = symbols
+        self.categories = categories
+        self.byCategory = byCategory
+        self.haystacks = Dictionary(
+            symbols.map { symbol in
+                let name = symbol.replacingOccurrences(of: ".", with: " ")
+                let terms = (searchTerms[symbol] ?? []).joined(separator: " ")
+                return (symbol, "\(name) \(terms)".lowercased())
+            },
+            uniquingKeysWith: { first, _ in first })
+    }
 
     /// Marks we ship ourselves: the system has no bluetooth symbol at all, restricted or otherwise.
     static let bundledGlyphs = ["bluetooth", "BrandGitHub", "BrandDiscord", "BrandX"]
@@ -137,11 +155,8 @@ struct SymbolCatalog: Sendable {
         // A search is a search: it looks through everything unless the user narrowed to a category.
         let pool = category.id == SymbolCategory.suggested.id ? symbols : symbols(in: category)
         return pool.filter { symbol in
-            let haystack = symbol.replacingOccurrences(of: ".", with: " ")
-            return words.allSatisfy { word in
-                haystack.contains(word)
-                    || (searchTerms[symbol] ?? []).contains { $0.lowercased().contains(word) }
-            }
+            guard let haystack = haystacks[symbol] else { return false }
+            return words.allSatisfy { haystack.contains($0) }
         }
     }
 
