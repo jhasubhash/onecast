@@ -154,13 +154,14 @@ private struct AboutLink: Identifiable {
         AboutLink(
             id: "discord", glyph: .brand("BrandDiscord"), title: "Discord",
             detail: "Join the Onecast community",
-            url: URL(string: "https://discord.gg/v2Eeb4QQy3")!),
+            url: URL(string: "https://discord.gg/DbTfCXHv")!),
         AboutLink(
-            id: "x", glyph: .brand("BrandX"), title: "X", detail: "@abue_ammar",
-            url: URL(string: "https://x.com/abue_ammar")!),
+            id: "x", glyph: .brand("BrandX"), title: "X", detail: "@subhashjha333",
+            url: URL(string: "https://x.com/subhashjha333")!),
         AboutLink(
             id: "email", glyph: .symbol("envelope"), title: "Email",
-            detail: "iabueammar@gmail.com", url: URL(string: "mailto:iabueammar@gmail.com")!)
+            detail: "subhashjha.mail@gmail.com",
+            url: URL(string: "mailto:subhashjha.mail@gmail.com")!)
     ]
 }
 
