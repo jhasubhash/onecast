@@ -30,6 +30,8 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
     /// A broader opt-in than `allowCLITools`: let an installed CLI route run *shell* commands too, so a
     /// script-based Skill can execute. Full native tool access.
     var allowShellTools: Bool
+    /// Opt-in, per assistant: let a vision route see the screen and drive mouse/keyboard, autonomously.
+    var allowComputerUse: Bool
     var opensTo: AIOpensTo
     var newChatAfter: AINewChatAfter
     var retention: AIRetention
@@ -58,6 +60,7 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
         mcpServerIDs: Set<UUID> = [],
         allowCLITools: Bool = false,
         allowShellTools: Bool = false,
+        allowComputerUse: Bool = false,
         opensTo: AIOpensTo = .recent,
         newChatAfter: AINewChatAfter = .fiveMinutes,
         retention: AIRetention = .forever,
@@ -81,6 +84,7 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
         self.mcpServerIDs = mcpServerIDs
         self.allowCLITools = allowCLITools
         self.allowShellTools = allowShellTools
+        self.allowComputerUse = allowComputerUse
         self.opensTo = opensTo
         self.newChatAfter = newChatAfter
         self.retention = retention
@@ -113,6 +117,8 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
             allowCLITools: try c.decodeIfPresent(Bool.self, forKey: .allowCLITools) ?? d.allowCLITools,
             allowShellTools: try c.decodeIfPresent(Bool.self, forKey: .allowShellTools)
                 ?? d.allowShellTools,
+            allowComputerUse: try c.decodeIfPresent(Bool.self, forKey: .allowComputerUse)
+                ?? d.allowComputerUse,
             opensTo: try c.decodeIfPresent(AIOpensTo.self, forKey: .opensTo) ?? d.opensTo,
             newChatAfter: try c.decodeIfPresent(AINewChatAfter.self, forKey: .newChatAfter)
                 ?? d.newChatAfter,

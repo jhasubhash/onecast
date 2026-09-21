@@ -16,6 +16,14 @@ final class AISettingsStore {
     var webSearchEnabled: Bool {
         didSet { defaults.set(webSearchEnabled, forKey: AppSettingsKey.aiWebSearch.rawValue) }
     }
+    /// Off by default: an armed model can move the mouse and type, so it is opt-in, per assistant.
+    var computerUseEnabled: Bool {
+        didSet { defaults.set(computerUseEnabled, forKey: AppSettingsKey.aiComputerUse.rawValue) }
+    }
+    /// Off by default, excluded from backups: it lets the default chat run any shell command.
+    var shellAccessEnabled: Bool {
+        didSet { defaults.set(shellAccessEnabled, forKey: AppSettingsKey.aiShellAccess.rawValue) }
+    }
     /// On by default: a model that reasons silently looks hung, so its thinking streams by default.
     var showReasoning: Bool {
         didSet { defaults.set(showReasoning, forKey: AppSettingsKey.aiShowReasoning.rawValue) }
@@ -69,6 +77,10 @@ final class AISettingsStore {
             defaults.data(forKey: AppSettingsKey.aiDefaultModel.rawValue))
         webSearchEnabled =
             defaults.object(forKey: AppSettingsKey.aiWebSearch.rawValue) as? Bool ?? false
+        computerUseEnabled =
+            defaults.object(forKey: AppSettingsKey.aiComputerUse.rawValue) as? Bool ?? false
+        shellAccessEnabled =
+            defaults.object(forKey: AppSettingsKey.aiShellAccess.rawValue) as? Bool ?? false
         showReasoning =
             defaults.object(forKey: AppSettingsKey.aiShowReasoning.rawValue) as? Bool ?? true
         systemPrompt = defaults.string(forKey: AppSettingsKey.aiSystemPrompt.rawValue) ?? ""

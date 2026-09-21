@@ -458,6 +458,7 @@ run scheduler-test         Onecast/Features/Notifications/Model/NotificationSpec
 run scheduler-ai-test      Onecast/Features/Notifications/Model/NotificationSpec.swift \
                            Onecast/Features/Scheduler/Model/*.swift \
                            Onecast/Features/Scheduler/Service/ScheduledTaskStore.swift \
+                           Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/AITool.swift \
                            Onecast/Features/AI/Model/JSONValue.swift \
                            Onecast/Features/Scheduler/AI/SchedulerAITool.swift
@@ -482,6 +483,7 @@ run ai-chat-test           Onecast/Features/AI/Model/AIRequest.swift \
 run mcp-test               Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Model/AIConnection.swift \
                            Onecast/Features/AI/Model/AppleIntelligence.swift \
+                           Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/AITool.swift \
                            Onecast/Features/AI/Model/JSONValue.swift \
                            Onecast/Features/MCP/Model/*.swift \
@@ -524,6 +526,7 @@ run installed-ai-test     Onecast/Features/AI/Model/*.swift \
                           Onecast/Platform/ExecutableLocator.swift \
                           Onecast/Features/AI/Service/InstalledCLIProvider.swift \
                           Onecast/Features/AI/Service/InstalledAIManager.swift
+run computer-use-token-test Onecast/Features/AI/Model/ComputerUseTokenLedger.swift
 run assistant-store-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Model/*.swift \
                            Onecast/Features/AI/Service/AssistantStore.swift \

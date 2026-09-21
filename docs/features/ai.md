@@ -58,10 +58,12 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   `opencode` executable without asking for or storing another key. Codex inherits the user's normal
   home and credential-store setting; Claude and OpenCode inherit their normal configuration. Onecast
   never reads those credential files, browser cookies or undocumented web endpoints.
-- **Codex tools are unavailable.** The app-server launches with tool capabilities disabled, approvals
-  set to never and a read-only, network-disabled sandbox. Any server approval request is declined.
-  [MCP](mcp.md) does not lift this: `AIModelCapabilities.tools` is false for the subscription route
-  and for the on-device one, so only the two HTTP shapes are ever handed a tool.
+- **Codex is handed no in-process tool.** The app-server launches with tool capabilities disabled,
+  approvals set to never and a read-only, network-disabled sandbox; any server approval request is
+  declined. `AIModelCapabilities.tools` is false for the subscription route and the on-device one, so
+  `AIToolLoopProvider` hands neither an in-process `AITool` — only the two HTTP shapes drive tools
+  in-process. Computer use is the exception and a separate path: a CLI route reaches it out-of-process
+  through an injected MCP server it connects to itself (see below), not as an in-process tool.
 - **Tool calling is a decorator, not a transport change.** `AIToolLoopProvider` wraps a route and
   re-streams the turn until the model stops asking, so a route with no tools behaves exactly as it
   did and `AIChatState` reduces one more pair of events. Only chat wraps: `quickActionProvider()`
@@ -80,6 +82,32 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   neither OAuth nor the keychain and so refuses the very sign-in this route reuses. OpenCode runs `--pure` with
   deny-all permissions, disabled sharing and a private working directory; Onecast deletes the session
   recorded in its JSON stream after each turn. Neither route offers images or web search.
+- **Computer use rides an injected MCP server on a CLI route.** An installed CLI (Claude, Copilot,
+  Codex) runs its own tool loop in a child process and reaches a tool only through an MCP server it
+  spawns, so a screen-capturing helper of its own would need a second Screen Recording and Accessibility
+  identity. Instead Onecast injects `ComputerUseBridge`'s zero-capability `ComputerUseHelper`, which
+  relays each `tools/call` over loopback to the app, where the grants already live and the shared
+  `ComputerController` is the single input path. HTTP and on-device routes keep driving the computer
+  in-process through `toolAware`; a CLI route reports no in-process tools, so the two paths never both
+  fire. Each helper call is token-gated by `ComputerUseTokenLedger`: the token carries that one route's
+  live arm predicate — disarming or deleting the route refuses it at once — is bounded, expires, and
+  rides a 0600 handshake file deleted on read (orphans a failed launch leaves are swept). OpenCode is
+  excluded (`InstalledAIKind.acceptsInjectedMCP`): it ignores an injected server, so arming one would
+  spawn nothing. The fallback preference lives in the computer-use tools' own schemas, always sent so
+  it holds even with system prompts off (`ComputerUseTool.screenshotTool` and `fallbackNote`): an
+  AppleScript command to the app itself, its own CLI, or an MCP tool is preferred first when one is
+  available, and otherwise the model drives the screen and pointer directly and never claims it cannot
+  control the Mac. Shell is never granted implicitly:
+  Copilot's MCP-only route is scoped with `--allow-tool onecast-mcp-<slug>` to just the injected server
+  (never `--allow-all-tools`) and denies the native `shell`, `read`, `write`, `url` and `memory` kinds.
+  A truthy `COPILOT_ALLOW_ALL` would defeat that anyway — it trusts the workspace and loads shell-running
+  hooks past the deny flags, and the plain text route carries no flags at all — so `environment(for:)`
+  forces `COPILOT_ALLOW_ALL=false` on every Copilot route except the explicit `allowShell` opt-in, after
+  the assistant's own variables merge. The `onecast-mcp-` prefix (`AICLIMCPServer.copilotServerName`)
+  keeps a slug like `shell` from colliding with a built-in permission kind, so `osascript` and other
+  native tools need a shell opt-in (`--allow-all`): an assistant's `allowShellTools`, or the default
+  chat's own `aiShellAccess` toggle, which the default route honors only on a shell-capable CLI
+  (Claude or Copilot).
 - **Chat is a palette screen, not another window** — including its lifetime. The launcher command
   enters `.ai`; its search field is the composer, and the shared footer's primary pill is Return's
   job: Send (`↵`), or Stop (`↵`) while a response streams — followed by Actions (`⌘K`), which owns

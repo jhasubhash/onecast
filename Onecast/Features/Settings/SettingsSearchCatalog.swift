@@ -278,6 +278,9 @@ enum SettingsSearchCatalog {
         .init(.aiDefault, "Reasoning effort", keywords: ["thinking", "effort", "deepseek"]),
         .init(.aiChat, "Web search", keywords: ["browse", "internet"]),
         .init(
+            .aiChat, "Shell access",
+            keywords: ["shell", "terminal", "applescript", "command", "bash", "run"]),
+        .init(
             .aiConversations, "Opens to",
             keywords: ["new chat", "last", "summon"]),
         .init(

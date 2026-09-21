@@ -33,6 +33,15 @@ struct AIToolResult: Equatable, Sendable {
     let callID: String
     let content: String
     let isError: Bool
+    /// Images the tool hands back — a screenshot. Vision routes only; text routes never see one.
+    let images: [AIImage]
+
+    init(callID: String, content: String, isError: Bool, images: [AIImage] = []) {
+        self.callID = callID
+        self.content = content
+        self.isError = isError
+        self.images = images
+    }
 
     static func failure(_ callID: String, _ message: String) -> AIToolResult {
         AIToolResult(callID: callID, content: message, isError: true)

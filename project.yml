@@ -42,11 +42,19 @@ targets:
         excludes:
           - Features/Clipboard/Service/ClipboardTextExtractor.swift
           - Features/Clipboard/Service/ClipboardTextHelper.swift
+          - Features/AI/Service/ComputerUseHelper.swift
       # The MIT mark's licence asks the notice to travel with the binary, not just the repo.
       - path: NOTICE.md
         buildPhase: resources
     dependencies:
       - target: ClipboardTextHelper
+        link: false
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
+      - target: ComputerUseHelper
         link: false
         embed: true
         codeSign: true
@@ -112,6 +120,20 @@ targets:
         # and gives the module a name with a space in it.
         EXECUTABLE_NAME: ClipboardTextHelper
         PRODUCT_MODULE_NAME: ClipboardTextHelper
+        SKIP_INSTALL: YES
+
+  # The zero-capability MCP relay a CLI route spawns to reach computer use: it forwards each call to
+  # the app over loopback, so it captures nothing and needs no Screen Recording or Accessibility grant.
+  ComputerUseHelper:
+    type: tool
+    platform: macOS
+    sources:
+      - Onecast/Features/AI/Service/ComputerUseHelper.swift
+    settings:
+      base:
+        # release.yml passes PRODUCT_NAME to every target; pin the name the app looks for in Helpers.
+        EXECUTABLE_NAME: ComputerUseHelper
+        PRODUCT_MODULE_NAME: ComputerUseHelper
         SKIP_INSTALL: YES
 
   # The public plugin contract. Embedded in the app so a loaded plugin dylib resolves the exact

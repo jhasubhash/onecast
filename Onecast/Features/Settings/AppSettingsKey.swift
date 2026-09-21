@@ -36,6 +36,8 @@ enum AppSettingsKey: String, CaseIterable {
     case customCommandsShowInLauncher = "customCommandsShowInLauncher"
     case snippetsEnabled = "snippetsEnabled"
     case snippetsShowInLauncher = "snippetsShowInLauncher"
+    case aiComputerUse = "aiComputerUse"
+    case aiShellAccess = "aiShellAccess"
     case navigationEnabled = "navigationEnabled"
     case menuSearchDisabledApps = "menuSearchDisabledApps"
     case menuSearchShowsAppleMenu = "menuSearchShowsAppleMenu"

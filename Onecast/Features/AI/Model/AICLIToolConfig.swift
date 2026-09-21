@@ -12,6 +12,9 @@ struct AICLIMCPServer: Sendable, Equatable {
     /// The HTTP header value from the Keychain, empty when none — kept out of UserDefaults and backups.
     var headerValue: String
     var environment: [String: String]
+
+    /// Prefixed so a slug like `shell` can't collide with a Copilot built-in permission kind.
+    var copilotServerName: String { "onecast-mcp-\(slug)" }
 }
 
 /// The opt-in payload for running an installed CLI route's *own* MCP tools, scoped to exactly the
@@ -19,8 +22,7 @@ struct AICLIMCPServer: Sendable, Equatable {
 /// servers; `nil` everywhere else keeps the CLI route sandboxed as before.
 struct AICLIToolConfig: Sendable, Equatable {
     var servers: [AICLIMCPServer]
-    /// Full native tool access (shell + file + MCP), for running a script-based Skill. When false the
-    /// CLI is scoped to just `servers` (an `mcp__<slug>` allowlist).
+    /// Full native access (shell + file + MCP) for a Skill's script; otherwise just the named servers.
     var allowShell: Bool
     /// Environment variables injected into the CLI process — tokens a Skill's script needs.
     var environment: [String: String]
@@ -92,11 +94,11 @@ struct AICLIToolConfig: Sendable, Equatable {
                     "type": "local", "command": command, "args": arguments, "tools": ["*"]
                 ]
                 if !server.environment.isEmpty { entry["env"] = server.environment }
-                entries[server.slug] = entry
+                entries[server.copilotServerName] = entry
             case .http(let url, let headerName):
                 var entry: [String: Any] = ["type": "http", "url": url, "tools": ["*"]]
                 if !server.headerValue.isEmpty { entry["headers"] = [headerName: server.headerValue] }
-                entries[server.slug] = entry
+                entries[server.copilotServerName] = entry
             }
         }
         guard let data = try? JSONSerialization.data(

@@ -14,7 +14,7 @@ enum AIRequestBody {
     private static func openAI(
         _ input: AIRequest, configuration: AIHTTPConfiguration
     ) -> [String: Any] {
-        var messages = input.messages.compactMap(openAIMessage)
+        var messages = openAIMessages(input.messages)
         if let instructions = input.instructions?.nonEmpty {
             messages.insert(["role": "system", "content": instructions], at: 0)
         }
@@ -72,6 +72,23 @@ enum AIRequestBody {
         return body
     }
 
+    /// A tool's screenshot can't ride the bare-string `tool` role, so it follows as the next user turn.
+    private static func openAIMessages(_ messages: [AIMessage]) -> [[String: Any]] {
+        var encoded: [[String: Any]] = []
+        for message in messages {
+            if let value = openAIMessage(message) { encoded.append(value) }
+            if let result = message.toolResult, !result.images.isEmpty {
+                encoded.append([
+                    "role": "user",
+                    "content": result.images.map {
+                        ["type": "image_url", "image_url": ["url": $0.dataURL]] as [String: Any]
+                    }
+                ])
+            }
+        }
+        return encoded
+    }
+
     /// Plain text stays a string; only a message with images takes the content-part array.
     private static func openAIMessage(_ message: AIMessage) -> [String: Any]? {
         if let result = message.toolResult {
@@ -112,9 +129,26 @@ enum AIRequestBody {
         var results: [[String: Any]] = []
         for message in messages {
             if let result = message.toolResult {
+                // A screenshot rides inside the tool_result content; text-only stays a plain string.
+                let content: Any
+                if result.images.isEmpty {
+                    content = result.content
+                } else {
+                    content =
+                        [["type": "text", "text": result.content] as [String: Any]]
+                        + result.images.map {
+                            [
+                                "type": "image",
+                                "source": [
+                                    "type": "base64", "media_type": $0.mimeType,
+                                    "data": $0.data.base64EncodedString()
+                                ]
+                            ] as [String: Any]
+                        }
+                }
                 results.append([
                     "type": "tool_result", "tool_use_id": result.callID,
-                    "content": result.content, "is_error": result.isError
+                    "content": content, "is_error": result.isError
                 ])
                 continue
             }

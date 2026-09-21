@@ -13,6 +13,7 @@ final class AppCore {
     let windowLayouts = WindowLayoutStore()
     let customWindowSizes = CustomWindowSizeStore()
     let scheduledTasks = ScheduledTaskStore()
+    let computerController = ComputerController()
     let clipboardStore = ClipboardStore()
     @ObservationIgnored private var clipboardTextIndexer: ClipboardTextIndexer?
     let clipboardManager: ClipboardManager
@@ -188,6 +189,8 @@ final class AppCore {
         appIndex: appIndex)
     @ObservationIgnored private(set) lazy var schedulerEditorCoordinator =
         SchedulerEditorCoordinator(store: scheduledTasks, core: self)
+    @ObservationIgnored private(set) lazy var computerUseBridge =
+        ComputerUseBridge(controller: computerController)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     @ObservationIgnored private(set) lazy var aiChatCoordinator = AIChatCoordinator(

@@ -26,6 +26,26 @@ enum Permissions {
         NSWorkspace.shared.open(url)
     }
 
+    static func isScreenRecordingTrusted() -> Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
+    /// Returns current trust state and raises the system prompt if the grant is missing.
+    @discardableResult
+    static func ensureScreenRecording() -> Bool {
+        CGRequestScreenCaptureAccess()
+    }
+
+    @MainActor
+    static func openScreenRecordingSettings() {
+        guard
+            let url = URL(
+                string:
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+        else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     static func calendarAccess() -> CalendarAccess {
         switch EKEventStore.authorizationStatus(for: .event) {
         case .fullAccess: return .granted

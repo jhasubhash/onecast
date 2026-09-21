@@ -253,9 +253,18 @@ private final class InstalledCLITurnRunner {
             ]
             if let effort { result += ["--reasoning-effort", effort] }
             if let toolConfig {
-                // Shell tools need file + URL access too (a Skill's script hits its own host); `--allow-all`
-                // is tools+paths+urls. MCP-only stays at tools, since the servers do their own I/O.
-                result += toolConfig.allowShell ? ["--allow-all"] : ["--allow-all-tools"]
+                if toolConfig.allowShell {
+                    // The dangerous opt-in: a Skill's script needs shell, file and URL access.
+                    result += ["--allow-all"]
+                } else {
+                    for server in toolConfig.servers {
+                        result += ["--allow-tool", server.copilotServerName]
+                    }
+                    // Deny beats allow-all, so inherited COPILOT_ALLOW_ALL grants no native kind.
+                    for kind in ["shell", "read", "write", "url", "memory"] {
+                        result += ["--deny-tool", kind]
+                    }
+                }
                 if !toolConfig.servers.isEmpty {
                     result += ["--additional-mcp-config", toolConfig.copilotMCPConfigJSON]
                 }
@@ -288,6 +297,10 @@ private final class InstalledCLITurnRunner {
         // The assistant's own variables win, so a Skill's script can authenticate with its own tokens.
         if let toolConfig {
             for (key, value) in toolConfig.environment { result[key] = value }
+        }
+        // A truthy value trusts the workspace and loads shell hooks past deny flags; force it off.
+        if kind == .copilot, toolConfig?.allowShell != true {
+            result["COPILOT_ALLOW_ALL"] = "false"
         }
         return result
     }

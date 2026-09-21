@@ -213,16 +213,17 @@ final class AIChatCoordinator {
             } else {
                 skillBudget = AISkillBudget.default
             }
+            let composed = AIInstructions.compose(
+                userPrompt: assistant?.systemPrompt ?? core.aiSettings.systemPrompt,
+                skills: skills, skillBudget: skillBudget,
+                allowsSkillScripts: assistant?.allowShellTools ?? false,
+                isEnabled: assistant?.systemPromptEnabled ?? core.aiSettings.systemPromptEnabled)
             let sent = chat.send(
                 address.rest,
                 using: try toolAware(
                     effectiveProvider(), scopedTo: address.slug, allowed: assistant?.mcpServerIDs),
                 webSearch: webSearch,
-                instructions: AIInstructions.compose(
-                    userPrompt: assistant?.systemPrompt ?? core.aiSettings.systemPrompt,
-                    skills: skills, skillBudget: skillBudget,
-                    allowsSkillScripts: assistant?.allowShellTools ?? false,
-                    isEnabled: assistant?.systemPromptEnabled ?? core.aiSettings.systemPromptEnabled),
+                instructions: composed,
                 contextBudget: contextBudget)
             // The first message grows the bar past its composer into the transcript.
             if sent, isDynamic { palette.aiBarExpanded = true }
@@ -240,11 +241,18 @@ final class AIChatCoordinator {
         var tools = core.mcpCoordinator.tools(scopedTo: slug, allowed: allowed)
         // The scheduler's reminder tools are offered whenever the feature is on, MCP servers or not.
         if core.settings.schedulerEnabled { tools.append(contentsOf: SchedulerAITool.tools) }
+        // Computer use needs the tool loop and a vision route, so it rides only a route with both.
+        let computerUse = computerUseArmed && capabilities.tools && capabilities.images
+        if computerUse { tools.append(contentsOf: ComputerUseTool.tools) }
         guard !tools.isEmpty else { return provider }
         let chatID = chat.session.id
         let mcp = core.mcpCoordinator
         let store = core.scheduledTasks
-        let invoke: @Sendable (AIToolCall) async -> AIToolResult = { [mcp, store] call in
+        let computer = computerUse ? ComputerUseTool(controller: core.computerController) : nil
+        let invoke: @Sendable (AIToolCall) async -> AIToolResult = { [mcp, store, computer] call in
+            if let computer, ComputerUseTool.handles(call.name) {
+                return await computer.invoke(call)
+            }
             if SchedulerAITool.handles(call.name) {
                 return await SchedulerAITool.invoke(
                     call, store: store, calendar: .current, now: Date())
@@ -378,18 +386,54 @@ final class AIChatCoordinator {
         activeAssistant?.model ?? core.aiSettings.defaultModel
     }
 
+    /// The user's arming of computer use for the active route, independent of route capabilities.
+    private var computerUseArmed: Bool {
+        activeAssistant?.allowComputerUse ?? core.aiSettings.computerUseEnabled
+    }
+
+    /// A live predicate for the bridge, re-read at call time and bound to this route only.
+    private func computerUseArmPredicate() -> @MainActor () -> Bool {
+        let settings = core.aiSettings
+        let assistants = core.assistants
+        let routeID = activeAssistant?.id
+        return {
+            if let routeID { return assistants.assistant(id: routeID)?.allowComputerUse == true }
+            return settings.computerUseEnabled
+        }
+    }
+
     private func effectiveProvider() throws -> any AIProvider {
-        let cliTools = activeAssistant.flatMap(cliToolConfig)
+        let cliTools = cliToolConfig()
         if let model = activeAssistant?.model {
             return try core.aiProvider(for: model, cliTools: cliTools)
         }
         return try core.aiProvider(cliTools: cliTools)
     }
 
-    /// The CLI-tools payload for an assistant, or nil when it opts into neither MCP nor shell tools —
-    /// nil keeps every route (and the default bar) sandboxed exactly as before. Environment variables
-    /// ride along so a Skill's script can authenticate.
-    private func cliToolConfig(for assistant: Assistant) -> AICLIToolConfig? {
+    /// CLI-tools payload: assistant MCP/shell opt-in plus the computer-use server on an armed CLI.
+    private func cliToolConfig() -> AICLIToolConfig? {
+        var config = activeAssistant.flatMap(assistantCLIToolConfig) ?? defaultRouteCLIToolConfig()
+        guard computerUseArmed, effectiveModel?.source.installedKind?.acceptsInjectedMCP == true,
+            let server = core.computerUseBridge.server(armed: computerUseArmPredicate())
+        else { return config }
+        if config == nil {
+            config = AICLIToolConfig(servers: [server])
+        } else {
+            config?.servers.append(server)
+        }
+        return config
+    }
+
+    /// nil unless shell is armed on a route that honors it; Codex reads any config as tool mode.
+    private func defaultRouteCLIToolConfig() -> AICLIToolConfig? {
+        guard activeAssistant == nil, core.aiSettings.shellAccessEnabled,
+            effectiveModel?.source.installedKind?.honorsShellAccess == true
+        else { return nil }
+        return AICLIToolConfig(servers: [], allowShell: true)
+    }
+
+    /// An assistant's CLI tools, or nil when it opts into neither; env vars ride along for a Skill.
+    private func assistantCLIToolConfig(for assistant: Assistant) -> AICLIToolConfig? {
         guard assistant.allowCLITools || assistant.allowShellTools else { return nil }
         let servers =
             assistant.allowCLITools

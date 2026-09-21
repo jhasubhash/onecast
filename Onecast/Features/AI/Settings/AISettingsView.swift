@@ -148,6 +148,19 @@ struct AISettingsView: View {
                 SettingsRowTitle(.aiChat, "Stream reasoning")
                 Text("Shows the model's thinking as it streams, instead of a lone spinner.")
             }
+            Toggle(isOn: $settings.computerUseEnabled) {
+                SettingsRowTitle(.aiChat, "Computer use")
+                Text(
+                    "Lets a vision-capable model see the screen and drive the mouse and keyboard, "
+                        + "acting on its own within a reply. Needs Screen Recording and Accessibility.")
+            }
+            Toggle(isOn: $settings.shellAccessEnabled) {
+                SettingsRowTitle(.aiChat, "Shell access")
+                Text(
+                    "Lets the chat run shell and AppleScript commands to act on your Mac directly, "
+                        + "without a permission prompt — on the Claude and Copilot routes only. Off "
+                        + "by default; it can run anything you can.")
+            }
         } header: {
             SettingsSectionHeader(.aiChat)
         } footer: {

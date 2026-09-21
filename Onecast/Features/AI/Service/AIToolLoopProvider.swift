@@ -101,6 +101,7 @@ struct AIToolLoopProvider: AIProvider {
         // A cut can land mid-scalar; a failed UTF-8 decode falls back to an empty string.
         let content = String(bytes: Array(utf8.prefix(allowance)), encoding: .utf8) ?? ""
         return AIToolResult(
-            callID: result.callID, content: content + "\n…truncated.", isError: result.isError)
+            callID: result.callID, content: content + "\n…truncated.", isError: result.isError,
+            images: result.images)
     }
 }
