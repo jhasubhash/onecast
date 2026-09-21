@@ -1,6 +1,6 @@
 import Foundation
 
-/// The computer-use bridge's token gate, extracted so its refusals are testable without a live socket.
+/// The bridge's token gate, extracted so its refusals are testable without a live socket.
 @MainActor
 struct ComputerUseTokenLedger {
     private struct Entry {

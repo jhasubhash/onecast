@@ -10,24 +10,24 @@ final class ComputerUseBridge {
         let arguments: String
     }
 
-    /// Holds the TCC-granted work; one shared controller with the in-process route, never two paths.
+    /// Holds the TCC-granted work; the one controller shared with the in-process route.
     private let tool: ComputerUseTool
 
     init(controller: ComputerController) {
         tool = ComputerUseTool(controller: controller)
     }
 
-    /// Serves off-main so a slow screenshot never blocks the UI; hops to @MainActor to run the tool.
+    /// Serves requests off the main thread; hops to @MainActor only to run the tool.
     private let queue = DispatchQueue(
         label: "com.onecast.computer-use-bridge", qos: .userInitiated, attributes: .concurrent)
 
     private var listenFD: Int32?
     private var port: UInt16?
 
-    /// The token gate; refuses an unknown, disarmed, or expired token. Bounded against dead helpers.
+    /// The token gate; refuses an unknown, disarmed, or expired token. Bounded vs dead helpers.
     private var ledger = ComputerUseTokenLedger()
 
-    /// Builds the MCP server the CLI spawns; `armed` is captured, not called, so it reads at call time.
+    /// Builds the MCP server the CLI spawns; `armed` is captured, read at each call, not now.
     func server(armed: @escaping @MainActor () -> Bool) -> AICLIMCPServer? {
         guard let port = ensureListening() else { return nil }
         Self.sweepStaleHandshakes()
@@ -168,7 +168,7 @@ final class ComputerUseBridge {
         (try? JSONSerialization.data(withJSONObject: object)) ?? Data("{\"ok\":false}".utf8)
     }
 
-    /// Unique handshake per issuance (port, token, tool schemas); the helper reads it once, then deletes.
+    /// Unique handshake per issuance (port, token, schemas); the helper reads once and deletes it.
     private static func writeHandshake(port: UInt16, token: String) -> String? {
         let tools = ComputerUseTool.tools.map { tool -> [String: Any] in
             [
@@ -194,14 +194,14 @@ final class ComputerUseBridge {
         return bytes.map { String(format: "%02x", $0) }.joined()
     }
 
-    /// A `_` can't occur in a user slug (`MCPSlug.normalize` uses `-`), so this built-in never collides.
+    /// A `_` can't occur in a slug (`MCPSlug.normalize` uses `-`), so this built-in won't collide.
     static let reservedSlug = "onecast_computer"
 
     private static var handshakePrefix: String {
         (Bundle.main.bundleIdentifier ?? "com.onecast.app") + ".computeruse."
     }
 
-    /// Deletes our own handshakes a helper never consumed, so a failed CLI launch leaves no live token.
+    /// Deletes our handshakes a helper never consumed, so a failed CLI launch leaves no live token.
     private static func sweepStaleHandshakes() {
         let directory = NSTemporaryDirectory()
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory) else {

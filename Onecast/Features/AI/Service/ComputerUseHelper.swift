@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-/// A zero-capability MCP relay: it captures nothing and forwards each tools/call to the app's bridge.
+/// A zero-capability MCP relay: captures nothing, forwards each tools/call to the app's bridge.
 @main
 enum ComputerUseHelper {
     static func main() {
@@ -155,7 +155,7 @@ private enum Bridge {
         }
     }
 
-    /// Chunked read: a screenshot reply is a big base64 blob framed by EOF; strip the trailing newline.
+    /// Chunked read: a screenshot reply is a base64 blob framed by EOF; strip trailing newline.
     private static func readToEnd(_ fd: Int32) -> Data? {
         var data = Data()
         var chunk = [UInt8](repeating: 0, count: 1 << 16)

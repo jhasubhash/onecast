@@ -22,7 +22,7 @@ struct AICLIMCPServer: Sendable, Equatable {
 /// servers; `nil` everywhere else keeps the CLI route sandboxed as before.
 struct AICLIToolConfig: Sendable, Equatable {
     var servers: [AICLIMCPServer]
-    /// Full native access (shell + file + MCP) for a Skill's script; otherwise just the named servers.
+    /// Full native access (shell + file + MCP) for a Skill's script; else just the named servers.
     var allowShell: Bool
     /// Environment variables injected into the CLI process — tokens a Skill's script needs.
     var environment: [String: String]

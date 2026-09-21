@@ -72,7 +72,7 @@ enum AIRequestBody {
         return body
     }
 
-    /// A tool's screenshot can't ride the bare-string `tool` role, so it follows as the next user turn.
+    /// A screenshot can't ride the bare-string `tool` role, so it trails as the next user turn.
     private static func openAIMessages(_ messages: [AIMessage]) -> [[String: Any]] {
         var encoded: [[String: Any]] = []
         for message in messages {
@@ -129,7 +129,7 @@ enum AIRequestBody {
         var results: [[String: Any]] = []
         for message in messages {
             if let result = message.toolResult {
-                // A screenshot rides inside the tool_result content; text-only stays a plain string.
+                // A screenshot rides in the tool_result content; text-only stays a plain string.
                 let content: Any
                 if result.images.isEmpty {
                     content = result.content

@@ -50,7 +50,7 @@ enum InstalledAIKind: String, CaseIterable, Codable, Identifiable, Sendable {
         }
     }
 
-    /// True for kinds that consume an injected MCP server (Claude/Copilot/Codex); OpenCode ignores it.
+    /// True for kinds that inject an MCP server (Claude/Copilot/Codex); OpenCode ignores it.
     var acceptsInjectedMCP: Bool {
         switch self {
         case .claude, .copilot, .codex: return true

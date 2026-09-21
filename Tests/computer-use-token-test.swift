@@ -49,7 +49,7 @@ struct ComputerUseTokenLedgerTests {
         expect(!ledger.authorizes("t", now: t0), "a known token on a disarmed route is refused")
     }
 
-    /// The predicate is read on every call, so a route disarmed after issuance locks its helper out.
+    /// The predicate is read on every call, so a route disarmed later locks its helper out.
     static func readsArmingLiveNotSnapshotted() {
         var armed = true
         var ledger = ComputerUseTokenLedger()

@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// Native computer tools for in-app chat — screenshot, move, click, type, scroll, drag; vision-gated.
+/// Native tools for in-app chat: screenshot, move, click, type, scroll, drag; vision-gated.
 struct ComputerUseTool {
     let controller: ComputerController
 
@@ -17,7 +17,7 @@ struct ComputerUseTool {
         screenshotTool, clickTool, moveTool, typeTool, keyTool, scrollTool, dragTool,
     ]
 
-    /// Appended to the pointer tools so the fallback preference survives even with system prompts off.
+    /// Appended to the pointer tools so the fallback preference survives even with prompts off.
     static let fallbackNote =
         " This drives the user's real cursor and keyboard. First prefer a direct route to the app "
         + "when one is available to you - an AppleScript command to the app itself, its own "
@@ -75,7 +75,7 @@ struct ComputerUseTool {
         }
     }
 
-    /// Re-screenshots after the action so the model sees its effect; a failed capture surfaces as error.
+    /// Re-screenshots after the action so the model sees its effect; a failed capture is an error.
     private func afterAction(_ callID: String, _ note: String) async -> AIToolResult {
         do {
             return result(callID, note, try await controller.screenshot())

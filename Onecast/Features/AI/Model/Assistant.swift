@@ -30,7 +30,7 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
     /// A broader opt-in than `allowCLITools`: let an installed CLI route run *shell* commands too, so a
     /// script-based Skill can execute. Full native tool access.
     var allowShellTools: Bool
-    /// Opt-in, per assistant: let a vision route see the screen and drive mouse/keyboard, autonomously.
+    /// Opt-in per assistant: let a vision route see the screen and drive input, autonomously.
     var allowComputerUse: Bool
     var opensTo: AIOpensTo
     var newChatAfter: AINewChatAfter
