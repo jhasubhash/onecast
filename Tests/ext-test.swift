@@ -1321,6 +1321,9 @@ struct ExtensionTests {
               assert.equal(legacy.writableLength, 0);
               legacy.write(Buffer.from("hi"));
               assert.equal(String(legacy.seen), "hi");
+              // http2-wrapper reads new tls.TLSSocket(stream)._handle._parentWrap.constructor.
+              const tls = require("tls");
+              assert.equal(new tls.TLSSocket()._handle._parentWrap.constructor, tls.TLSSocket);
               await require("@raycast/api").showHUD("archive IO passed");
             };
             """

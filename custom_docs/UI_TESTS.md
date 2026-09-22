@@ -248,6 +248,15 @@ newline; the composer also shared the launcher's single-line field.
 container — `PalettePanel.insertIntoField("\n")` — before that guard.
 **Check.** ⇧↵ in the AI bar adds a line; plain ↵ sends; the launcher field stays single-line.
 
+### A transparent SVG fill rendered as a solid block — 2026-09
+
+**Symptom.** An extension icon drawing a `fill="transparent"` shape came out as an opaque block
+instead of empty.
+**Cause.** `ExtensionIconCache.resolvingPaletteNames` rewrote only `raycast-*` colour names and
+bailed otherwise, so `transparent` reached the SVG renderer — which draws it solid, not clear.
+**Fix.** Always run the rewrite, and map a `fill`/`stroke` of `transparent` to `none` (#970).
+**Check.** `ext-icon-test` rasterizes a transparent-filled rect at 96pt and asserts no ink.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

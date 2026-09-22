@@ -1576,6 +1576,11 @@ const streamModule = unsupportedModule(
 
 const webStreamModule = { ReadableStream, WritableStream, TransformStream };
 
+/// http2-wrapper reads `new tls.TLSSocket(stream)._handle._parentWrap.constructor` at import time.
+const TLSSocket = class TLSSocket extends Duplex {
+  _handle = { _parentWrap: { constructor: TLSSocket } };
+};
+
 // ─── Registry ───────────────────────────────────────────────────────
 
 export const nodeModules = {
@@ -1602,7 +1607,7 @@ export const nodeModules = {
   http: httpLike("http"),
   https: httpLike("https"),
   net: unsupportedModule("net"),
-  tls: unsupportedModule("tls"),
+  tls: unsupportedModule("tls", { TLSSocket }),
   dns: unsupportedModule("dns"),
   stream: streamModule,
   "stream/web": webStreamModule,

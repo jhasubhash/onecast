@@ -76,6 +76,16 @@ struct ExtensionIconTests {
         let passed = await ExtensionIconCache.loadInlineAsync(
             photo, palette: ExtensionImage.svgPalette(isDark: true))
         expect(passed != nil, "an inline photo is passed through untouched")
+
+        // NSImage's SVG renderer paints `transparent` as opaque, unlike `none`.
+        let transparentFill = """
+            <svg xmlns="http://www.w3.org/2000/svg" width="100px" height="100px"><rect x="10" \
+            y="10" width="80" height="80" fill="transparent" /></svg>
+            """
+        let filled = await drawnImage(transparentFill, isDark: true)
+        expect(filled != nil, "a transparent-fill SVG still decodes")
+        let ink = filled.flatMap(inkExtent)
+        expect(ink == nil, "a transparent fill draws nothing, not a solid block")
     }
 
     /// A stroked ring, thick enough that a 96pt raster samples the colour cleanly.
@@ -217,11 +227,27 @@ struct ExtensionIconTests {
         return rep
     }
 
+    /// The rewrite neutralises a real `fill`/`stroke`, never a suffix like `data-fill`.
+    static func transparentPaintBoundary() {
+        let cases: [(String, String)] = [
+            (#"<rect fill="transparent"/>"#, #"<rect fill="none"/>"#),
+            (#"r{stroke:red;fill:transparent}"#, #"r{stroke:red;fill:none}"#),
+            (#"<circle stroke="transparent"/>"#, #"<circle stroke="none"/>"#),
+            (#"<rect data-fill="transparent"/>"#, #"<rect data-fill="transparent"/>"#),
+            (#".a{prefill:transparent}"#, #".a{prefill:transparent}"#),
+        ]
+        for (input, want) in cases {
+            let got = ExtensionIconCache.neutralizingTransparentPaint(in: input)
+            expect(got == want, "\(input) rewrote to \(got)")
+        }
+    }
+
     static func main() async {
         artworkIsNormalized()
         missingFileFallsBack()
         await inlineDataURLsDecode()
         await paletteColorsInSVGResolve()
+        transparentPaintBoundary()
 
         print(failures == 0 ? "Extension icon tests passed" : "\(failures) tests failed")
         exit(failures == 0 ? 0 : 1)

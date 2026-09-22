@@ -79,10 +79,16 @@ enum ExtensionIconCache {
 
     /// No renderer knows a `raycast-*` colour keyword, so the shape would draw nothing.
     private static func resolvingPaletteNames(in data: Data, palette: [String: String]) -> Data {
-        guard !palette.isEmpty, let source = String(data: data, encoding: .utf8),
-            let rewritten = rewritingNames(in: source, palette: palette)
-        else { return data }
-        return Data(rewritten.utf8)
+        guard let source = String(data: data, encoding: .utf8) else { return data }
+        let resolved = rewritingNames(in: source, palette: palette) ?? source
+        return Data(neutralizingTransparentPaint(in: resolved).utf8)
+    }
+
+    /// A captured leading boundary replaces Swift's missing lookbehind, sparing `data-fill`.
+    static func neutralizingTransparentPaint(in svg: String) -> String {
+        svg.replacing(#/([^\w-]|^)(fill|stroke)(\s*=\s*["']|\s*:\s*)transparent\b/#) {
+            "\($0.1)\($0.2)\($0.3)none"
+        }
     }
 
     /// Whole names only: `raycast-red` sits inside `raycast-red-invented`.

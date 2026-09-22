@@ -3,7 +3,7 @@ import Foundation
 @main
 enum TextDiffTests {
     static func main() {
-        precondition(TextDiffEngine.maxTokens <= Int(UInt16.max), "LCS cells are UInt16")
+        precondition(TextDiffEngine.maxTokens <= Int(UInt16.max), "a running score must fit UInt16")
 
         precondition(TextDiffEngine.diff(original: "", modified: "") == [])
         precondition(TextDiffEngine.diff(original: "", modified: "new") == [.inserted("new")])

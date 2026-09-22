@@ -356,7 +356,7 @@ struct QuickActionTests {
     }
 
     static func diffsStayBoundedOnLongText() {
-        // The matrix is quadratic, so an unbounded diff of a long selection asks for gigabytes.
+        // The traceback is quadratic even when packed, so an unbounded long diff is still huge.
         let long = String(repeating: "word ", count: TextDiffEngine.maxTokens)
         let chunks = TextDiffEngine.diff(original: long, modified: long + "tail")
         expect(chunks.count == 2, "past the ceiling the diff degrades to whole-text, not a hang")
