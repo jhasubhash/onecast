@@ -88,7 +88,7 @@ struct ExtensionsSettingsView: View {
             } label: {
                 Label("What works", systemImage: "checkmark.circle")
                 Text(
-                    "List, detail, form and grid commands, and ones that just run. Preferences, "
+                    "List, detail, form and grid commands, ones that just run, and menu-bar commands. Preferences, "
                         + "arguments, storage, the clipboard, toasts, HUDs and OAuth sign-in. "
                         + "No-view commands refresh their subtitle on their manifest interval.")
             }
@@ -97,7 +97,7 @@ struct ExtensionsSettingsView: View {
             } label: {
                 Label("What doesn't, yet", systemImage: "xmark.circle")
                 Text(
-                    "Menu-bar commands, sign-ins routed through Raycast's own OAuth proxy, and "
+                    "Sign-ins routed through Raycast's own OAuth proxy, and "
                         + "Raycast's AI, browser and window-management services.")
             }
         } header: {
@@ -508,11 +508,16 @@ private struct SettingsCardRow<Control: View>: View {
 private struct CommandRows: View {
     let installed: InstalledExtension
     let command: ExtensionCommand
+    @Environment(AppCore.self) private var core
     @Environment(AppSettings.self) private var settings
     @Environment(VisibilityStore.self) private var visibility
 
     /// A fact about the command, so it sits by the name as a badge rather than a warning colour.
-    private var badge: String? { command.mode.isSupported ? nil : "Menu Bar" }
+    private var badge: String? { command.mode == .menuBar ? "Menu Bar" : nil }
+
+    private var reference: ExtensionCommandRef {
+        ExtensionCommandRef(extensionName: installed.manifest.name, commandName: command.name)
+    }
 
     var body: some View {
         let entry = installed.launcherEntry(for: command)
@@ -524,10 +529,8 @@ private struct CommandRows: View {
                 // Hidden or unpublished commands never reach rank, so typing here would match nothing.
                 AliasField(entry: entry)
                     .settingsEnabled(settings.extensionsShowInLauncher && isVisible)
-                if command.mode.isSupported {
-                    // Per command, not per extension: a shortcut has to land on one thing to run.
-                    ShortcutRecorder(action: .extensionCommand(entryID: entry.id))
-                }
+                // Per command, not per extension: a shortcut has to land on one thing to run.
+                ShortcutRecorder(action: .extensionCommand(entryID: entry.id))
                 Toggle(
                     "", isOn: Binding(get: { isVisible }, set: { visibility.setItemVisible($0, for: entry) })
                 )
@@ -535,6 +538,17 @@ private struct CommandRows: View {
                 .toggleStyle(.checkbox)
                 .help("Show in launcher")
                 .accessibilityLabel("Show \(command.title) in launcher")
+            }
+        }
+        if command.mode == .menuBar {
+            SettingsCardRow(title: "Show in menu bar", indent: Theme.Spacing.lg) {
+                Toggle(
+                    "Show in menu bar",
+                    isOn: Binding(
+                        get: { core.extensionCoordinator.menuBarIsEnabled(reference) },
+                        set: { core.extensionCoordinator.setMenuBarEnabled($0, reference: reference) })
+                )
+                .labelsHidden()
             }
         }
         // Indented under its command: at the same inset the association is reading order.

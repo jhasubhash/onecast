@@ -399,6 +399,7 @@ run ext-refresh-test       $E/Model/ExtensionManifest.swift \
                            $E/Model/ExtensionRefreshPolicy.swift \
                            $E/Model/ExtensionRefreshState.swift
 run ext-metadata-test      $E/Model/ExtensionCommandMetadata.swift \
+                           $E/Model/ExtensionMenuBarSnapshot.swift \
                            $E/Service/ExtensionCommandMetadataStore.swift
 run ext-store-test         $E/Model/ExtensionRegistry.swift \
                            $E/Model/ExtensionPackageManager.swift \
@@ -415,6 +416,16 @@ run ext-accessory-test     $E/Model/RenderNode.swift \
                            $E/Model/ExtensionSearchAccessory.swift \
                            $E/Service/ExtensionStorage.swift
 run slow ext-test          -parse-as-library \
+                           Tests/ext-menu-bar-test.swift \
+                           Tests/ext-fetch-test.swift \
+                           $E/Model/ExtensionLaunchError.swift \
+                           $E/Model/ExtensionMenuBarSnapshot.swift \
+                           $E/Service/ExtensionStorage.swift \
+                           $E/Service/ExtensionMenuBarManager.swift \
+                           $E/Model/ExtensionCommandMetadata.swift \
+                           $E/Service/ExtensionCommandMetadataStore.swift \
+                           $E/UI/ExtensionMenuBarController.swift \
+                           $E/UI/ExtensionMenuBarImage.swift \
                            Onecast/Platform/Appearance.swift \
                            Onecast/Platform/Images/IconCache.swift \
                            Onecast/Platform/Images/FileIconStamp.swift \

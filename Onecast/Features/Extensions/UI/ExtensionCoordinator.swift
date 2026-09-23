@@ -84,11 +84,6 @@ final class ExtensionCoordinator {
             core.showMessage("No installed extension provides '\(link.commandName)'", tone: .danger)
             return
         }
-        guard command.mode.isSupported else {
-            core.showMessage(
-                command.mode.unsupportedReason ?? "This command isn't supported yet", tone: .danger)
-            return
-        }
         run(
             owner, command: command, arguments: link.arguments, fallbackText: link.fallbackText,
             launchType: link.launchType)
@@ -163,17 +158,19 @@ final class ExtensionCoordinator {
     /// A view command takes over the palette; a no-view command closes it and runs headless.
     func runExtensionCommand(
         _ app: AppEntry, arguments: [String: String] = [:], fallbackText: String? = nil,
-        launchType: ExtensionLaunchType = .userInitiated
+        launchType: ExtensionLaunchType = .userInitiated,
+        launchContext: [String: RenderValue] = [:]
     ) {
         guard let (owner, command) = extensions.resolve(app) else { return }
         run(
             owner, command: command, arguments: arguments, fallbackText: fallbackText,
-            launchType: launchType)
+            launchType: launchType, launchContext: launchContext)
     }
 
     private func run(
         _ owner: InstalledExtension, command: ExtensionCommand, arguments: [String: String],
-        fallbackText: String? = nil, launchType: ExtensionLaunchType = .userInitiated
+        fallbackText: String? = nil, launchType: ExtensionLaunchType = .userInitiated,
+        launchContext: [String: RenderValue] = [:]
     ) {
         switch command.mode {
         case .view:
@@ -191,8 +188,16 @@ final class ExtensionCoordinator {
         Task {
             await extensions.run(
                 owner, command: command, arguments: arguments, fallbackText: fallbackText,
-                launchType: launchType)
+                launchType: launchType, launchContext: launchContext)
         }
+    }
+
+    func menuBarIsEnabled(_ reference: ExtensionCommandRef) -> Bool {
+        extensions.menuBarIsEnabled(reference)
+    }
+
+    func setMenuBarEnabled(_ enabled: Bool, reference: ExtensionCommandRef) {
+        extensions.setMenuBarEnabled(enabled, reference: reference)
     }
 
     /// The arguments a row declares, or nil — what decides whether the header shows inline fields.

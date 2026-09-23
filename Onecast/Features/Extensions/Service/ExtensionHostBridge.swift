@@ -30,7 +30,7 @@ protocol ExtensionHostContext: AnyObject {
     func openWithPicker(path: String) async
     func launch(
         command: String, extensionName: String?, arguments: [String: String],
-        fallbackText: String?, launchType: ExtensionLaunchType
+        fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue]
     ) throws
     func launch(_ link: ExtensionDeepLink) throws
     func authorizeOAuth(options: ExtensionOAuthAuthorizeOptions) async throws -> ExtensionOAuthAuthorizeResult
@@ -127,13 +127,21 @@ enum ExtensionHostError: LocalizedError {
 final class ExtensionHostBridge: ExtensionHostAPI {
     weak var context: ExtensionHostContext?
     private let clipboardStore: ClipboardStore
-    private let fetcher = ExtensionFetcher()
+    private let fetcher: ExtensionFetcher
 
-    init(clipboardStore: ClipboardStore) {
+    init(clipboardStore: ClipboardStore, fetcher: ExtensionFetcher = ExtensionFetcher()) {
         self.clipboardStore = clipboardStore
+        self.fetcher = fetcher
+    }
+
+    func scoped(to context: ExtensionHostContext) -> ExtensionHostBridge {
+        let bridge = ExtensionHostBridge(clipboardStore: clipboardStore, fetcher: fetcher)
+        bridge.context = context
+        return bridge
     }
 
     func perform(api: String, method: String, arguments: [RenderValue]) async throws -> String {
+        guard context != nil else { throw ExtensionHostError.noActiveExtension }
         let value = try await dispatch(api: api, method: method, arguments: arguments)
         return ExtensionRuntime.jsonString(from: value)
     }
@@ -404,7 +412,7 @@ final class ExtensionHostBridge: ExtensionHostAPI {
             try context?.launch(
                 command: name, extensionName: options["extensionName"]?.stringValue,
                 arguments: launchArguments, fallbackText: options["fallbackText"]?.stringValue,
-                launchType: launchType)
+                launchType: launchType, launchContext: options["context"]?.objectValue ?? [:])
             return nil
 
         case "updateCommandMetadata":
