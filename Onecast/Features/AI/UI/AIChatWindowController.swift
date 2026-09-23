@@ -47,18 +47,18 @@ final class AIChatWindowController: NSObject, NSWindowDelegate {
         self.core = core
     }
 
-    /// Detach `session` into a standalone window pinned to `scope`. A window already showing this
-    /// scope adopts the new conversation and is raised; a new scope opens its own window.
-    func popOut(scope: UUID?, session: ChatSession) {
+    /// Detach `source`'s conversation into a standalone window pinned to `scope`. A window already
+    /// showing this scope takes the conversation over and is raised; a new scope opens its own.
+    func popOut(scope: UUID?, from source: AIChatState) {
         let key = Self.key(for: scope)
         if let existing = windows[key] {
-            existing.coordinator.pin(to: scope, adopting: session)
+            existing.coordinator.pin(to: scope, takingOver: source)
             existing.panel.makeKeyAndOrderFront(nil)
             existing.panel.orderFrontRegardless()
             return
         }
         let entry = makeEntry(scope: scope, key: key)
-        entry.coordinator.pin(to: scope, adopting: session)
+        entry.coordinator.pin(to: scope, takingOver: source)
         windows[key] = entry
         entry.panel.makeKeyAndOrderFront(nil)
         entry.panel.orderFrontRegardless()

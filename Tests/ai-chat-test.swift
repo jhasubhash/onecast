@@ -27,7 +27,7 @@ struct AIChatTests {
         historyRoundTripsAndRepairsInterruptedReplies()
         savesRewriteOnlyTheStoredTail()
         crashRepairSurvivesTailSaves()
-        adoptedMidStreamSettlesAsInterrupted()
+        await handOffKeepsAStreamingReply()
         markdownParsesStreamingFriendlyBlocks()
         markdownParsesTablesQuotesAndLists()
         markdownKeepsCommonMarkEdges()
@@ -523,24 +523,42 @@ struct AIChatTests {
             "a repaired tail keeps its searches")
     }
 
-    /// A pop-out adopts a snapshot, not the live task: a reply still streaming in it must settle,
-    /// or the transcript spins "Thinking…" forever with nothing left to finish it.
-    static func adoptedMidStreamSettlesAsInterrupted() {
+    /// A pop-out takes the reply still streaming, not a snapshot of it: text arriving after the
+    /// hand-off lands in the pop-out and finishes there, while the bar starts a fresh, idle chat.
+    static func handOffKeepsAStreamingReply() async {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("onecast-ai-adopt-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("onecast-ai-handoff-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: directory) }
+        let (stream, feed) = AIProviderStream.makeStream()
+        let provider = HeldProvider(stream: stream)
+        let bar = AIChatState(history: ChatHistoryStore(directory: directory))
+        let popOut = AIChatState(
+            history: ChatHistoryStore(directory: directory.appendingPathComponent("pop-out")))
 
-        var session = ChatSession(id: UUID(), createdAt: Date(timeIntervalSince1970: 4_000))
-        session.append(ChatMessage(role: .user, text: "Ask"))
-        session.append(ChatMessage(role: .assistant, text: "", state: .streaming))
+        bar.send("Ask", using: { provider })
+        feed.yield(.text("Hel"))
+        await settle { bar.session.messages.last?.text == "Hel" }
+        bar.handOff(to: popOut)
 
-        let chat = AIChatState(history: ChatHistoryStore(directory: directory))
-        chat.adopt(session)
-
+        expect(popOut.isStreaming, "the pop-out is still streaming right after the hand-off")
+        expect(!bar.isStreaming && bar.session.messages.isEmpty, "the bar starts a fresh, idle chat")
+        feed.yield(.text("lo"))
+        feed.yield(.finished)
+        feed.finish()
+        await settle { popOut.session.messages.last?.state == .complete }
         expect(
-            chat.session.messages.last?.state == .interrupted,
-            "an adopted streaming reply settles as interrupted")
-        expect(chat.liveStatus == nil, "a settled reply drops the Thinking spinner")
+            popOut.session.messages.last?.text == "Hello", "text after the hand-off lands in the pop-out")
+        expect(
+            popOut.session.messages.last?.state == .complete, "the reply finishes in the pop-out")
+        expect(bar.session.messages.isEmpty, "none of the reply leaks back into the bar")
+    }
+
+    /// Polls against a deadline: the reply is delivered on the main actor between these checks.
+    static func settle(_ condition: () -> Bool) async {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !condition(), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
     }
 
     static func retentionPrunesByAgeAndCascades() {
@@ -852,6 +870,17 @@ final class ScriptedProvider: AIProvider, @unchecked Sendable {
             continuation.finish()
         }
     }
+}
+
+/// Hands out one stream the test feeds by hand, so a reply can be paused mid-answer.
+final class HeldProvider: AIProvider, @unchecked Sendable {
+    private let held: AIProviderStream
+
+    init(stream: AIProviderStream) {
+        held = stream
+    }
+
+    func stream(_ request: AIRequest) -> AIProviderStream { held }
 }
 
 /// Stands in for the MCP coordinator: it records what it was asked and answers the same way.

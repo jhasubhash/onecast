@@ -23,6 +23,8 @@ final class AIChatState {
     private let history: ChatHistoryStore
     @ObservationIgnored private var replyTask: Task<Void, Never>?
     @ObservationIgnored private var replyGeneration = 0
+    /// Where the running reply delivers; a hand-off re-points it, so the stream outlives this state.
+    @ObservationIgnored private var replyRelay: ReplyRelay?
     /// Deltas buffered between flushes, so the transcript re-renders per cadence, not per token.
     @ObservationIgnored private var pendingText = ""
     @ObservationIgnored private var flushTask: Task<Void, Never>?
@@ -66,26 +68,21 @@ final class AIChatState {
         history.save(session)
 
         replyGeneration += 1
-        let generation = replyGeneration
-        replyTask = Task { [weak self, makeProvider] in
+        let relay = ReplyRelay(target: self, generation: replyGeneration)
+        replyRelay = relay
+        replyTask = Task { [makeProvider] in
             do {
                 let provider = try await makeProvider()
                 try Task.checkCancellation()
                 for try await event in provider.stream(request) {
-                    guard let self, !Task.isCancelled, self.replyGeneration == generation else {
-                        return
-                    }
-                    self.receive(event)
+                    guard !Task.isCancelled, let state = relay.live else { return }
+                    state.receive(event)
                 }
-                guard let self, !Task.isCancelled, self.replyGeneration == generation,
-                    self.isStreaming
-                else { return }
-                self.finishLast(state: .failed, fallback: "The response ended unexpectedly.")
+                guard !Task.isCancelled, let state = relay.live, state.isStreaming else { return }
+                state.finishLast(state: .failed, fallback: "The response ended unexpectedly.")
             } catch {
-                guard let self, !Task.isCancelled, self.replyGeneration == generation,
-                    self.isStreaming
-                else { return }
-                self.finishLast(state: .failed, fallback: error.localizedDescription)
+                guard !Task.isCancelled, let state = relay.live, state.isStreaming else { return }
+                state.finishLast(state: .failed, fallback: error.localizedDescription)
             }
         }
         return true
@@ -134,6 +131,7 @@ final class AIChatState {
         replyGeneration += 1
         replyTask?.cancel()
         replyTask = nil
+        replyRelay = nil
         guard isStreaming else {
             discardPendingText()
             return
@@ -150,25 +148,45 @@ final class AIChatState {
         startedFresh = userInitiated
     }
 
-    /// Take over another surface's live conversation wholesale - the pop-out claiming the bar's
-    /// chat as it detaches. The adopting store persists it under its own (pinned) scope.
-    func adopt(_ session: ChatSession) {
+    /// Give this conversation to another surface, a reply still streaming included — the pop-out
+    /// detaching the bar's chat — and start this one fresh without interrupting that reply.
+    func handOff(to other: AIChatState) {
+        flushPendingText()
+        discardPendingText()
+        other.take(
+            session, usage: usage, isThinking: isThinking,
+            reply: isStreaming ? replyTask.map { ($0, replyRelay) } : nil)
+        replyGeneration += 1
+        replyTask = nil
+        replyRelay = nil
+        isStreaming = false
+        isThinking = false
+        stopStallWatch()
+        startNewChat()
+    }
+
+    /// The adopting store persists the conversation under its own (pinned) scope.
+    private func take(
+        _ session: ChatSession, usage: AIUsage?, isThinking: Bool,
+        reply: (task: Task<Void, Never>, relay: ReplyRelay?)?
+    ) {
         cancel()
         self.session = session
-        usage = nil
+        self.usage = usage
         notice = nil
         clearStaging()
         startedFresh = false
-        settleAdoptedStream()
+        if let reply, let relay = reply.relay {
+            replyGeneration += 1
+            relay.redirect(to: self, generation: replyGeneration)
+            replyTask = reply.task
+            replyRelay = relay
+            isStreaming = true
+            self.isThinking = isThinking
+            lastFlush = ContinuousClock().now
+            startStallWatch()
+        }
         history.save(self.session)
-    }
-
-    /// A pop-out adopts a snapshot, not the live task behind it: a reply still streaming in that
-    /// snapshot has nothing here to finish it, so settle it rather than spin a "Thinking…" forever.
-    private func settleAdoptedStream() {
-        guard let last = session.messages.last, last.role == .assistant, last.state == .streaming
-        else { return }
-        finishLast(state: .interrupted, fallback: nil)
     }
 
     /// Staged images belong to the conversation they were picked in; leaving it drops them.
@@ -346,6 +364,34 @@ final class AIChatState {
         isThinking = false
         stopStallWatch()
         replyTask = nil
+        replyRelay = nil
+    }
+}
+
+extension AIChatState {
+    fileprivate func isCurrentReply(_ generation: Int) -> Bool { replyGeneration == generation }
+}
+
+/// The one place a reply task looks up whom it is writing to, and whether that is still current.
+@MainActor
+private final class ReplyRelay {
+    private weak var target: AIChatState?
+    private var generation: Int
+
+    init(target: AIChatState, generation: Int) {
+        self.target = target
+        self.generation = generation
+    }
+
+    /// Nil once the target is gone or has moved past this reply — a cancel or a newer send.
+    var live: AIChatState? {
+        guard let target, target.isCurrentReply(generation) else { return nil }
+        return target
+    }
+
+    func redirect(to target: AIChatState, generation: Int) {
+        self.target = target
+        self.generation = generation
     }
 }
 

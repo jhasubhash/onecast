@@ -325,24 +325,23 @@ final class AIChatCoordinator {
         Paster.copyPlainText(text)
     }
 
-    /// The chat screen's ⌘K "Pop Out" command: detach this live conversation into its own
-    /// standalone window pinned to the current scope, then leave the palette. The bar starts clean
-    /// so the two surfaces never diverge over one shared session id.
+    /// The chat screen's ⌘K "Pop Out" command: hand this live conversation — a reply still
+    /// streaming included — to its own standalone window pinned to the current scope, then leave the
+    /// palette. The bar starts clean so the two surfaces never diverge over one shared session id.
     func popOut() {
         guard settings.aiEnabled else { return }
         // The pop-out's composer has no attachment chips to show or clear them from.
         chat.clearAttachments()
-        core.aiChatWindowController.popOut(scope: palette.activeAssistantID, session: chat.session)
-        chat.startNewChat()
+        core.aiChatWindowController.popOut(scope: palette.activeAssistantID, from: chat)
         paletteCoordinator.hidePalette()
     }
 
-    /// Detach a live conversation into this (pinned) coordinator's own chat and scope; the caller
-    /// is the launcher handing its session to the pop-out.
-    func pin(to assistantID: UUID?, adopting session: ChatSession) {
+    /// Take over `source`'s conversation, and any reply still arriving, under this (pinned)
+    /// coordinator's own chat and scope; the caller is the launcher detaching into the pop-out.
+    func pin(to assistantID: UUID?, takingOver source: AIChatState) {
         scope = .pinned(assistantID)
         history.setScope(assistantID, ephemeral: scopeIsEphemeral(assistantID))
-        chat.adopt(session)
+        source.handOff(to: chat)
     }
 
     /// Re-pin to a saved scope on relaunch and resume its most recent conversation, so a pop-out
