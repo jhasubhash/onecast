@@ -118,6 +118,24 @@ codesign -dvv "build/DerivedData/Build/Products/Debug/Onecast Dev.app" 2>&1 | gr
 # Authority=Developer ID Application: <Your Name> (<TEAM_ID>)
 ```
 
+**Check this after every Debug build on a Mac that has a Developer ID.** A missing
+`Signing.local.xcconfig` fails nothing — the build silently falls back to `Onecast Self-Signed`, and
+the only symptom is the Keychain prompting again on the next launch. If `Authority=` reads
+`Onecast Self-Signed` while the login keychain holds a Developer ID, recreate the file from *that*
+identity, rebuild and verify:
+
+```sh
+security find-identity -v -p codesigning | grep "Developer ID Application"
+# e.g. "Developer ID Application: Jane Doe (ABCDE12345)" → Signing.local.xcconfig at the repo root:
+#   CODE_SIGN_IDENTITY = Developer ID Application: Jane Doe (ABCDE12345)
+#   DEVELOPMENT_TEAM = ABCDE12345
+```
+
+**No Developer ID in the keychain — another contributor, CI — means self-signed is the correct
+result.** Don't create the file there, and never copy an identity from another machine or from these
+docs: `CODE_SIGN_IDENTITY` names a certificate that must exist in *this* keychain, or signing fails.
+The file is gitignored, so `git status` stays clean, and `git clean -X` or a fresh checkout deletes it.
+
 ## Extensions and plugins live outside this repo
 
 Custom extensions and native plugins are **not** built here. They live one per folder under
