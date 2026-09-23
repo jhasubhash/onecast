@@ -292,6 +292,16 @@ final class AppSettings {
         didSet { defaults.set(aiBarStaysOpen, forKey: Key.aiBarStaysOpen.rawValue) }
     }
 
+    /// The default AI bar's dragged size in points; nil keeps the shared panel size.
+    var aiBarSize: CGSize? {
+        didSet {
+            guard let aiBarSize else {
+                return defaults.removeObject(forKey: Key.aiBarSize.rawValue)
+            }
+            defaults.set([aiBarSize.width, aiBarSize.height], forKey: Key.aiBarSize.rawValue)
+        }
+    }
+
     // Feature switches, off out of the box, and off means fully off.
     var fileSearchEnabled: Bool {
         didSet { defaults.set(fileSearchEnabled, forKey: Key.fileSearchEnabled.rawValue) }
@@ -668,6 +678,9 @@ final class AppSettings {
             defaults.dictionary(forKey: Key.aiBarPosition.rawValue)
             as? [String: [Double]] ?? [:]
         aiBarStaysOpen = defaults.bool(forKey: Key.aiBarStaysOpen.rawValue)
+        aiBarSize = (defaults.array(forKey: Key.aiBarSize.rawValue) as? [Double]).flatMap {
+            $0.count == 2 ? CGSize(width: $0[0], height: $0[1]) : nil
+        }
         fileSearchEnabled = defaults.bool(forKey: Key.fileSearchEnabled.rawValue)
         // Unset seeds home; a stored empty array is a cleared list that searches nothing.
         fileSearchScopes =

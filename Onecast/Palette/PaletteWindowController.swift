@@ -19,6 +19,8 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     private var anchor: CGPoint?
     /// Live only between mouse-down and mouse-up on a drag handle; nil means a move was ours.
     private var drag: DragSession?
+    /// The anchor as a live resize found it, so only a resize that moved an edge stores placement.
+    private var resizeStartAnchor: CGPoint?
     private let dropGuides = PaletteDropGuideController()
     /// ⌘V: `Edit ▸ Paste` claims it before `sendEvent` whenever the board also carries text.
     private var pasteMonitor: Any?
@@ -256,15 +258,36 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     /// A drag re-anchors the session, so the next resize grows from where the user left it.
     func windowDidMove(_ notification: Notification) {
         guard let panel else { return }
-        // The anchor is the bar's top edge. Growing up moves the window's top on resize, so derive
-        // it from the fixed bottom instead — otherwise a resize re-anchors to the expanded top.
-        let frame = panel.frame
-        let top =
-            core.palette.aiBarGrowsUp ? frame.minY + metrics.size.compactHeight : frame.maxY
-        let moved = CGPoint(x: frame.minX, y: top)
+        let moved = composerAnchor(of: panel.frame)
         anchor = moved
         guard drag != nil else { return }
         trackDrag(to: moved)
+    }
+
+    func windowWillStartLiveResize(_ notification: Notification) {
+        resizeStartAnchor = anchor
+    }
+
+    /// Keep what the user dragged: the width always, the height only where it was free to move.
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let panel, usesAIBarPlacement else { return }
+        let frame = panel.frame
+        let height =
+            core.paletteCoordinator.paletteIsCollapsed ? expandedHeight : frame.height
+        core.settings.aiBarSize = CGSize(width: frame.width, height: height)
+        let moved = composerAnchor(of: frame)
+        anchor = moved
+        defer { resizeStartAnchor = nil }
+        guard moved != resizeStartAnchor, let screen = panel.screen else { return }
+        setStoredPosition(
+            PalettePlacement.offset(of: moved, on: screen.visibleFrame), on: screen.displayKey)
+    }
+
+    /// The composer's top edge: growing up moves the window's top, so read it off the fixed bottom.
+    private func composerAnchor(of frame: NSRect) -> CGPoint {
+        let top =
+            core.palette.aiBarGrowsUp ? frame.minY + metrics.size.compactHeight : frame.maxY
+        return CGPoint(x: frame.minX, y: top)
     }
 
     // MARK: - Dragging
@@ -315,7 +338,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         } else {
             session.moved = true
             dropGuides.show(
-                home: session.home, width: metrics.size.panelWidth,
+                home: session.home, width: barWidth,
                 screenFrame: session.screenFrame, armed: session.armed)
         }
         drag = session
@@ -502,17 +525,19 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     private func positionPanel(_ panel: NSPanel, collapsed: Bool, animated: Bool = false) {
         guard let anchor = resolveAnchor() else { return }
         let size = metrics.size
+        let visible = (panel.screen ?? targetScreen())?.visibleFrame.size
         // The AI composer grows the collapsed bar until it hits its scroll threshold; else 0.
         let height =
-            collapsed ? size.compactHeight + core.palette.aiComposerExtraHeight : size.panelHeight
+            collapsed
+            ? size.compactHeight + core.palette.aiComposerExtraHeight
+            : min(expandedHeight, visible?.height ?? .greatestFiniteMagnitude)
         let growsUp = growsUpward(anchor: anchor)
         // The view docks the composer at the bottom when the bar grows up, so publish the direction.
         core.palette.aiBarGrowsUp = growsUp
         // Growing up keeps the bar's bottom edge fixed; every other placement keeps its top.
         let originY = growsUp ? anchor.y - size.compactHeight : anchor.y - height
-        // An active Assistant may pin its own width; otherwise the shared one.
-        let width = core.palette.activeAssistantID
-            .flatMap { core.assistants.assistant(id: $0)?.width } ?? size.panelWidth
+        let width = min(barWidth, visible?.width ?? .greatestFiniteMagnitude)
+        applyResizeLimits(panel, collapsed: collapsed, height: height)
         let frame = NSRect(x: anchor.x, y: originY, width: width, height: height)
         guard animated else {
             panel.setFrame(frame, display: true)
@@ -525,12 +550,39 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         }
     }
 
+    /// Only the default AI bar resizes; collapsed, its height tracks the composer, so only width moves.
+    private func applyResizeLimits(_ panel: NSPanel, collapsed: Bool, height: CGFloat) {
+        let resizable = usesAIBarPlacement
+        if resizable != panel.styleMask.contains(.resizable) {
+            panel.styleMask.formSymmetricDifference(.resizable)
+        }
+        guard resizable else { return }
+        let floor = Theme.Size.aiBarMinimumSize
+        panel.minSize = CGSize(
+            width: metrics.scaled(floor.width), height: collapsed ? height : metrics.scaled(floor.height))
+        panel.maxSize = CGSize(
+            width: CGFloat.greatestFiniteMagnitude,
+            height: collapsed ? height : CGFloat.greatestFiniteMagnitude)
+    }
+
+    /// The default AI bar's dragged size, else an Assistant's pinned width, else the shared one.
+    private var barWidth: CGFloat {
+        if usesAIBarPlacement, let width = core.settings.aiBarSize?.width { return width }
+        return core.palette.activeAssistantID
+            .flatMap { core.assistants.assistant(id: $0)?.width } ?? metrics.size.panelWidth
+    }
+
+    private var expandedHeight: CGFloat {
+        usesAIBarPlacement
+            ? core.settings.aiBarSize?.height ?? metrics.size.panelHeight : metrics.size.panelHeight
+    }
+
     /// An AI bar placed low grows into the space above it, so its transcript never runs off-screen.
     private func growsUpward(anchor: CGPoint) -> Bool {
         guard core.palette.aiBar,
             let visibleFrame = (panel?.screen ?? targetScreen())?.visibleFrame
         else { return false }
-        return anchor.y - metrics.size.panelHeight < visibleFrame.minY
+        return anchor.y - expandedHeight < visibleFrame.minY
     }
 
     /// The display to anchor to; never `NSScreen.main`, which follows the focused window.
@@ -570,7 +622,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         guard let offset = storedPosition(on: screen.displayKey) else { return nil }
         return PalettePlacement.restored(
             PalettePlacement.anchor(for: offset, on: screen.visibleFrame),
-            graspable: CGSize(width: metrics.size.panelWidth, height: metrics.size.compactHeight),
+            graspable: CGSize(width: barWidth, height: metrics.size.compactHeight),
             visibleFrame: screen.visibleFrame,
             minimumVisible: Theme.Size.paletteMinimumVisible)
     }
@@ -578,7 +630,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     /// The untouched placement on one display; the summon path and the drop guides share it.
     private func defaultAnchor(on screen: NSScreen) -> CGPoint {
         PalettePlacement.defaultAnchor(
-            in: screen.visibleFrame, width: metrics.size.panelWidth,
+            in: screen.visibleFrame, width: barWidth,
             topMarginFraction: Theme.Size.paletteTopMarginFraction)
     }
 

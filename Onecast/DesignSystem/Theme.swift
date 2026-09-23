@@ -87,6 +87,8 @@ enum Theme {
         static let paletteSnapDistance: CGFloat = 24
         /// A restored position needs this much bar on a display to still be grabbable.
         static let paletteMinimumVisible: CGFloat = 44
+        /// The floating AI bar's resize floor, before interface scaling; below it the footer collides.
+        static let aiBarMinimumSize = CGSize(width: 520, height: 280)
         /// Dash and gap of the drop guides, equal so the line reads evenly.
         static let dropGuideDash: CGFloat = 4
         static let dropGuideWidth: CGFloat = 2

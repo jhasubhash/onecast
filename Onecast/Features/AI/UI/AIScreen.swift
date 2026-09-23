@@ -61,6 +61,12 @@ struct AIScreen: PaletteScreen {
             ) {
                 coordinator.popOut()
             })
+        if coordinator.canResetBarSize {
+            items.append(
+                PopoverMenuItem(title: "Reset Bar Size", systemImage: "arrow.down.right.and.arrow.up.left") {
+                    coordinator.resetBarSize()
+                })
+        }
         return PopoverMenuContent(header: chat.session.title, items: items)
     }
 

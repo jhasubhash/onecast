@@ -127,6 +127,8 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   **upward** and docks the composer at the bottom with the transcript above
   (`PaletteState.aiBarGrowsUp`, applied by `RootPaletteView.composeAtBottom`), a keycap `Actions ⌘K`
   beside the model name and no Send pill; placed high or centred it grows down with the normal footer.
+  It resizes from any edge or corner (collapsed: width only), remembered in `AppSettings.aiBarSize`
+  and cleared by ⌘K → Reset Bar Size; see [palette.md](palette.md#window-placement).
   `AIChatCoordinator.toggleBar` is the whole entry point; `showChat` — the launcher command — stays the
   full window. Its actions carry shortcuts: New Chat `⌘N`, Copy Last Response `⇧⌘C`, Chat History `⌘Y`,
   AI Settings `⌘,`. The composer is multi-line where the launcher's field is not: it wraps, shrinks its

@@ -42,6 +42,8 @@ struct RootPaletteView: View {
     @State private var hostWindow: NSWindow?
     /// The AI composer's rendered width, so its wrapped height is measured against the real column.
     @State private var aiFieldWidth: CGFloat = 0
+    /// The window's own width: the resizable AI bar is not always `panelWidth` wide.
+    @State private var paletteWidth: CGFloat = 0
     /// The pending scroll request; modes are exclusive, so one piece of state serves all.
     @State private var scroll = ScrollIntent(kind: .top)
     /// Compact vs. full; the source of truth is on `AppCore`, so the two can't disagree.
@@ -320,6 +322,7 @@ struct RootPaletteView: View {
                 )
                 // The window's frame is the size source, so the glass and clip stay matched.
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { paletteWidth = $0 }
                 .background(Theme.Colors.panelScrim)
                 .background(GlassEffectView())
                 .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))),
@@ -484,6 +487,8 @@ struct RootPaletteView: View {
             .onChange(of: core.paletteCoordinator.paletteIsCollapsed) {
                 core.paletteCoordinator.syncPaletteSize()
             }
+            // Leaving the AI bar may keep the collapsed state, yet its size and resizability go.
+            .onChange(of: vm.aiBar) { core.paletteCoordinator.syncPaletteSize() }
     }
 
     /// Split from `body`: one chain of this length is past what the type-checker will infer.
@@ -882,10 +887,11 @@ struct RootPaletteView: View {
         let text = vm.query.isEmpty ? searchPrompt : vm.query
         let typed = (text as NSString).size(withAttributes: [.font: font]).width
         let chrome = metrics.size.headerIconSlot + metrics.spacing.md * 4
+        let width = paletteWidth > 0 ? paletteWidth : metrics.size.panelWidth
         // +3pt so the caret sits after the last glyph rather than on top of it.
         return min(
             max(typed + metrics.scaled(3), metrics.scaled(18)),
-            max(metrics.size.panelWidth - accessory.width - chrome, metrics.scaled(60)))
+            max(width - accessory.width - chrome, metrics.scaled(60)))
     }
 
     /// The Assistant the AI bar is scoped to, or nil for the default bar and full window.

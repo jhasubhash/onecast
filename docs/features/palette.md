@@ -231,6 +231,18 @@ then open upward too, through a `MenuPanelCorner.aboveHeaderTrailing` that mirro
 so an upward resize or a drag across the fold can't re-anchor to the moving top. Every other surface
 keeps the top edge and grows down, exactly as before.
 
+**The default AI bar is also the one surface the user can resize.** While `usesAIBarPlacement` holds,
+`applyResizeLimits` adds `.resizable` to the borderless panel and drops it again for every other
+mode. Expanded, every edge and corner is free down to `Theme.Size.aiBarMinimumSize` (scaled).
+Collapsed, it pins `minSize`/`maxSize` height to the composer, whose height follows its text, so only
+the width moves. `windowDidEndLiveResize` stores the size in `AppSettings.aiBarSize`, which is
+backup-excluded like the position. A collapsed resize keeps the stored expanded height. When a
+left or top edge moves the composer, the new anchor is stored as its position too. `barWidth` and
+`expandedHeight` feed placement, the grow-up test, the drop guides and the restore check, so a
+resized bar centres and snaps home at its own size. Assistant bars keep `Assistant.width` and never
+resize. `RootPaletteView` re-syncs size on an `aiBar` flip, so leaving the bar sheds both the size and
+the resizability even when the collapsed state doesn't change. ⌘K → Reset Bar Size clears it.
+
 All of the arithmetic lives in `PalettePlacement`, which is CoreGraphics-only and takes every screen
 fact as a parameter, so `palette-placement-test` drives the shipped rules rather than a copy of them.
 

@@ -325,6 +325,16 @@ final class AIChatCoordinator {
         Paster.copyPlainText(text)
     }
 
+    /// Only the default bar keeps a dragged size; Assistants and the full window never resize.
+    var canResetBarSize: Bool {
+        palette.aiBar && palette.activeAssistantID == nil && core.settings.aiBarSize != nil
+    }
+
+    func resetBarSize() {
+        core.settings.aiBarSize = nil
+        paletteCoordinator.syncPaletteSize()
+    }
+
     /// The chat screen's ⌘K "Pop Out" command: hand this live conversation — a reply still
     /// streaming included — to its own standalone window pinned to the current scope, then leave the
     /// palette. The bar starts clean so the two surfaces never diverge over one shared session id.
