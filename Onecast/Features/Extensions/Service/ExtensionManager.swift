@@ -866,22 +866,21 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
         guard let owningName, let owner = extensionNamed(owningName),
             let command = owner.command(named: name)
         else { throw LaunchError.unknownCommand(name) }
-        Task {
-            await run(
-                owner, command: command, arguments: arguments, fallbackText: fallbackText,
-                launchType: launchType)
+        guard launchType != .background || command.mode != .view else {
+            throw LaunchError.unsupported("A view command cannot run in the background.")
         }
+        coordinator?.runExtensionCommand(
+            entry(for: command, in: owner), arguments: arguments, fallbackText: fallbackText,
+            launchType: launchType)
     }
 
     func launch(_ link: ExtensionDeepLink) throws {
         guard let (owner, command) = resolve(link) else {
             throw LaunchError.unknownCommand(link.commandName)
         }
-        Task {
-            await run(
-                owner, command: command, arguments: link.arguments,
-                fallbackText: link.fallbackText, launchType: link.launchType)
-        }
+        coordinator?.runExtensionCommand(
+            entry(for: command, in: owner), arguments: link.arguments,
+            fallbackText: link.fallbackText, launchType: link.launchType)
     }
 
     func authorizeOAuth(options: ExtensionOAuthAuthorizeOptions) async throws -> ExtensionOAuthAuthorizeResult

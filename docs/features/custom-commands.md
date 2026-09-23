@@ -176,6 +176,7 @@ the success pill is skipped for the same reason.
   reaches the log. The guard is the documented `[[ -n $ONECAST ]] && return`.
 - **Stop is the one exception** to "Onecast never kills a running command". Only the button does it;
   a second command superseding the window never touches the first.
+- Escape closes the window without stopping its command.
 
 #### The ad-hoc run
 

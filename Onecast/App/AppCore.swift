@@ -356,6 +356,10 @@ final class AppCore {
             extensions.onDidUninstall = { [weak self] entryIDs in
                 self?.extensionCoordinator.removeExtensionReferences(entryIDs: entryIDs)
             }
+            appIndex.onScan = { [weak self] in
+                guard let self else { return }
+                hotKeys.removeAppBindings(where: appIndex.isUninstalled)
+            }
             plugins.onDidUninstall = { [weak self] entryIDs in
                 self?.pluginCoordinator.removePluginReferences(entryIDs: entryIDs)
             }

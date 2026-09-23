@@ -161,9 +161,14 @@ final class ExtensionCoordinator {
     }
 
     /// A view command takes over the palette; a no-view command closes it and runs headless.
-    func runExtensionCommand(_ app: AppEntry, arguments: [String: String] = [:]) {
+    func runExtensionCommand(
+        _ app: AppEntry, arguments: [String: String] = [:], fallbackText: String? = nil,
+        launchType: ExtensionLaunchType = .userInitiated
+    ) {
         guard let (owner, command) = extensions.resolve(app) else { return }
-        run(owner, command: command, arguments: arguments)
+        run(
+            owner, command: command, arguments: arguments, fallbackText: fallbackText,
+            launchType: launchType)
     }
 
     private func run(
@@ -178,9 +183,10 @@ final class ExtensionCoordinator {
             if !paletteCoordinator.isVisible {
                 paletteCoordinator.showPalette(mode: .extensionCommand)
             }
+            if let fallbackText, !fallbackText.isEmpty { palette.query = fallbackText }
         case .noView, .menuBar:
             // A no-view command's own HUD is the feedback, so the palette gets out of the way.
-            paletteCoordinator.hidePalette(restoreFocus: false)
+            if launchType == .userInitiated { paletteCoordinator.hidePalette(restoreFocus: false) }
         }
         Task {
             await extensions.run(
