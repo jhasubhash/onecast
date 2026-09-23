@@ -82,6 +82,7 @@ struct SettingsBackup: Codable {
         var menuBarEvents: Int?
         var calendarMenuBarDisplay: Int?
         var menuBarLinkedEventsOnly: Bool?
+        var calendarMenuBarHidesWhenEmpty: Bool?
         var hideCurrentEvent: Int?
         // Safe to carry: it silences a prompt rather than granting anything.
         var supportReminders: Bool?
@@ -180,6 +181,7 @@ extension SettingsBackup {
             menuBarEvents: s.menuBarEvents.rawValue,
             calendarMenuBarDisplay: s.calendarMenuBarDisplay.rawValue,
             menuBarLinkedEventsOnly: s.menuBarLinkedEventsOnly,
+            calendarMenuBarHidesWhenEmpty: s.calendarMenuBarHidesWhenEmpty,
             hideCurrentEvent: s.hideCurrentEvent.rawValue,
             supportReminders: s.supportRemindersEnabled)
 
@@ -504,6 +506,10 @@ extension SettingsBackup {
         }
         if let flag = s.menuBarLinkedEventsOnly {
             settings.menuBarLinkedEventsOnly = flag
+            count += 1
+        }
+        if let flag = s.calendarMenuBarHidesWhenEmpty {
+            settings.calendarMenuBarHidesWhenEmpty = flag
             count += 1
         }
         if let raw = s.hideCurrentEvent, let hide = HideCurrentEvent(rawValue: raw) {
