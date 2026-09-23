@@ -16,6 +16,7 @@ final class NotificationPresenter {
 
     private static let inset: CGFloat = Theme.Spacing.xxl
     private static let stackGap: CGFloat = Theme.Spacing.md
+    private static let sound = NSSound(named: "Glass")
 
     init(screen: @escaping () -> NSScreen?) {
         self.screen = screen
@@ -24,7 +25,8 @@ final class NotificationPresenter {
     /// `content` is the override seam: nil renders the built-in `NotificationCardView`.
     @discardableResult
     func post(
-        _ spec: NotificationSpec, content: AnyView? = nil, onAction: ((String) -> Void)? = nil
+        _ spec: NotificationSpec, playsSound: Bool, content: AnyView? = nil,
+        onAction: ((String) -> Void)? = nil
     ) -> UUID {
         let id = spec.id
         let panel = NotificationPanel()
@@ -44,6 +46,7 @@ final class NotificationPresenter {
         stacks[spec.corner, default: []].insert(Entry(id: id, panel: panel), at: 0)
         layout(corner: spec.corner)
         panel.fadeIn(duration: Theme.Duration.enter) { panel.orderFrontRegardless() }
+        if playsSound { Self.sound?.play() }
 
         if let dwell = spec.dwell {
             dismissals[id] = Task { [weak self] in

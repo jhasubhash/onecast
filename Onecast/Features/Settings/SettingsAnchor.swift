@@ -100,6 +100,7 @@ extension SettingsAnchor {
     static let extensionsStorage = Self(tab: .extensions, title: "Storage")
 
     static let schedulerScheduler = Self(tab: .scheduler, title: "Scheduler")
+    static let schedulerNotifications = Self(tab: .scheduler, title: "Notifications")
     static let schedulerCommands = Self(tab: .scheduler, title: "Commands")
 
     static let permissionsAccessibility = Self(tab: .permissions, title: "Accessibility")

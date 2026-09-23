@@ -336,6 +336,10 @@ final class AppSettings {
         }
     }
 
+    var schedulerPlaysSound: Bool {
+        didSet { defaults.set(schedulerPlaysSound, forKey: Key.schedulerPlaysSound.rawValue) }
+    }
+
     /// With AI on, controls only whether the assistants' "Ask <Name>" rows appear in the launcher.
     var aiAssistantsShowInLauncher: Bool {
         didSet {
@@ -750,5 +754,8 @@ final class AppSettings {
         schedulerShowInLauncher =
             defaults.object(forKey: Key.schedulerShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.schedulerShowInLauncher.rawValue)
+        schedulerPlaysSound =
+            defaults.object(forKey: Key.schedulerPlaysSound.rawValue) == nil
+            || defaults.bool(forKey: Key.schedulerPlaysSound.rawValue)
     }
 }

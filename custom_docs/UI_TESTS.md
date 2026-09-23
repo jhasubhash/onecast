@@ -257,6 +257,16 @@ bailed otherwise, so `transparent` reached the SVG renderer — which draws it s
 **Fix.** Always run the rewrite, and map a `fill`/`stroke` of `transparent` to `none` (#970).
 **Check.** `ext-icon-test` rasterizes a transparent-filled rect at 96pt and asserts no ink.
 
+### Scheduler notifications fired onto a secondary display — 2026-09
+
+**Symptom.** A scheduled task's notification card appeared on the external monitor, not the
+menu-bar display.
+**Cause.** `NotificationPresenter` was built with `screen: { NSScreen.main }`; for an accessory app
+that is the display of the last key window, not the primary one.
+**Fix.** `NSScreen.primary` (`Platform/ScreenTarget.swift`), the same target the palette uses.
+**Check.** With two displays, seed a task due in 20 s, then read its panel's bounds from
+`CGWindowListCopyWindowInfo` — the origin must fall inside the display at the global origin.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

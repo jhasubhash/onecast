@@ -138,11 +138,14 @@ way. It is a per-query reorder of the displayed rows only; the stored fallback o
 
 ## Settings and backup
 
-`schedulerEnabled` and `schedulerShowInLauncher` live in `AppSettings`/`AppSettingsKey`.
-`schedulerShowInLauncher` is backed up like every other show-in-launcher flag. `schedulerEnabled` is
-in `SettingsBackupCoverage.deliberatelyExcluded`: it doubles as consent to run a script or action
-unattended, so — like `snippetsEnabled`, `calendarEnabled` and `cameraPreview` — an imported backup
-must never be able to arm the machine to fire on a timer by itself.
+`schedulerEnabled`, `schedulerShowInLauncher` and `schedulerPlaysSound` live in
+`AppSettings`/`AppSettingsKey`. `schedulerPlaysSound` (on by default; **Settings → Scheduler →
+Notifications → Play a sound**) chimes the system "Glass" sound when a scheduled notification or a
+script's finish toast appears. `schedulerShowInLauncher` and `schedulerPlaysSound` are backed up like
+every other preference. `schedulerEnabled` is in `SettingsBackupCoverage.deliberatelyExcluded`: it
+doubles as consent to run a script or action unattended, so — like `snippetsEnabled`,
+`calendarEnabled` and `cameraPreview` — an imported backup must never be able to arm the machine to
+fire on a timer by itself.
 
 ## Notifications module
 
@@ -150,7 +153,10 @@ must never be able to arm the machine to fire on a timer by itself.
 scheduler-specific. `NotificationSpec` describes one notification (title, body, `style`, `corner`,
 `dwell`, `actions`); `NotificationPresenter` stacks live cards per screen corner on a floating
 `NotificationPanel`; `NotificationPlacement` resolves the corner geometry; `NotificationCardView`
-draws one. Nothing here uses `NSAlert` or a system notification.
+draws one. Nothing here uses `NSAlert` or a system notification. `post(_:playsSound:)` takes the
+sound flag from the caller, so the module reads no scheduler setting. Cards anchor to
+`NSScreen.primary` (the menu-bar display), never `NSScreen.main` — for an accessory app that follows
+whichever display last held a key window, so cards landed on a secondary monitor.
 
 ## Manual checks
 

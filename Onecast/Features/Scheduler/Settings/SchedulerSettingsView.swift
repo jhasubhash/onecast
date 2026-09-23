@@ -50,6 +50,16 @@ struct SchedulerSettingsView: View {
             }
             .settingsEnabled(settings.schedulerEnabled)
 
+            Section {
+                Toggle(isOn: $settings.schedulerPlaysSound) {
+                    SettingsRowTitle(.schedulerNotifications, "Play a sound")
+                    Text("Chime when a scheduled notification or a script's finish toast appears.")
+                }
+            } header: {
+                SettingsSectionHeader(.schedulerNotifications)
+            }
+            .settingsEnabled(settings.schedulerEnabled)
+
             FeatureCommandsSection(owner: .scheduler, anchor: .schedulerCommands)
                 .settingsEnabled(settings.schedulerEnabled)
         }

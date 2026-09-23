@@ -148,7 +148,7 @@ final class SchedulerCoordinator {
     private func perform(_ action: ScheduledAction, name: String) {
         switch action {
         case .postNotification(let spec):
-            notifications.post(spec)
+            notifications.post(spec, playsSound: settings.schedulerPlaysSound)
         case .runScript(let script):
             Task { [weak self] in
                 let result = await ShellCommandRunner.run(
@@ -168,6 +168,7 @@ final class SchedulerCoordinator {
         notifications.post(
             NotificationSpec(
                 id: UUID(), title: name, body: body, style: .toast, corner: .topTrailing,
-                dwell: 6, actions: []))
+                dwell: 6, actions: []),
+            playsSound: settings.schedulerPlaysSound)
     }
 }

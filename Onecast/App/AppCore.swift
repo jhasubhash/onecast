@@ -206,7 +206,7 @@ final class AppCore {
     @ObservationIgnored private lazy var dialogs = DialogController(settings: settings)
     private let healthTicker = HealthTicker()
     @ObservationIgnored private let notificationPresenter = NotificationPresenter(
-        screen: { NSScreen.main })
+        screen: { NSScreen.primary })
 
     private init() {
         let launcherRanking = LauncherRankingStore()
