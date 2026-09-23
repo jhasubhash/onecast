@@ -237,7 +237,12 @@ A plugin surface can be **popped out into its own standalone window** — the �
 command, beside Add to Main Menu. The window renders only the plugin's own view — no palette header,
 footer or scaffold — over the same backdrop the launcher draws. It is borderless, resizable, moved by
 dragging its background and closed with ⌘W; a bottom-right ⌘K palette carries its window controls
-(show on all spaces, keep in front, close).
+(show on all spaces, keep in front, pin to desktop, close).
+
+**Pin to Desktop** (⌘D) is the widget mode: the window sits one level above the desktop icons, behind
+every app window. An all-spaces window at `.normal` level is drawn over the arriving space's windows on
+each space switch before it drops back — `.stationary` does not help, only the level does. Pin and
+keep-in-front are two values of the one window level, so turning either on turns the other off.
 
 Each pop-out loads its **own** plugin instance, independent of the palette's running session and of
 every other window, so several float at once — keyed by `PluginRoute`, so an ADBE chart and an MSFT

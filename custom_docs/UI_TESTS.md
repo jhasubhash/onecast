@@ -267,6 +267,16 @@ that is the display of the last key window, not the primary one.
 **Check.** With two displays, seed a task due in 20 s, then read its panel's bounds from
 `CGWindowListCopyWindowInfo` — the origin must fall inside the display at the global origin.
 
+### An all-spaces pop-out flashed over apps on every space switch — 2026-09
+
+**Symptom.** A plugin pop-out kept on all spaces as a desktop widget jumped in front of every window
+on the space just switched to, then sank behind them a moment later.
+**Cause.** WindowServer draws a `.canJoinAllSpaces` window at `.normal` level above the arriving
+space's windows until it re-sorts; `.stationary` changes nothing, only the level does.
+**Fix.** ⌘K **Pin to Desktop** puts the window at desktop-icon level + 1, behind every app window.
+**Check.** `screencapture` in a loop (~100 ms a frame) across a `⌃→`/`⌃←` switch onto a space whose
+window covers the pop-out; no frame after arrival may show it.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

@@ -31,7 +31,12 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
         var route: String
         var allSpaces: Bool
         var keepInFront: Bool
+        var pinnedToDesktop: Bool?
     }
+
+    /// Above the desktop icons: unlike `.normal`, a space switch never draws it over app windows.
+    private static let desktopLevel = NSWindow.Level(
+        rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
 
     init(core: AppCore) {
         self.core = core
@@ -41,7 +46,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
     /// already showing this exact route is raised instead of duplicated.
     func open(
         install: PluginInstall, route: PluginRoute, activating: Bool = true,
-        allSpaces: Bool = false, keepInFront: Bool = false
+        allSpaces: Bool = false, level: NSWindow.Level = .normal
     ) {
         let key = PluginRouteURL.encode(identifier: install.manifest.identifier, payload: route.payload)
         if let existing = windows[key] {
@@ -67,7 +72,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
             case .success(let dylib):
                 self.present(
                     install: install, route: route, key: key, dylib: dylib,
-                    activating: activating, allSpaces: allSpaces, keepInFront: keepInFront)
+                    activating: activating, allSpaces: allSpaces, level: level)
             }
         }
     }
@@ -76,7 +81,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
     /// build resolves, so a compile never blocks the launcher or the restore.
     private func present(
         install: PluginInstall, route: PluginRoute, key: String, dylib: URL,
-        activating: Bool, allSpaces: Bool, keepInFront: Bool
+        activating: Bool, allSpaces: Bool, level: NSWindow.Level
     ) {
         let plugin: any OnecastPlugin
         do {
@@ -123,7 +128,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
 
         windows[key] = Entry(panel: panel, plugin: plugin)
         if allSpaces { setShowsOnAllSpaces(true, key: key) }
-        if keepInFront { setKeepsInFront(true, key: key) }
+        panel.level = level
         if activating { panel.makeKeyAndOrderFront(nil) }
         panel.orderFrontRegardless()
         persist()
@@ -149,9 +154,12 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
             guard let route = PluginRouteURL.decode(saved.route),
                 let install = core.plugins.install(forIdentifier: route.identifier)
             else { continue }
+            var level = NSWindow.Level.normal
+            if saved.pinnedToDesktop == true { level = Self.desktopLevel }
+            if saved.keepInFront { level = .floating }
             open(
                 install: install, route: PluginRoute(payload: route.payload, title: ""),
-                activating: false, allSpaces: saved.allSpaces, keepInFront: saved.keepInFront)
+                activating: false, allSpaces: saved.allSpaces, level: level)
         }
         persist()
     }
@@ -161,7 +169,8 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
             PersistedWindow(
                 route: key,
                 allSpaces: entry.panel.collectionBehavior.contains(.canJoinAllSpaces),
-                keepInFront: entry.panel.level == .floating)
+                keepInFront: entry.panel.level == .floating,
+                pinnedToDesktop: entry.panel.level == Self.desktopLevel)
         }
         UserDefaults.standard.set(try? JSONEncoder().encode(items), forKey: Self.persistenceKey)
     }
@@ -180,6 +189,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
         guard let panel = windows[key]?.panel else { return [] }
         let allSpaces = panel.collectionBehavior.contains(.canJoinAllSpaces)
         let inFront = panel.level == .floating
+        let pinned = panel.level == Self.desktopLevel
         return [
             PopOutWindowCommand(
                 title: allSpaces ? "Show on This Space Only" : "Show on All Spaces",
@@ -190,7 +200,14 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
                 title: inFront ? "Don't Keep in Front" : "Keep in Front of Other Apps",
                 systemImage: inFront ? "pin.slash" : "pin",
                 shortcut: "p",
-                action: { [weak self] in self?.setKeepsInFront(!inFront, key: key) }),
+                action: { [weak self] in self?.setLevel(inFront ? .normal : .floating, key: key) }),
+            PopOutWindowCommand(
+                title: pinned ? "Unpin from Desktop" : "Pin to Desktop",
+                systemImage: pinned ? "macwindow" : "menubar.dock.rectangle",
+                shortcut: "d",
+                action: { [weak self] in
+                    self?.setLevel(pinned ? .normal : Self.desktopLevel, key: key)
+                }),
             PopOutWindowCommand(
                 title: "Close Window", systemImage: "xmark", isDestructive: true,
                 shortcut: "w",
@@ -210,8 +227,8 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
         persist()
     }
 
-    private func setKeepsInFront(_ on: Bool, key: String) {
-        windows[key]?.panel.level = on ? .floating : .normal
+    private func setLevel(_ level: NSWindow.Level, key: String) {
+        windows[key]?.panel.level = level
         persist()
     }
 
