@@ -557,11 +557,19 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   the way `SystemPromptEditor` does; dimming an editor that still accepts input is the bug, not the fix.
 - **A group is a `Section`**, with `header:` for its name and `footer:` for the caption that used to
   ride under the last row.
-- **The pane's own title is not in the pane.** `SettingsToolbarController` puts it in the titlebar,
-  seated in the detail column by `.sidebarTrackingSeparator`.
+- **Settings is one SwiftUI `NavigationSplitView`** (`SettingsRootView`), hosted with
+  `sceneBridgingOptions = [.toolbars, .title]` so its toolbar, title and search field reach the AppKit
+  window. It was an `NSSplitViewController`; in that sidebar every search bar drew a hard scroll edge
+  with a hairline, which no `scrollEdgeEffectStyle` or accessory style could soften.
+  `.toolbar(removing: .sidebarToggle)` goes *before* `navigationSplitViewColumnWidth`, or the column
+  shrinks to AppKit's default thickness.
+- **The pane's own title is not in the pane.** `.navigationTitle` puts it in the titlebar beside the
+  Back/Forward chevrons. `SettingsWindowChrome` installs *before* the content mounts: the bridged toolbar
+  restores the title flags it mounted over, so a later `titleVisibility = .visible` is undone on the
+  first navigation.
 - **Settings is the one window that keeps the system titlebar.** `AppWindowController` builds every
   window with `titlebarAppearsTransparent = true`, which opts the titlebar out of the system's glass
-  band; `SettingsToolbarController.install(in:)` sets it back to `false`, so the band and its scroll
+  band; `SettingsWindowChrome.install(in:)` sets it back to `false`, so the band and its scroll
   edge effect are drawn by AppKit as a pane's `Form` scrolls under it. `.fullSizeContentView` and
   `titlebarSeparatorStyle = .none` stay — the content still runs under the bar, and a hairline would
   split the surface the band unifies. It also clears `isMovableByWindowBackground`: stock Settings
@@ -572,7 +580,7 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   **`FeatureSwitchSection`** (a feature's master switch plus its launcher-visibility companion) and
   **`SettingsFilterField`** (the filter row above a long list). `Onboarding/OnboardingCard.swift`
   keeps the older hand-drawn card, which that window still uses.
-- **The sidebar searches every pane *and* its rows.** `SettingsSearchField` sits above the list and
+- **The sidebar searches every pane *and* its rows.** `.searchable(placement: .sidebar)` sits above the list and
   swaps it for a flat, ranked result list; each result carries the pane's `systemImage`, the row's
   title and a `Pane › Section` breadcrumb, and arrowing through them moves the pane, as System
   Settings does. Selection runs through `SettingsNavigationState.select`, so a result is an ordinary
@@ -619,14 +627,9 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   a cancelled reveal returns *without* ending the pulse, since cancellation means a later jump owns
   the light now; and `scrollRequest` is released only once the pulse is over, because it keys the
   pane's `.task(id:)` and clearing it early cancels the very task doing the revealing.
-- **The sidebar's field is not `SettingsFilterField`.** That one is borderless because it lives inside
-  a `Form` row; the sidebar's is a glass capsule — `.frosted(in: Capsule())` at
-  `Size.settingsSearchField`, lensing the sidebar's own vibrancy — and lives in `Features/Settings/`,
-  having one call site. **The glass goes on a background layer, not on the content**
-  (`.background { Color.clear.frosted(in: Capsule()) }`): `frosted` ends in `.tint(.clear)`, which a
-  `TextField` descendant would inherit as an invisible caret.
-  `.searchable(placement: .sidebar)` renders nothing here — it needs a SwiftUI `NavigationSplitView`,
-  and this sidebar is an `NSHostingController` in a real `NSSplitViewController`.
+- **The sidebar's field is the system's, not `SettingsFilterField`.** That one is borderless because
+  it lives inside a `Form` row; the sidebar's is `.searchable`, which AppKit seats as a split-item
+  accessory with a soft scroll edge — the list blurs out under it, as in System Settings.
 - **A `Form` realizes every row it is handed, and a lazy stack rebuilds a row's AppKit controls.**
   Handed 400 apps directly, a `Form` took 750 ms and 2040 views; a `LazyVStack` in one Form row
   fixed that, but tears a row's `TextField` and checkbox — both `NSView`s — down when the row scrolls

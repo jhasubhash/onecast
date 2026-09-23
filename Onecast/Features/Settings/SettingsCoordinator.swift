@@ -25,14 +25,14 @@ final class SettingsCoordinator {
         }
         let navigation = SettingsNavigationState(tab: tab ?? .general)
         self.navigation = navigation
-        window.show(chrome: SettingsToolbarController(navigation: navigation)) {
-            SettingsSplitViewController(
-                sidebar: inject(SettingsSidebarView(), navigation),
-                detail: inject(SettingsDetailView(), navigation))
-        }
+        let hosting = NSHostingController(rootView: inject(SettingsRootView(), navigation))
+        // Keep the window's size authoritative: an unconstrained fill would drive the frame.
+        hosting.sizingOptions = []
+        // The back/forward chevrons, the pane title and the sidebar's search field all ride on it.
+        hosting.sceneBridgingOptions = [.toolbars, .title]
+        window.show(chrome: SettingsWindowChrome()) { hosting }
     }
 
-    /// Both columns are hosted separately, so each needs the whole environment.
     private func inject(_ view: some View, _ navigation: SettingsNavigationState) -> some View {
         view
             .environment(navigation)
