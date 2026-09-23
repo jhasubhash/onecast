@@ -56,7 +56,6 @@ reviews:
     - "!Onecast.xcodeproj/**"
     - "!Onecast/Assets.xcassets/**"
     - "!Onecast/onecast.icon/**"
-    - "!Tests/launcher-corpus/**"
     - "!Tests/ai-fixtures/*.txt"
     - "!**/node_modules/**"
     - "!**/package-lock.json"

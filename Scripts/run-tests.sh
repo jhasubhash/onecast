@@ -115,10 +115,8 @@ run() {
 
 L=Onecast/Features/Launcher/Model
 run slow -O fuzz-test      $L/SearchRelevance.swift $L/ScriptRomanization.swift \
-                           $L/EntryNaming.swift $L/LauncherOrder.swift
-run slow -O corpus-test    $L/SearchRelevance.swift $L/ScriptRomanization.swift \
-                           $L/EntryNaming.swift $L/LauncherOrder.swift \
-                           $L/LauncherRankingStore.swift
+                           $L/LauncherMatch.swift $L/EntryNaming.swift $L/LauncherOrder.swift \
+                           $L/LauncherRankingStore.swift $L/LauncherSuggestions.swift
 run file-search-test       $L/SearchRelevance.swift \
                            Onecast/Features/FileSearch/Model/*.swift
 run file-search-session-test Onecast/Platform/Signposts.swift \
@@ -134,7 +132,8 @@ run index file-search-performance Onecast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
                            Onecast/Features/FileSearch/Model/*.swift \
                            Onecast/Features/FileSearch/Service/FileSearchService.swift
-run ranking-test           $L/SearchRelevance.swift $L/LauncherRankingStore.swift
+run ranking-test           $L/SearchRelevance.swift $L/ScriptRomanization.swift \
+                           $L/LauncherMatch.swift $L/LauncherRankingStore.swift
 run scopes-test            $L/SearchScopes.swift \
                            Onecast/Features/Launcher/Service/AppBundleScanner.swift
 run app-name-test          Onecast/Platform/AppDisplayName.swift \

@@ -253,8 +253,8 @@ final class ExtensionMenuBarController: NSObject, NSMenuDelegate {
         let rawKey = shortcut["key"]?.stringValue ?? ""
         let key = Self.namedKeys[rawKey] ?? rawKey.lowercased()
         if item.keyEquivalent != key { item.keyEquivalent = key }
-        var modifiers = (shortcut["modifiers"]?.arrayValue ?? []).reduce(into: NSEvent.ModifierFlags()) {
-            flags, value in
+        let names = shortcut["modifiers"]?.arrayValue ?? []
+        var modifiers = names.reduce(into: NSEvent.ModifierFlags()) { flags, value in
             switch value.stringValue {
             case "cmd": flags.insert(.command)
             case "ctrl": flags.insert(.control)
