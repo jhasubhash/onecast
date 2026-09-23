@@ -277,6 +277,24 @@ space's windows until it re-sorts; `.stationary` changes nothing, only the level
 **Check.** `screencapture` in a loop (~100 ms a frame) across a `⌃→`/`⌃←` switch onto a space whose
 window covers the pop-out; no frame after arrival may show it.
 
+### Every alias field wore the Siri orb — 2026-09
+
+**Symptom.** A round Siri/Writing Tools badge floated at the leading edge of the first **Add Alias**
+field in a Settings pane, over the command's name.
+**Cause.** The alias field became an `NSTextView`, and macOS 26 attaches its Writing Tools orb to
+every editable text view; a SwiftUI `TextField` never got one.
+**Fix.** `writingToolsBehavior = .none` on the alias editor.
+**Check.** Open a pane with commands and look at the alias column; hit-test the spot through AX — a
+`button` described "Siri Waveform Orb" is the regression.
+
+### A second ⌘F left the Settings search unfocused — 2026-09
+
+**Symptom.** After arrowing into Settings search results, ⌘F did nothing; typing went to the list.
+**Cause.** The shortcut set `.searchable(isPresented:)` to `true`, which it already was — a no-op
+that moves no focus.
+**Fix.** `.searchFocused($searchFocused)`, and ⌘F sets that focus directly.
+**Check.** Search, ↓ into the results, ⌘F, ⌘A, type — the field must take the new query.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

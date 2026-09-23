@@ -137,6 +137,8 @@ private struct AliasTextField: NSViewRepresentable {
         editor.isRichText = false
         editor.importsGraphics = false
         editor.allowsUndo = true
+        // A one-word alias has nothing to rewrite; otherwise every field wears the Siri orb.
+        editor.writingToolsBehavior = .none
         editor.drawsBackground = false
         editor.backgroundColor = .clear
         editor.font = .systemFont(ofSize: NSFont.smallSystemFontSize)

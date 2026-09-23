@@ -6,7 +6,7 @@ struct SettingsSidebarView: View {
     @State private var query = ""
     @State private var highlighted: SettingsSearchEntry.ID?
     @Environment(\.appearsActive) private var appearsActive
-    @State private var searching = false
+    @FocusState private var searchFocused: Bool
 
     private var results: [SettingsSearchEntry] { SettingsSearchCatalog.results(for: query) }
 
@@ -18,7 +18,8 @@ struct SettingsSidebarView: View {
                 found
             }
         }
-        .searchable(text: $query, isPresented: $searching, placement: .sidebar, prompt: "Search")
+        .searchable(text: $query, placement: .sidebar, prompt: "Search")
+        .searchFocused($searchFocused)
         .onExitCommand { query = "" }
         .background(focusShortcut)
     }
@@ -70,7 +71,7 @@ struct SettingsSidebarView: View {
 
     /// ⌘F with no menu item to hang it on; zero-sized so it only ever contributes the shortcut.
     private var focusShortcut: some View {
-        Button("Search Settings") { searching = true }
+        Button("Search Settings") { searchFocused = true }
             .keyboardShortcut("f", modifiers: .command)
             .buttonStyle(.plain)
             .frame(width: 0, height: 0)
