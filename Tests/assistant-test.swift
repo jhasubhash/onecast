@@ -20,7 +20,6 @@ struct AssistantTests {
         assistantRoundTripsThroughCodable()
         assistantDecodesLegacyJSONMissingFields()
         providerRoundTripsBothCases()
-        placementReadsAndWrites()
         skillRoundTripsThroughCodable()
         frontmatterParsesNameDescriptionAndBody()
         frontmatterRejectsWhatIsNotASkill()
@@ -43,7 +42,7 @@ struct AssistantTests {
             systemPrompt: "Review code carefully.", model: .appleIntelligence, webSearch: true,
             skillIDs: [UUID()], mcpServerIDs: [UUID()], opensTo: .newConversation,
             newChatAfter: .never, retention: .week, ephemeral: true, seedPrompt: "Paste a diff",
-            positions: ["display-a": [12, 34]], width: 640, order: 3)
+            width: 640, order: 3)
         guard let data = try? JSONEncoder().encode(assistant),
             let decoded = try? JSONDecoder().decode(Assistant.self, from: data)
         else {
@@ -89,15 +88,6 @@ struct AssistantTests {
         expect(
             Assistant(provider: .plugin(pluginID: "a", descriptorID: "b"), name: "X").isPlugin,
             "a plugin-provided assistant reports isPlugin")
-    }
-
-    static func placementReadsAndWrites() {
-        var assistant = Assistant(name: "X")
-        expect(assistant.position(on: "d1") == nil, "an unplaced assistant has no position on a display")
-        assistant.setPosition(CGPoint(x: 100, y: 200), on: "d1")
-        expect(assistant.position(on: "d1") == CGPoint(x: 100, y: 200), "a placement reads back")
-        assistant.setPosition(nil, on: "d1")
-        expect(assistant.position(on: "d1") == nil, "clearing a placement removes it")
     }
 
     static func skillRoundTripsThroughCodable() {

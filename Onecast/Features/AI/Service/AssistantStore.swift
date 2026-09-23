@@ -51,11 +51,6 @@ final class AssistantStore {
         mutate(id) { $0.model = model }
     }
 
-    /// Persist a drag; `nil` clears the entry so the next summon re-centres on that display.
-    func setPosition(_ offset: CGPoint?, for id: UUID, on display: String) {
-        mutate(id) { $0.setPosition(offset, on: display) }
-    }
-
     func setWidth(_ width: CGFloat?, for id: UUID) {
         mutate(id) { $0.width = width }
     }

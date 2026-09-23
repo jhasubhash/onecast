@@ -64,7 +64,6 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
     var retention: AIRetention
     var ephemeral: Bool                 // true ⇒ never persist this assistant's chats
     var seedPrompt: String              // optional empty-state hint / example
-    var positions: [String: [Double]]   // per-display placement offset (like aiBarPosition)
     var width: CGFloat?                 // optional per-assistant panel width (nil ⇒ default panelWidth)
     var order: Int                      // list ordering
 }
@@ -170,7 +169,7 @@ flowchart LR
   OPEN --> HIST["ChatHistoryStore.scope = a.id → reload summaries"]
   OPEN --> POL["applyOpenPolicy(a.opensTo) → load / new session"]
   SET --> SEND["send: a.model, a.systemPrompt, skills(a), mcp(a)"]
-  SET --> WIN["window: a.positions / a.width / grow direction"]
+  SET --> WIN["window: launcher's placement / a.width / grow direction"]
 ```
 
 Concretely:
@@ -183,11 +182,13 @@ Concretely:
 | web search | `aiSettings.webSearchEnabled` | `a.webSearch` |
 | open policy | `aiSettings.opensTo/newChatAfter` | `a.opensTo/newChatAfter` |
 | retention | `aiSettings.retention` | `a.retention` |
-| placement | `aiBarPosition` | `a.positions` + `a.width` |
+| placement | `aiBarPosition` | the launcher's `palettePosition` + `a.width` |
 
 Header model/reasoning menus write to **`a.model`** when active, else the global default.
-`PaletteWindowController.storedPosition/setStoredPosition` gain an assistant branch (already branches
-aiBar vs launcher). Switching saves the current session, re-scopes history, and applies the new open
+Assistant bars share the launcher's placement: `PaletteWindowController.storedPosition/setStoredPosition`
+read and write `palettePosition` whenever an assistant is active, so dragging an assistant bar moves
+the launcher and vice versa, as the launcher's own Tab-into-chat does. Only the standalone AI bar keeps
+`aiBarPosition`. Switching saves the current session, re-scopes history, and applies the new open
 policy.
 
 ## 8. Hotkeys — per-assistant, UUID-keyed
@@ -227,7 +228,8 @@ Additive migration on `ChatHistoryStore`:
 | --- | --- | --- |
 | name, icon, tint, prompt, skill/MCP subsets, opens-to, retention, ephemeral, seed | `Assistant` JSON — `UserDefaults` key `aiAssistants` | excluded |
 | chosen model + reasoning effort | `Assistant.model` | excluded |
-| screen position (per display) + width | `Assistant.positions` / `Assistant.width` | excluded |
+| screen position (per display) | the launcher's `palettePosition` (shared) | excluded |
+| width | `Assistant.width` | excluded |
 | hotkey | `hotkey.assistant.<uuid>` | excluded |
 | launcher-command hotkey/alias | existing per-item indices | excluded |
 | skill library (metadata) | `UserDefaults` `aiSkills` + files under `application-support/skills/` | excluded |
@@ -298,8 +300,9 @@ Two new sections plus one editor sheet:
   for the scoped send composition and `settings-backup-test` for the new excluded keys. Extend
   `hotkey-test` for `.assistant` defaults-key uniqueness.
 - **Driven UI** ([UI_TESTS.md](UI_TESTS.md)): create two assistants with distinct shortcuts, prompts,
-  skills and MCP sets; verify each summons to its own placement/width, resumes its own history, applies
-  its own model/prompt/skills, and that the default bar is unchanged. Capture a panel per state.
+  skills and MCP sets; verify each summons at the launcher's placement with its own width, that
+  dragging one moves the launcher too, resumes its own history, applies its own model/prompt/skills,
+  and that the default bar is unchanged. Capture a panel per state.
 - **Manual sweep:** ephemeral leaves no row; import a `SKILL.md`, enable it on one assistant, confirm its
   instructions steer that assistant and not another; delete an assistant and confirm its hotkey, launcher
   row and (non-ephemeral) history handling are pruned/retained as specified.

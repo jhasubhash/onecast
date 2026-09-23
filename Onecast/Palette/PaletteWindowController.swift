@@ -546,24 +546,23 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         return resolved
     }
 
-    /// Each surface keeps its own placement: an active Assistant's own, else the AI bar's, else the
-    /// launcher's, so dragging one never moves another.
+    /// The launcher and every Assistant bar share one placement, so a drag of either moves both;
+    /// only the standalone AI bar keeps its own.
     private func storedPosition(on display: String) -> CGPoint? {
-        if let id = core.palette.activeAssistantID {
-            return core.assistants.assistant(id: id)?.position(on: display)
-        }
-        return core.palette.aiBar
+        usesAIBarPlacement
             ? core.settings.aiBarPosition(on: display) : core.settings.palettePosition(on: display)
     }
 
     private func setStoredPosition(_ offset: CGPoint?, on display: String) {
-        if let id = core.palette.activeAssistantID {
-            core.assistants.setPosition(offset, for: id, on: display)
-        } else if core.palette.aiBar {
+        if usesAIBarPlacement {
             core.settings.setAIBarPosition(offset, on: display)
         } else {
             core.settings.setPalettePosition(offset, on: display)
         }
+    }
+
+    private var usesAIBarPlacement: Bool {
+        core.palette.aiBar && core.palette.activeAssistantID == nil
     }
 
     /// This display's own corner, unless too little of the bar would stay grabbable.

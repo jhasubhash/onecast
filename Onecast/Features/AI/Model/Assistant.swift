@@ -39,8 +39,6 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
     var ephemeral: Bool
     /// Shown in the empty state under the placeholder; a nudge, not a message.
     var seedPrompt: String
-    /// Per-display placement offset, like `AppSettings.aiBarPosition`; the bar remembers where it sat.
-    var positions: [String: [Double]]
     /// Optional per-assistant panel width; `nil` uses the shared `panelWidth`.
     var width: CGFloat?
     var order: Int
@@ -66,7 +64,6 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
         retention: AIRetention = .forever,
         ephemeral: Bool = false,
         seedPrompt: String = "",
-        positions: [String: [Double]] = [:],
         width: CGFloat? = nil,
         order: Int = 0
     ) {
@@ -90,7 +87,6 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
         self.retention = retention
         self.ephemeral = ephemeral
         self.seedPrompt = seedPrompt
-        self.positions = positions
         self.width = width
         self.order = order
     }
@@ -125,8 +121,6 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
             retention: try c.decodeIfPresent(AIRetention.self, forKey: .retention) ?? d.retention,
             ephemeral: try c.decodeIfPresent(Bool.self, forKey: .ephemeral) ?? d.ephemeral,
             seedPrompt: try c.decodeIfPresent(String.self, forKey: .seedPrompt) ?? d.seedPrompt,
-            positions: try c.decodeIfPresent([String: [Double]].self, forKey: .positions)
-                ?? d.positions,
             width: try c.decodeIfPresent(CGFloat.self, forKey: .width) ?? d.width,
             order: try c.decodeIfPresent(Int.self, forKey: .order) ?? d.order)
     }
@@ -134,20 +128,6 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
     var isPlugin: Bool {
         if case .plugin = provider { return true }
         return false
-    }
-
-    /// This display's stored placement, or `nil` when the assistant has never been dragged there.
-    func position(on display: String) -> CGPoint? {
-        positions[display].flatMap { $0.count == 2 ? CGPoint(x: $0[0], y: $0[1]) : nil }
-    }
-
-    /// Set or clear this display's placement; the store persists the result.
-    mutating func setPosition(_ offset: CGPoint?, on display: String) {
-        guard let offset else {
-            positions.removeValue(forKey: display)
-            return
-        }
-        positions[display] = [offset.x, offset.y]
     }
 }
 
