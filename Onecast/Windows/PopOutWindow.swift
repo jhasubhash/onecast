@@ -172,7 +172,6 @@ struct PopOutWindowChrome<Content: View>: View {
     private let commands: () -> [PopOutWindowCommand]
     private let content: Content
 
-    @Environment(AppSettings.self) private var settings
     @Environment(\.metrics) private var metrics
     @State private var hovering = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -195,8 +194,8 @@ struct PopOutWindowChrome<Content: View>: View {
     var body: some View {
         content
             .background {
-                Theme.Colors.panelScrim(transparency: settings.paletteTransparency)
-                    .background(VisualEffectView())
+                Theme.Colors.panelScrim
+                    .background(GlassEffectView())
             }
             .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))
             .overlay(alignment: .top) {

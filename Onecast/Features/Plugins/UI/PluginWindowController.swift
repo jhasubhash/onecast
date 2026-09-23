@@ -107,7 +107,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
             // Only Escape is bridged: a windowed surface owns none of the palette's other host hooks.
             view.environment(\.pluginExit) { [weak self] in self?.close(key: key) }
         }
-        // The launcher's own environment, so the backdrop tracks the app's theme and transparency.
+        // The launcher's own environment, so the backdrop and metrics track the app's theme.
         let content = NSHostingView(
             rootView: chrome
                 .environment(core.settings)

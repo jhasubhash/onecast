@@ -182,7 +182,6 @@ enum Theme {
         /// The narrowest the pane column may get before a grouped row's control starts colliding.
         static let settingsDetailMinimum: CGFloat = 420
         static let settingsRowIcon: CGFloat = 20
-        static let paletteTransparencySlider: CGFloat = 190
         /// One "Aa" segment of the Interface Size control; three sit in a grouped row's trailing slot.
         static let interfaceSizeSegment: CGFloat = 40
         /// A sidebar glyph inside its tinted tile; the tile's inset brings it to the row icon's size.
@@ -337,30 +336,6 @@ enum Theme {
         /// The ramp's inverse: the scrim darkens the dark surface and lightens the light one.
         static let panelScrim = adaptive(dark: .srgbInk(0, alpha: 0.40), light: .srgbInk(1, alpha: 0.55))
 
-        static func panelScrim(transparency: Int) -> Color {
-            guard transparency != 0 else { return panelScrim }
-            let amount = Double(max(-100, min(100, transparency))) / 100
-            func alpha(_ baseline: Double) -> Double {
-                amount > 0 ? baseline * (1 - amount) : baseline - (1 - baseline) * amount
-            }
-            return adaptive(
-                dark: .srgbInk(0, alpha: alpha(0.40)), light: .srgbInk(1, alpha: alpha(0.55)))
-        }
-
-        static func panelEdgeHighlight(transparency: Int) -> Color {
-            let amount = Double(max(-100, min(100, transparency))) / 100
-            let dark = amount > 0 ? 0.58 - amount * 0.20 : -amount * 0.04
-            let light = amount > 0 ? amount * 0.10 : -amount * 0.02
-            return adaptive(dark: .srgbInk(1, alpha: dark), light: .srgbInk(1, alpha: light))
-        }
-
-        static func panelEdgeGradient(transparency: Int) -> LinearGradient {
-            let highlight = panelEdgeHighlight(transparency: transparency)
-            return LinearGradient(
-                colors: [highlight, highlight.opacity(0.35), highlight.opacity(0.65)],
-                startPoint: .top, endPoint: .bottom)
-        }
-
         /// Selection fill, shared by every list so they look identical.
         static let selection = ramp(dark: 0.10, light: 0.09)
         /// Mouse hover: a fainter layer, visually distinct from selection.
@@ -391,7 +366,6 @@ enum Theme {
         /// The Settings card: a faint surface whose border doubles as the row divider.
         static let cardFill = ramp(dark: 0.05, light: 0.04)
         static let cardStroke = ramp(dark: 0.10, light: 0.10)
-        /// White in both: the frost brightens glass, and light glass needs more to read at all.
         /// A window on the preview's plate. White in both, since the plate is always dark.
         static let layoutPreviewWindow = adaptive(
             dark: .srgbInk(1, alpha: 0.22), light: .srgbInk(1, alpha: 0.28))
@@ -401,7 +375,6 @@ enum Theme {
         /// The preview's plate: a display is dark in both appearances, so `adaptive`, not `ramp`.
         static let layoutPreviewGround = adaptive(
             dark: .srgbInk(0, alpha: 0.55), light: .srgbInk(0, alpha: 0.50))
-        static let glassFrost = adaptive(dark: .srgbInk(1, alpha: 0.05), light: .srgbInk(1, alpha: 0.25))
         /// The pill behind the header of the section a Settings search jumped to.
         static let searchFlash = Color.accentColor.opacity(0.35)
         /// The two squares of a checkerboard, behind a colour with alpha to show.
@@ -425,9 +398,8 @@ enum Theme {
 }
 
 extension View {
-    /// A floating glass control surface, frosted so it reads brighter than clear glass.
+    /// A floating glass control surface: clear, interactive Liquid Glass.
     func frosted(in shape: some Shape) -> some View {
-        glassEffect(.regular.interactive().tint(Theme.Colors.glassFrost), in: shape)
-            .tint(.clear)
+        glassEffect(.clear.interactive(), in: shape)
     }
 }

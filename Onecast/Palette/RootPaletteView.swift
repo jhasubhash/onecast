@@ -320,7 +320,8 @@ struct RootPaletteView: View {
                 )
                 // The window's frame is the size source, so the glass and clip stay matched.
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(PaletteBackground(window: hostWindow))
+                .background(Theme.Colors.panelScrim)
+                .background(GlassEffectView())
                 .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))),
             selection: sel)
     }
@@ -1080,7 +1081,7 @@ struct RootPaletteView: View {
             keyCapSize: metrics.size.keyCap,
             keyCapFont: metrics.typography.keyCap,
             hover: Theme.Colors.rowHover,
-            frost: Theme.Colors.glassFrost)
+            frost: .clear)
     }
 
     /// The one path opening the Actions menu, sampling the state its rows depend on.

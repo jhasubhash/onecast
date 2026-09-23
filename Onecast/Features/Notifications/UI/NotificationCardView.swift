@@ -144,7 +144,7 @@ extension View {
     /// off the desktop — a bare `panelScrim` read as a flat black rectangle over a light wallpaper.
     fileprivate func notificationSurface(in shape: some InsettableShape) -> some View {
         background(Theme.Colors.panelScrim)
-            .background(VisualEffectView())
+            .background(GlassEffectView())
             .clipShape(shape)
             .overlay(shape.strokeBorder(Theme.Colors.cardStroke, lineWidth: Theme.Size.hairline))
     }

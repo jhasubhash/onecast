@@ -819,7 +819,7 @@ public struct ActionBarStyle {
 
 /// The palette's footer, shared by the launcher, extensions and native plugins: a leading control
 /// and a trailing frosted capsule holding a primary action and an Actions ⌘K toggle, floating over
-/// the surface. Real Liquid Glass, so it follows the app's transparency; every slot is optional.
+/// the surface. Real Liquid Glass, lensing the panel behind it; every slot is optional.
 public struct ActionBar: View {
     @Environment(\.colorScheme) private var colorScheme
     private let model: ActionBarModel
@@ -958,8 +958,7 @@ private struct KeyCap: View {
 }
 
 private extension View {
-    /// The palette's `frosted(in:)` restated: real Liquid Glass tinted so a control reads brighter
-    /// than clear glass and follows the app's background-transparency setting.
+    /// Real Liquid Glass with an optional tint, so a control can read brighter than clear glass.
     func frostedGlass(_ shape: some Shape, frost: Color) -> some View {
         glassEffect(.regular.interactive().tint(frost), in: shape).tint(.clear)
     }

@@ -134,7 +134,7 @@ final class AIChatWindowController: NSObject, NSWindowDelegate {
         let root = AIChatPopOutRoot(
             chat: chat, settings: core.aiSettings, coordinator: coordinator,
             menu: menu, commands: { [weak self] in self?.windowCommands(key: key) ?? [] })
-        // The launcher's own environment, so the backdrop tracks the app's theme and transparency,
+        // The launcher's own environment, so the backdrop tracks the app's theme,
         // and its own model menu — reused as-is for this window's model switcher — resolves.
         let content = NSHostingView(
             rootView: root
