@@ -136,6 +136,12 @@ Intent classification is a shared `Features/Intent/` concern, not the scheduler'
 to a `QueryIntent` through `Fallback.Builtin.intent`, so search, shell and AI rows promote the same
 way. It is a per-query reorder of the displayed rows only; the stored fallback order is untouched.
 
+A colour instruction rides along: `ReminderPhraseParser.splittingTint` lifts "color it green",
+"make it red", "…in blue" at the end, "colour: grey" or "a purple reminder" out of the phrase before
+either parser sees it, so the title stays "Drink water" and the time is untouched. It needs a cue — a
+bare colour word ("buy green tea") stays in the title. The AI tool takes the same choice as an
+optional `color` argument.
+
 ## Settings and backup
 
 `schedulerEnabled`, `schedulerShowInLauncher` and `schedulerPlaysSound` live in
@@ -151,12 +157,23 @@ fire on a timer by itself.
 
 `Features/Notifications/` is the surface the scheduler (and the AI tool) post to, but it owns nothing
 scheduler-specific. `NotificationSpec` describes one notification (title, body, `style`, `corner`,
-`dwell`, `actions`); `NotificationPresenter` stacks live cards per screen corner on a floating
+`dwell`, `actions`, `tint`); `NotificationPresenter` stacks live cards per screen corner on a floating
 `NotificationPanel`; `NotificationPlacement` resolves the corner geometry; `NotificationCardView`
 draws one. Nothing here uses `NSAlert` or a system notification. `post(_:playsSound:)` takes the
 sound flag from the caller, so the module reads no scheduler setting. Cards anchor to
 `NSScreen.primary` (the menu-bar display), never `NSScreen.main` — for an accessory app that follows
 whichever display last held a key window, so cards landed on a secondary monitor.
+
+**Colour.** `NotificationTint` is a fixed palette (blue, purple, pink, red, orange, yellow, green,
+teal, gray), not a free colour: each stays legible on the glass card in both appearances, and
+`init(word:)` folds spoken synonyms ("grey", "navy", "turquoise") onto it. A tinted card paints the
+colour as its own background; `NotificationPalette` derives every other colour on it — text, icon
+well, close and action buttons, edge — from one ink that `NotificationContrast` picks against the tint
+*as the current appearance resolves it*: white whenever it clears WCAG's 3:1 floor for bold text and
+UI glyphs, else black, so blue, red, purple and pink take white and yellow, green and orange take dark.
+`tint` is optional and nil draws the neutral card, so a task saved before colour existed decodes
+unchanged. The editor's **Color** swatches set it for a notification task; in the palette form they
+sit in the left column, the only one with room below the fixed panel height.
 
 ## Manual checks
 

@@ -36,6 +36,40 @@ enum ReminderPhraseParser {
         return ParsedReminder(title: title, rule: rule)
     }
 
+    /// Lifts a colour instruction ("color it green", "in red", "a blue reminder") out of the phrase,
+    /// so neither the time nor the title parser ever sees it. A bare colour word is never taken:
+    /// "buy green tea" keeps its green.
+    static func splittingTint(_ text: String) -> (tint: NotificationTint?, request: String) {
+        let whole = NSRange(text.startIndex..., in: text)
+        for (pattern, keepsTail) in tintPatterns {
+            guard let match = pattern.firstMatch(in: text, range: whole),
+                let wordRange = Range(match.range(at: 1), in: text),
+                let tint = NotificationTint(word: String(text[wordRange])),
+                let matchRange = Range(match.range, in: text)
+            else { continue }
+            // A "green reminder" loses only its colour word; the noun still reads as framing.
+            let cut = keepsTail ? wordRange : matchRange
+            return (tint, text.replacingCharacters(in: cut, with: " "))
+        }
+        return (nil, text)
+    }
+
+    /// Checked in order; the flag marks the one pattern that cuts only the colour word.
+    private static let tintPatterns: [(NSRegularExpression, Bool)] = {
+        let colour = "(" + NotificationTint.spokenWords.joined(separator: "|") + ")"
+        let sources: [(String, Bool)] = [
+            (#"[,;]?\s*\b(?:and\s+)?(?:colou?r|make|paint|mark|tint)\s+(?:it\s+|this\s+|that\s+)?"#
+                + #"(?:in\s+|as\s+)?"# + colour + #"\b"#, false),
+            (#"[,;]?\s*\bcolou?r\s*[:=]\s*"# + colour + #"\b"#, false),
+            (#"[,;]?\s*\b(?:colou?red|in|with)\s+(?:a\s+)?"# + colour
+                + #"(?:\s+colou?r)?\b(?=[\s.!]*$)"#, false),
+            (#"\b"# + colour + #"(?=\s+(?:reminder|notification|alert)\b)"#, true),
+        ]
+        return sources.compactMap { source, keepsTail in
+            (try? NSRegularExpression(pattern: source, options: [.caseInsensitive])).map { ($0, keepsTail) }
+        }
+    }()
+
     private static func clock(_ date: Date, _ calendar: Calendar) -> (hour: Int, minute: Int) {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
         return (parts.hour ?? Recurrence.defaultClock.hour, parts.minute ?? Recurrence.defaultClock.minute)

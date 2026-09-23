@@ -49,12 +49,12 @@ struct ScheduledTask: Codable, Hashable, Sendable, Identifiable {
 
     /// A notification task from parsed intent: a one-shot deletes itself, a recurring one persists.
     static func notification(
-        title: String, body: String = "", rule: ScheduleRule, now: Date
+        title: String, body: String = "", rule: ScheduleRule, tint: NotificationTint? = nil, now: Date
     ) -> ScheduledTask {
         let repeats: Bool = { if case .once = rule { return false } else { return true } }()
         let spec = NotificationSpec(
             id: UUID(), title: title, body: body, style: .banner, corner: .topTrailing,
-            dwell: nil, actions: [])
+            dwell: nil, actions: [], tint: tint)
         return ScheduledTask(
             id: UUID(), name: title, isEnabled: true, rule: rule,
             action: .postNotification(spec), catchUp: .fireOnceOnResume, deleteAfterRun: !repeats,

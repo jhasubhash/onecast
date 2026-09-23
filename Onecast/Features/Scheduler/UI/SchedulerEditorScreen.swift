@@ -67,6 +67,7 @@ private struct SchedulerEditorForm: View {
                     SchedulerScheduleControls(draft: draft)
                     SchedulerCatchUpControl(draft: draft)
                     SchedulerDeleteControl(draft: draft)
+                    SchedulerTintControl(draft: draft)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

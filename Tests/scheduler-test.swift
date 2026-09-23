@@ -29,6 +29,10 @@ struct SchedulerTests {
         reminderPhraseParserLiftsTitleFromRelativeTime()
         reminderPhraseParserReadsRecurrence()
         reminderPhraseParserRejectsTimelessPhrase()
+        colourInstructionsLiftOutOfThePhrase()
+        aBareColourWordStaysInTheTitle()
+        savedNotificationsWithoutAColourStayNeutral()
+        inkContrastsWithTheBackground()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -264,5 +268,60 @@ struct SchedulerTests {
         expect(
             ReminderPhraseParser.parse("buy milk", now: baseCreatedAt, calendar: utcCalendar) == nil,
             "a phrase with no time and no recurrence has nothing to schedule")
+    }
+
+    /// "color it green" and its kin must set the tint and leave the title and the time untouched.
+    static func colourInstructionsLiftOutOfThePhrase() {
+        let cases: [(String, NotificationTint)] = [
+            ("remind me to drink water in 5 min. color it green", .green),
+            ("remind me to drink water in 5 min, make it red", .red),
+            ("remind me to drink water in 5 min in blue", .blue),
+            ("set a purple reminder to drink water in 5 min", .purple),
+            ("remind me to drink water in 5 min, colour: grey", .gray),
+            ("remind me to drink water in 5 min with a turquoise color", .teal),
+        ]
+        let expected = utcCalendar.date(byAdding: .minute, value: 5, to: baseCreatedAt)!
+        for (phrase, tint) in cases {
+            let (found, request) = ReminderPhraseParser.splittingTint(phrase)
+            let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
+            expect(found == tint, "“\(phrase)” is tinted \(tint.rawValue)")
+            expect(parsed?.title == "Drink water", "“\(phrase)” keeps the title clean of its colour")
+            expect(parsed?.rule == .once(expected), "“\(phrase)” still fires in five minutes")
+        }
+    }
+
+    static func aBareColourWordStaysInTheTitle() {
+        let (tint, request) = ReminderPhraseParser.splittingTint("buy green tea in 10 min")
+        let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
+        expect(tint == nil, "a colour word with no instruction around it sets no tint")
+        expect(parsed?.title == "Buy green tea", "and it stays part of what to be reminded of")
+    }
+
+    /// Tasks saved before colour existed must still load, or the store drops every one of them.
+    static func savedNotificationsWithoutAColourStayNeutral() {
+        let legacy =
+            #"{"id":"11111111-1111-1111-1111-111111111111","title":"Stretch","body":"","#
+            + #""style":"banner","corner":"topTrailing","actions":[]}"#
+        let spec = try? JSONDecoder().decode(NotificationSpec.self, from: Data(legacy.utf8))
+        expect(spec?.title == "Stretch", "a notification saved without a colour still decodes")
+        expect(spec != nil && spec?.tint == nil, "and draws as the neutral card")
+    }
+
+    static func inkContrastsWithTheBackground() {
+        expect(
+            NotificationContrast.ink(linearRed: 0.9, green: 0.85, blue: 0.1) == .dark,
+            "a yellow card takes dark text")
+        expect(
+            NotificationContrast.ink(linearRed: 0.005, green: 0.23, blue: 1) == .light,
+            "system blue takes white text, as the system's own blue buttons do")
+        expect(
+            NotificationContrast.ink(linearRed: 0.03, green: 0.64, blue: 0.1) == .dark,
+            "a bright green card takes dark text")
+        expect(
+            NotificationContrast.ink(linearRed: 1, green: 1, blue: 1) == .dark,
+            "white takes dark text")
+        expect(
+            NotificationContrast.ink(linearRed: 0, green: 0, blue: 0) == .light,
+            "black takes light text")
     }
 }

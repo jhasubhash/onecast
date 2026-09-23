@@ -23,6 +23,7 @@ struct SchedulerTaskEditorSheet: View {
             SchedulerNameField(draft: draft, focus: $nameFocused)
             SchedulerScheduleControls(draft: draft)
             SchedulerActionControls(draft: draft)
+            SchedulerTintControl(draft: draft)
             SchedulerCatchUpControl(draft: draft)
             SchedulerDeleteControl(draft: draft)
 

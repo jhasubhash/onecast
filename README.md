@@ -164,12 +164,8 @@ diverges from [tinycast](https://github.com/jhasubhash/tinycast). Security repor
 
 ## Support
 
-OneCast is free and open source. If it earns a spot in your daily flow, a one-off coffee keeps it
-actively maintained:
-
-<p align="center">
-  <a href="https://www.buymeacoffee.com/subhashjha" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
-</p>
+OneCast is free and open source. If it earns a spot in your daily flow, feel free to contribute back 
+and keep it actively maintained:
 
 ## License
 

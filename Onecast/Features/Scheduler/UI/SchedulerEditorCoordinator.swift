@@ -35,22 +35,25 @@ final class SchedulerEditorCoordinator {
         guard !phrase.isEmpty else { return }
         core.paletteCoordinator.hidePalette(restoreFocus: false)
         let now = Date(), calendar = Calendar.current
-        if let parsed = ReminderPhraseParser.parse(phrase, now: now, calendar: calendar) {
-            commit(parsed, now: now)
+        // Colour first, so "color it green" reaches neither the time parser nor the model's title.
+        let (tint, request) = ReminderPhraseParser.splittingTint(phrase)
+        if let parsed = ReminderPhraseParser.parse(request, now: now, calendar: calendar) {
+            commit(parsed, tint: tint, now: now)
             return
         }
         Task { [weak self] in
             guard let self else { return }
-            if let parsed = await ReminderPhraseModel.extract(phrase, now: now, calendar: calendar) {
-                commit(parsed, now: now)
+            if let parsed = await ReminderPhraseModel.extract(request, now: now, calendar: calendar) {
+                commit(parsed, tint: tint, now: now)
             } else {
                 core.showMessage("Couldn't find a time in “\(phrase)”.", tone: .danger)
             }
         }
     }
 
-    private func commit(_ parsed: ParsedReminder, now: Date) {
-        store.add(ScheduledTask.notification(title: parsed.title, rule: parsed.rule, now: now))
+    private func commit(_ parsed: ParsedReminder, tint: NotificationTint?, now: Date) {
+        store.add(
+            ScheduledTask.notification(title: parsed.title, rule: parsed.rule, tint: tint, now: now))
         core.showMessage("Reminder set — \(ScheduleFormatter.rule(parsed.rule))")
     }
 

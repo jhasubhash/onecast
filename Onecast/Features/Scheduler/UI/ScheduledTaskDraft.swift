@@ -59,6 +59,7 @@ final class ScheduledTaskDraft {
     var notifyCorner: NotificationCorner
     var notifySticky: Bool
     var notifyDwell: Double
+    var notifyTint: NotificationTint?
 
     var catchUp: CatchUpPolicy
     /// Defaults on for a one-time task; the user can still turn it off, or on for a recurring one.
@@ -111,6 +112,7 @@ final class ScheduledTaskDraft {
         var nCorner = NotificationCorner.topTrailing
         var nDwell = 6.0
         var nSticky = false
+        var nTint: NotificationTint?
         switch task?.action {
         case .runScript(let spec):
             action = .script
@@ -125,6 +127,7 @@ final class ScheduledTaskDraft {
             nStyle = spec.style
             nCorner = spec.corner
             if let dwell = spec.dwell { nDwell = dwell } else { nSticky = true }
+            nTint = spec.tint
         case nil: break
         }
         actionKind = action
@@ -138,6 +141,7 @@ final class ScheduledTaskDraft {
         notifyCorner = nCorner
         notifyDwell = nDwell
         notifySticky = nSticky
+        notifyTint = nTint
 
         catchUp = task?.catchUp ?? .fireOnceOnResume
         deleteAfterRun = task?.deleteAfterRun ?? (kind == .once)
@@ -182,7 +186,7 @@ final class ScheduledTaskDraft {
                 NotificationSpec(
                     id: notificationID ?? UUID(), title: notifyTitle, body: notifyBody,
                     style: notifyStyle, corner: notifyCorner,
-                    dwell: notifySticky ? nil : max(1, notifyDwell), actions: []))
+                    dwell: notifySticky ? nil : max(1, notifyDwell), actions: [], tint: notifyTint))
         }
 
         return ScheduledTask(

@@ -43,6 +43,13 @@ enum SchedulerAITool {
                     "description": .string(
                         "'once' fires a single time; 'daily' repeats every day at that time."),
                 ]),
+                "color": .object([
+                    "type": .string("string"),
+                    "enum": .array(NotificationTint.allCases.map { .string($0.rawValue) }),
+                    "description": .string(
+                        "Optional accent for the notification card, only when the user asks for a "
+                            + "colour, e.g. 'make it green'."),
+                ]),
             ]),
             "required": .array([.string("title"), .string("when")]),
         ]),
@@ -102,9 +109,10 @@ enum SchedulerAITool {
         let body: String?
         let when: String
         let repeatRule: String?
+        let color: String?
 
         enum CodingKeys: String, CodingKey {
-            case title, body, when
+            case title, body, when, color
             case repeatRule = "repeat"
         }
     }
@@ -135,7 +143,8 @@ enum SchedulerAITool {
         }
 
         let task = ScheduledTask.notification(
-            title: args.title, body: args.body ?? "", rule: rule, now: now)
+            title: args.title, body: args.body ?? "", rule: rule,
+            tint: args.color.flatMap(NotificationTint.init(word:)), now: now)
         store.add(task)
 
         let stamp = formatter.string(from: fireDate)

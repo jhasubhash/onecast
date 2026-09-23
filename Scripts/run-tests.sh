@@ -466,6 +466,7 @@ run updates-test           Onecast/Features/Updates/Model/*.swift \
                            Onecast/Features/Updates/Service/BundleSignature.swift
 run support-test           Onecast/Features/Support/Model/*.swift
 run scheduler-test         Onecast/Features/Notifications/Model/NotificationSpec.swift \
+                           Onecast/Features/Notifications/Model/NotificationContrast.swift \
                            Onecast/Features/Scheduler/Model/*.swift
 run scheduler-ai-test      Onecast/Features/Notifications/Model/NotificationSpec.swift \
                            Onecast/Features/Scheduler/Model/*.swift \

@@ -164,6 +164,8 @@ struct SchedulerActionControls: View {
             SchedulerField(title: "Command") {
                 TextEditor(text: $draft.scriptSource)
                     .font(.body.monospaced())
+                    // A shell command is not prose to rewrite, and the orb covered its first line.
+                    .writingToolsBehavior(.disabled)
                     .scrollContentBackground(.hidden)
                     .padding(Theme.Spacing.sm)
                     .frame(height: Theme.Size.editorTextHeight)
@@ -227,6 +229,64 @@ struct SchedulerActionControls: View {
                 }
             }
         }
+    }
+}
+
+/// Its own block, not a row of the notification fields: the palette form has room for it only in the
+/// left column. Shown for notification tasks alone — a script has no card to colour.
+struct SchedulerTintControl: View {
+    @Bindable var draft: ScheduledTaskDraft
+
+    var body: some View {
+        if draft.actionKind == .notification {
+            SchedulerField(title: "Color") {
+                SchedulerTintSwatches(selection: $draft.notifyTint)
+            }
+        }
+    }
+}
+
+/// One row of circles: no colour, then each named tint — the same set a typed "color it green" reads.
+private struct SchedulerTintSwatches: View {
+    @Binding var selection: NotificationTint?
+
+    private static let swatch: CGFloat = 18
+    private static let ring: CGFloat = 2
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            swatch(nil, label: "No color")
+            ForEach(NotificationTint.allCases, id: \.self) { tint in
+                swatch(tint, label: tint.title)
+            }
+        }
+    }
+
+    private func swatch(_ tint: NotificationTint?, label: String) -> some View {
+        let selected = selection == tint
+        return Button {
+            selection = tint
+        } label: {
+            Circle()
+                .fill(tint?.color ?? Theme.Colors.controlSurface)
+                .overlay {
+                    if tint == nil {
+                        Image(systemName: "slash.circle")
+                            .font(.system(size: Self.swatch - 6))
+                            .foregroundStyle(Theme.Colors.textTertiary)
+                    }
+                }
+                .frame(width: Self.swatch, height: Self.swatch)
+                .padding(Self.ring + 1)
+                .overlay(
+                    Circle().strokeBorder(
+                        selected ? Theme.Colors.textPrimary : Color.clear, lineWidth: Self.ring))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(label)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 }
 

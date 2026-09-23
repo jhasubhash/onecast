@@ -5,90 +5,95 @@ struct NotificationCardView: View {
     let spec: NotificationSpec
     let onAction: (String) -> Void
     let onDismiss: () -> Void
+    @Environment(\.self) private var environment
 
+    private var palette: NotificationPalette { NotificationPalette(tint: spec.tint, in: environment) }
     /// A row-sized well so the glyph and title read at the same weight a menu row gives them.
     private static let iconTile: CGFloat = 34
     private static let iconGlyph: CGFloat = 15
 
     var body: some View {
+        let palette = palette
         switch spec.style {
-        case .toast: toast
-        case .banner: banner
-        case .card: card
+        case .toast: toast(palette)
+        case .banner: banner(palette)
+        case .card: card(palette)
         }
     }
 
-    private var toast: some View {
+    private func toast(_ palette: NotificationPalette) -> some View {
         HStack(spacing: Theme.Spacing.md) {
             Text(spec.title)
                 .font(Theme.Typography.bar)
-                .foregroundStyle(Color.primary)
+                .foregroundStyle(palette.primary)
                 .lineLimit(1)
-            NotificationCloseButton(action: onDismiss)
+            NotificationCloseButton(palette: palette, action: onDismiss)
         }
         .padding(.horizontal, Theme.Spacing.xl)
         .padding(.vertical, Theme.Spacing.lg)
         .fixedSize()
-        .notificationSurface(in: Capsule())
+        .notificationSurface(in: Capsule(), palette: palette)
     }
 
-    private var banner: some View {
+    private func banner(_ palette: NotificationPalette) -> some View {
         HStack(spacing: Theme.Spacing.lg) {
-            icon
-            textBlock
+            icon(palette)
+            textBlock(palette)
             Spacer(minLength: Theme.Spacing.md)
-            NotificationCloseButton(action: onDismiss)
+            NotificationCloseButton(palette: palette, action: onDismiss)
         }
         .padding(Theme.Spacing.xl)
         .frame(width: Theme.Size.hudMaxWidth, alignment: .leading)
-        .notificationSurface(in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .notificationSurface(
+            in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous), palette: palette)
     }
 
-    private var card: some View {
+    private func card(_ palette: NotificationPalette) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
             HStack(spacing: Theme.Spacing.lg) {
-                icon
-                textBlock
+                icon(palette)
+                textBlock(palette)
                 Spacer(minLength: Theme.Spacing.md)
-                NotificationCloseButton(action: onDismiss)
+                NotificationCloseButton(palette: palette, action: onDismiss)
             }
             if !spec.actions.isEmpty {
                 HStack(spacing: Theme.Spacing.md) {
                     Spacer(minLength: 0)
                     ForEach(spec.actions) { action in
                         NotificationActionButton(
-                            action: action, onActivate: { onAction(action.id) })
+                            action: action, palette: palette, onActivate: { onAction(action.id) })
                     }
                 }
             }
         }
         .padding(Theme.Spacing.xl)
         .frame(width: Theme.Size.dialogWidth, alignment: .leading)
-        .notificationSurface(in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .notificationSurface(
+            in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous), palette: palette)
     }
 
     /// A quiet glyph well: the anchor a bare dark box was missing, so the card reads as a notification.
-    private var icon: some View {
+    private func icon(_ palette: NotificationPalette) -> some View {
         RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-            .fill(Theme.Colors.controlSurface)
+            .fill(palette.well)
             .overlay(
                 Image(systemName: "bell.fill")
                     .font(.system(size: Self.iconGlyph, weight: .semibold))
-                    .foregroundStyle(Theme.Colors.textPrimary.opacity(0.85)))
+                    .foregroundStyle(palette.glyph))
             .frame(width: Self.iconTile, height: Self.iconTile)
     }
 
-    private var textBlock: some View {
+    private func textBlock(_ palette: NotificationPalette) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
             Text(spec.title)
                 .font(Theme.Typography.panelTitle)
-                .foregroundStyle(Theme.Colors.textPrimary)
+                .foregroundStyle(palette.primary)
                 .lineLimit(2)
             // An empty body once drew a phantom line that padded every title-only card.
             if !spec.body.isEmpty {
                 Text(spec.body)
                     .font(Theme.Typography.rowTrailing)
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .foregroundStyle(palette.secondary)
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -98,6 +103,7 @@ struct NotificationCardView: View {
 
 /// Reveals its fill on hover, so a sticky card rests clean but the target is unmistakable up close.
 private struct NotificationCloseButton: View {
+    let palette: NotificationPalette
     let action: () -> Void
     @State private var hovered = false
 
@@ -108,9 +114,9 @@ private struct NotificationCloseButton: View {
         Button(action: action) {
             Image(systemName: "xmark")
                 .font(.system(size: Self.glyph, weight: .bold))
-                .foregroundStyle(hovered ? Theme.Colors.textPrimary : Theme.Colors.textTertiary)
+                .foregroundStyle(hovered ? palette.primary : palette.tertiary)
                 .frame(width: Self.hit, height: Self.hit)
-                .background(Circle().fill(hovered ? Theme.Colors.menuHover : Color.clear))
+                .background(Circle().fill(hovered ? palette.hover : Color.clear))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -120,6 +126,7 @@ private struct NotificationCloseButton: View {
 
 private struct NotificationActionButton: View {
     let action: NotificationAction
+    let palette: NotificationPalette
     let onActivate: () -> Void
     @State private var hovered = false
 
@@ -127,11 +134,11 @@ private struct NotificationActionButton: View {
         Button(action: onActivate) {
             Text(action.title)
                 .font(Theme.Typography.bar)
-                .foregroundStyle(Color.primary)
+                .foregroundStyle(palette.primary)
                 .padding(.horizontal, Theme.Spacing.xl)
                 .frame(height: Theme.Size.menuButton)
                 .contentShape(Capsule())
-                .background(Capsule().fill(hovered ? Theme.Colors.menuHover : Color.clear))
+                .background(Capsule().fill(hovered ? palette.hover : Color.clear))
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
@@ -141,11 +148,14 @@ private struct NotificationActionButton: View {
 
 extension View {
     /// The shared notification plate: frosted glass over a scrim, with a hairline to lift its edge
-    /// off the desktop — a bare `panelScrim` read as a flat black rectangle over a light wallpaper.
-    fileprivate func notificationSurface(in shape: some InsettableShape) -> some View {
-        background(Theme.Colors.panelScrim)
+    /// off the desktop. A tint paints over both, so the chosen colour is the card's own background.
+    fileprivate func notificationSurface(
+        in shape: some InsettableShape, palette: NotificationPalette
+    ) -> some View {
+        background(palette.fill ?? Color.clear)
+            .background(Theme.Colors.panelScrim)
             .background(GlassEffectView())
             .clipShape(shape)
-            .overlay(shape.strokeBorder(Theme.Colors.cardStroke, lineWidth: Theme.Size.hairline))
+            .overlay(shape.strokeBorder(palette.stroke, lineWidth: Theme.Size.hairline))
     }
 }
