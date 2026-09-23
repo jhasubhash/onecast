@@ -271,6 +271,8 @@ run fallback-test          Onecast/Features/Launcher/Model/Fallback.swift \
 run intent-test            Onecast/Features/Intent/Model/*.swift
 run hotkey-test            Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
                            Onecast/Features/HotKeys/Model/DoubleTapDetector.swift \
+                           Onecast/Features/HotKeys/Model/GlobeTapDetector.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
                            Onecast/Features/HotKeys/Model/HyperKey.swift \
                            Onecast/Platform/ASCIIKeyboardLayout.swift \
                            Onecast/Features/HotKeys/Service/KeyShortcut.swift \

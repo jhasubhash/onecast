@@ -31,7 +31,7 @@ final class HotKeyManager {
             guard recordingAction != oldValue else { return }
             let recording = recordingAction != nil
             center.isPaused = recording
-            doubleTapMonitor.isPaused = recording
+            modifierTapMonitor.isPaused = recording
             if let recordingAction {
                 capture.start(action: recordingAction, hotKeys: self)
             } else {
@@ -40,12 +40,12 @@ final class HotKeyManager {
         }
     }
 
-    let doubleTapMonitor = DoubleTapMonitor()
+    let modifierTapMonitor = ModifierTapMonitor()
     /// Live state of the open recorder, read by its callout.
     let capture = ShortcutCaptureSession()
 
     private let center = HotKeyCenter()
-    private var doubleTaps: [DoubleTapModifier: HotKeyAction] = [:]
+    private var modifierTaps: [HotKeyBinding: HotKeyAction] = [:]
     /// Every binding, loaded once in `start()` and written through on change.
     private var bindings: [HotKeyAction: HotKeyBinding] = [:]
     @ObservationIgnored private var candidateActionsCache: [HotKeyAction]?
@@ -85,12 +85,12 @@ final class HotKeyManager {
         // `register` no-ops on an unbound item, so the fixed catalogs need no index of their own.
         for action in candidateActions { register(action) }
 
-        doubleTapMonitor.onDoubleTap = { [weak self] modifier in
-            guard let self, let action = doubleTaps[modifier] else { return }
+        modifierTapMonitor.onTrigger = { [weak self] binding in
+            guard let self, let action = modifierTaps[binding] else { return }
             perform(action)
         }
-        doubleTapMonitor.start()
-        syncDoubleTaps()
+        modifierTapMonitor.start()
+        syncModifierTaps()
     }
 
     /// Never pruned at launch: not-installed-yet and gone are indistinguishable there.
@@ -210,9 +210,9 @@ final class HotKeyManager {
             break
         }
         candidateActionsCache = nil
-        // A rebuild walks every candidate; only a double-tap entering or leaving changes the map.
-        if previous?.doubleTapModifier != nil || binding?.doubleTapModifier != nil {
-            syncDoubleTaps()
+        // A rebuild walks every candidate; only a modifier-only binding changes this map.
+        if previous?.usesModifierTapMonitor == true || binding?.usesModifierTapMonitor == true {
+            syncModifierTaps()
         }
     }
 
@@ -229,7 +229,7 @@ final class HotKeyManager {
         }
     }
 
-    /// What else holds `binding`, or nil. Whole-binding comparison covers both kinds alike.
+    /// What else holds `binding`, or nil. Whole-binding comparison covers every kind alike.
     func conflictOwner(of binding: HotKeyBinding, excluding action: HotKeyAction) -> String? {
         for candidate in candidateActions
         where candidate != action && self.binding(for: candidate) == binding {
@@ -297,7 +297,7 @@ final class HotKeyManager {
         }
     }
 
-    /// Hands a combo to Carbon; a double-tap has no per-action registration to make.
+    /// Hands a combo to Carbon; a modifier-only binding has no per-action registration.
     private func register(_ action: HotKeyAction) {
         guard let shortcut = binding(for: action)?.shortcut else { return }
         center.register(id: action.defaultsKey, shortcut: shortcut) { [weak self] in
@@ -306,13 +306,13 @@ final class HotKeyManager {
     }
 
     /// Rebuilt wholesale, so the map can't drift from what is on disk.
-    private func syncDoubleTaps() {
-        doubleTaps = [:]
+    private func syncModifierTaps() {
+        modifierTaps = [:]
         for action in candidateActions {
-            guard let modifier = binding(for: action)?.doubleTapModifier else { continue }
-            doubleTaps[modifier] = action
+            guard let binding = binding(for: action), binding.usesModifierTapMonitor else { continue }
+            modifierTaps[binding] = action
         }
-        doubleTapMonitor.update(bound: Set(doubleTaps.keys))
+        modifierTapMonitor.update(bound: Set(modifierTaps.keys))
     }
 
     private func perform(_ action: HotKeyAction) {

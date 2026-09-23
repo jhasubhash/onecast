@@ -12,7 +12,7 @@ enum LauncherInlineEditor {
     /// The trailing box for the "Change Shortcut" row: the shipped recorder, live-bound to the key.
     @MainActor
     static func shortcutBox(action: HotKeyAction) -> @MainActor @Sendable () -> AnyView {
-        { AnyView(ShortcutRecorder(action: action, recordingAccent: false, showsConflictInline: true)) }
+        { AnyView(ShortcutRecorder(action: action, showsConflictInline: true)) }
     }
 
     /// The trailing box for the "Rename Quicklink" row: the saved name, or the draft while editing.

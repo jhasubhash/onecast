@@ -103,7 +103,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `palette-selection-test` | `Features/PaletteRowIndex.swift` |
 | `interface-size-test` | `DesignSystem/InterfaceMetrics.swift`, `Features/Settings/InterfaceSize.swift`, `Extensions/Model/ExtensionFormMetrics.swift` |
 | `palette-placement-test` | `DesignSystem/Theme.swift`, `Palette/PalettePlacement.swift` |
-| `hotkey-test` | `HotKeys/Model/DoubleTapModifier.swift`, `DoubleTapDetector.swift`, `HyperKey.swift`, `HotKeyAction.swift`, `Service/KeyShortcut.swift`, and the command→action mapping in `Launcher/Model/CommandID.swift` |
+| `hotkey-test` | `HotKeys/Model/DoubleTapModifier.swift`, `DoubleTapDetector.swift`, `GlobeTapDetector.swift`, `HotKeyBinding.swift`, `HyperKey.swift`, `HotKeyAction.swift`, `Service/KeyShortcut.swift`, and the command→action mapping in `Launcher/Model/CommandID.swift` |
 | `fallback-test` | `Launcher/Model/Fallback.swift`, plus the `CommandID` and `Quicklink` ids it is built from |
 | `callout-test` | `DesignSystem/Theme.swift`, `HotKeys/UI/CalloutPlacement.swift` |
 | `system-action-test` | `SystemActions/Model/SystemAction.swift` |
@@ -348,6 +348,8 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Off (Settings ▸ Clipboard ▸ Enable Clipboard History): nothing new is recorded, the launcher row
   and its shortcut are gone, the menu-bar row is gone, and Tab rings straight past the screen
 - Off then on again: existing clips come back; Clear history erases them while it is still off
+- A text, link, image and file row each drag into another app; a click still selects, a double
+  click still pastes, and a right click still opens ⌘K
 
 ### Launcher and icons
 
@@ -356,6 +358,8 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   even with the scrollbar thumb dragged from end to end in under a second
 - An app removed since the last open drops out after a reopen
 - Learned ranking still surfaces your habitual result for a short query
+- An application row drags onto the Dock and into a Finder window as a copy, never a move, and a
+  landed drop hides the palette; a click still launches; no other kind of row drags
 
 ### Hotkeys
 
@@ -404,6 +408,8 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Library internals, generated trees, application bundles and hidden paths do not appear
 - Visible custom top-level home folders and cloud-drive files remain searchable
 - Return opens, Command-Return reveals in Finder, and Copy Path keeps the palette open with a HUD
+- A file and a folder drag into Finder as copies and into a browser's upload field; a cancelled drag
+  flies back and leaves the palette up, a landed one hides it
 - Replacing a query quickly never lets an older result list overwrite the current query
 - A broad `.` search can be scrolled end to end; leaving it releases its fitted icons, and repeating the
   cycle does not raise the post-close memory floor
