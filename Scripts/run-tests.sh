@@ -516,6 +516,17 @@ run apple-intelligence-test Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Service/AIProvider.swift \
                            Onecast/Features/AI/Service/AppleIntelligenceProvider.swift \
                            Onecast/Features/AI/Service/AppleIntelligenceHostTool.swift
+run mcp-oauth-test         Onecast/Platform/ExecutableLocator.swift \
+                           Onecast/Platform/KeychainSecretStore.swift \
+                           Onecast/Features/Settings/AppSettingsKey.swift \
+                           Onecast/Features/AI/Model/AIConnection.swift \
+                           Onecast/Features/AI/Model/AppleIntelligence.swift \
+                           Onecast/Features/AI/Model/AITool.swift \
+                           Onecast/Features/AI/Model/AIStreamDecoder.swift \
+                           Onecast/Features/AI/Model/AIRequest.swift \
+                           Onecast/Features/AI/Model/JSONValue.swift \
+                           Onecast/Features/MCP/Model/*.swift \
+                           Onecast/Features/MCP/Service/*.swift
 run slow mcp-stdio-test    Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Platform/KeychainSecretStore.swift \
                            Onecast/Features/Settings/AppSettingsKey.swift \
