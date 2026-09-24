@@ -289,7 +289,8 @@ final class AIChatCoordinator {
         let settings = core.settings
         let handOff: ReminderHandOff = { reminder, app throws(ReminderAppFailure) in
             guard settings.schedulerReminderApps.contains(app) else { throw .notEnabled(app) }
-            return try await ReminderAppExporter.add(reminder, to: app, now: Date(), calendar: .current)
+            return try await ReminderAppExporter.add(
+                title: reminder.title, rule: reminder.rule, to: app, now: Date(), calendar: .current)
         }
         let computer = computerUse ? ComputerUseTool(controller: core.computerController) : nil
         let invoke: @Sendable (AIToolCall) async -> AIToolResult = { [mcp, store, handOff, computer] call in

@@ -36,6 +36,12 @@ enum ReminderPhraseParser {
         return ParsedReminder(title: title, rule: rule)
     }
 
+    /// The title alone, for an app that keeps a to-do with no time; nil when nothing is left.
+    static func title(of text: String) -> String? {
+        let title = cleanTitle(text)
+        return title.isEmpty ? nil : title
+    }
+
     /// Lifts a colour instruction ("color it green", "in red", "a blue reminder") out of the phrase,
     /// so neither the time nor the title parser ever sees it. A bare colour word is never taken:
     /// "buy green tea" keeps its green.

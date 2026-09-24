@@ -28,27 +28,33 @@ final class SchedulerEditorCoordinator {
         present()
     }
 
-    /// The launcher reminder fallback: a phrase becomes a notification, or goes to the app it names.
+    /// The launcher reminder fallback: a phrase goes to Onecast, the apps it names, or both at once.
     func scheduleFromPhrase(_ text: String) {
         let phrase = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !phrase.isEmpty else { return }
         core.paletteCoordinator.hidePalette(restoreFocus: false)
         let now = Date(), calendar = Calendar.current
-        // The app and colour first, so neither cue reaches the time parser or the model's title.
-        let (app, rest) = ReminderPhraseParser.splittingApp(phrase)
-        if let app, !core.settings.schedulerReminderApps.contains(app) {
-            core.showMessage(ReminderAppFailure.notEnabled(app).message, tone: .danger)
-            return
-        }
+        // Targets and colour first, so neither cue reaches the time parser or the model's title.
+        let (named, rest) = ReminderPhraseParser.splittingTargets(phrase)
         let (tint, request) = ReminderPhraseParser.splittingTint(rest)
-        if let parsed = ReminderPhraseParser.parse(request, now: now, calendar: calendar) {
-            deliver(parsed, to: app, tint: tint, now: now, calendar: calendar)
+        let parsed = ReminderPhraseParser.parse(request, now: now, calendar: calendar)
+        let unsure = named == .onecastOnly && ReminderPhraseParser.asksForATarget(request)
+        if let parsed, !unsure {
+            deliver(parsed.title, rule: parsed.rule, to: named, tint: tint, now: now, calendar: calendar)
             return
         }
+        // No time, or a destination asked for in words no cue matched: the model reads it whole.
         Task { [weak self] in
             guard let self else { return }
-            if let parsed = await ReminderPhraseModel.extract(request, now: now, calendar: calendar) {
-                deliver(parsed, to: app, tint: tint, now: now, calendar: calendar)
+            if let reading = await ReminderPhraseModel.read(request, now: now, calendar: calendar) {
+                // What the parser found outranks the model: its time, and any apps it named.
+                let targets = named == .onecastOnly ? reading.targets : named
+                let rule = parsed?.rule ?? reading.rule
+                deliver(reading.title, rule: rule, to: targets, tint: tint, now: now, calendar: calendar)
+            } else if let parsed {
+                deliver(parsed.title, rule: parsed.rule, to: named, tint: tint, now: now, calendar: calendar)
+            } else if !named.onecast, let title = ReminderPhraseParser.title(of: request) {
+                deliver(title, rule: nil, to: named, tint: tint, now: now, calendar: calendar)
             } else {
                 core.showMessage("Couldn't find a time in “\(phrase)”.", tone: .danger)
             }
@@ -56,23 +62,52 @@ final class SchedulerEditorCoordinator {
     }
 
     private func deliver(
-        _ parsed: ParsedReminder, to app: ReminderApp?, tint: NotificationTint?, now: Date,
-        calendar: Calendar
+        _ title: String, rule: ScheduleRule?, to targets: ReminderTargets, tint: NotificationTint?,
+        now: Date, calendar: Calendar
     ) {
-        guard let app else {
-            store.add(
-                ScheduledTask.notification(title: parsed.title, rule: parsed.rule, tint: tint, now: now))
-            core.showMessage("Reminder set — \(ScheduleFormatter.rule(parsed.rule))")
+        // Checked here, after any model reading, so no reading can reach an app left switched off.
+        if let off = targets.apps.first(where: { !core.settings.schedulerReminderApps.contains($0) }) {
+            core.showMessage(ReminderAppFailure.notEnabled(off).message, tone: .danger)
+            return
+        }
+        guard rule != nil || !targets.onecast else {
+            core.showMessage("Onecast needs a time to remind you of “\(title)”.", tone: .danger)
+            return
+        }
+        if let rule, let refusal = targets.apps.lazy.compactMap({ $0.refusal(of: rule) }).first {
+            core.showMessage(refusal, tone: .danger)
+            return
+        }
+        if targets.onecast, let rule {
+            store.add(ScheduledTask.notification(title: title, rule: rule, tint: tint, now: now))
+        }
+        let when = rule.map { " — \(ScheduleFormatter.rule($0))" } ?? ""
+        guard !targets.apps.isEmpty else {
+            core.showMessage("Reminder set\(when)")
             return
         }
         Task { [weak self] in
-            do throws(ReminderAppFailure) {
-                _ = try await ReminderAppExporter.add(parsed, to: app, now: now, calendar: calendar)
-                self?.core.showMessage("Added to \(app.title) — \(ScheduleFormatter.rule(parsed.rule))")
-            } catch {
-                self?.core.showMessage(error.message, tone: .danger)
+            var kept = targets.onecast ? ["Onecast"] : []
+            var failures: [String] = []
+            for app in targets.apps {
+                do throws(ReminderAppFailure) {
+                    _ = try await ReminderAppExporter.add(
+                        title: title, rule: rule, to: app, now: now, calendar: calendar)
+                    kept.append(app.title)
+                } catch {
+                    failures.append(error.message)
+                }
             }
+            let added = kept.isEmpty ? "" : "Added to \(Self.joined(kept))\(when)."
+            let message = ([added] + failures).filter { !$0.isEmpty }.joined(separator: " ")
+            self?.core.showMessage(message, tone: failures.isEmpty ? .success : .danger)
         }
+    }
+
+    /// "Onecast, Apple Reminders and Things", in the order the phrase named them.
+    private static func joined(_ names: [String]) -> String {
+        guard let last = names.last, names.count > 1 else { return names.first ?? "" }
+        return names.dropLast().joined(separator: ", ") + " and " + last
     }
 
     /// The form's primary action: persist the draft, then leave the editor.

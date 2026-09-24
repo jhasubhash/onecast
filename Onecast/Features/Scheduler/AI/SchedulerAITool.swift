@@ -55,7 +55,8 @@ enum SchedulerAITool {
                     "enum": .array(ReminderApp.allCases.map { .string($0.rawValue) }),
                     "description": .string(
                         "Only when the user asks to keep it in Apple Reminders or Things: add it to "
-                            + "that app instead of scheduling a Onecast notification."),
+                            + "that app instead of scheduling a Onecast notification. For several "
+                            + "places, call once per app, and once without `app` for Onecast."),
                 ]),
             ]),
             "required": .array([.string("title"), .string("when")]),
@@ -159,9 +160,9 @@ enum SchedulerAITool {
             }
             do throws(ReminderAppFailure) {
                 let due = try await handOff(ParsedReminder(title: args.title, rule: rule), app)
-                let stamp = formatter.string(from: due)
+                let stamp = due.map { " for \(formatter.string(from: $0))" } ?? ""
                 return AIToolResult(
-                    callID: call.id, content: "Added \"\(args.title)\" to \(app.title) for \(stamp).",
+                    callID: call.id, content: "Added \"\(args.title)\" to \(app.title)\(stamp).",
                     isError: false)
             } catch {
                 return .failure(call.id, error.message)

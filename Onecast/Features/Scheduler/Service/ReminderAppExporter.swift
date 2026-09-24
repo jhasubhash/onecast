@@ -1,10 +1,9 @@
 import AppKit
 import EventKit
 
-/// Hands a parsed reminder to the app a phrase named; that app reminds, so Onecast schedules none.
+/// Hands a reminder to an app a phrase named; that app does its own reminding.
 @MainActor
 enum ReminderAppExporter {
-
     static func isInstalled(_ app: ReminderApp) -> Bool {
         switch app {
         case .appleReminders: true
@@ -12,25 +11,33 @@ enum ReminderAppExporter {
         }
     }
 
-    /// The reminder's first due date, so the caller can confirm when it will go off.
+    /// The first due date, nil for a to-do kept without a time; the caller confirms either.
     static func add(
-        _ reminder: ParsedReminder, to app: ReminderApp, now: Date, calendar: Calendar
-    ) async throws(ReminderAppFailure) -> Date {
-        if let refusal = app.refusal(of: reminder.rule) { throw ReminderAppFailure(message: refusal) }
-        guard let due = ReminderApp.firstFire(of: reminder.rule, now: now, calendar: calendar) else {
-            throw ReminderAppFailure(message: "That time has already passed.")
+        title: String, rule: ScheduleRule?, to app: ReminderApp, now: Date, calendar: Calendar
+    ) async throws(ReminderAppFailure) -> Date? {
+        var due: Date?
+        if let rule {
+            if let refusal = app.refusal(of: rule) { throw ReminderAppFailure(message: refusal) }
+            due = ReminderApp.firstFire(of: rule, now: now, calendar: calendar)
+            if due == nil { throw ReminderAppFailure(message: "That time has already passed.") }
         }
         switch app {
-        case .appleReminders: try await addToReminders(reminder, due: due, calendar: calendar)
-        case .things: try await addToThings(reminder.title, due: due, calendar: calendar)
+        case .appleReminders:
+            try await addToReminders(title, rule: rule, due: due, calendar: calendar)
+        case .things:
+            try await addToThings(title, due: due, calendar: calendar)
         }
         return due
     }
 
     private static let thingsProbe = URL(string: "things:///show")
 
-    private static func addToThings(_ title: String, due: Date, calendar: Calendar) async throws(ReminderAppFailure) {
-        guard isInstalled(.things) else { throw ReminderAppFailure(message: "Things isn't installed on this Mac.") }
+    private static func addToThings(
+        _ title: String, due: Date?, calendar: Calendar
+    ) async throws(ReminderAppFailure) {
+        guard isInstalled(.things) else {
+            throw ReminderAppFailure(message: "Things isn't installed on this Mac.")
+        }
         guard let url = ThingsURL.add(title: title, at: due, calendar: calendar) else {
             throw ReminderAppFailure(message: "Couldn't build the Things link for that reminder.")
         }
@@ -40,12 +47,13 @@ enum ReminderAppExporter {
         do {
             try await NSWorkspace.shared.open(url, configuration: configuration)
         } catch {
-            throw ReminderAppFailure(message: "Things didn't take the reminder: \(error.localizedDescription)")
+            throw ReminderAppFailure(
+                message: "Things didn't take the reminder: \(error.localizedDescription)")
         }
     }
 
     private static func addToReminders(
-        _ parsed: ParsedReminder, due: Date, calendar: Calendar
+        _ title: String, rule: ScheduleRule?, due: Date?, calendar: Calendar
     ) async throws(ReminderAppFailure) {
         if Permissions.remindersAccess() == .notDetermined {
             _ = await Permissions.requestRemindersAccess()
@@ -60,16 +68,19 @@ enum ReminderAppExporter {
             throw ReminderAppFailure(message: "Apple Reminders has no default list to add to.")
         }
         let reminder = EKReminder(eventStore: store)
-        reminder.title = parsed.title
+        reminder.title = title
         reminder.calendar = list
-        reminder.dueDateComponents = calendar.dateComponents(
-            [.calendar, .timeZone, .year, .month, .day, .hour, .minute], from: due)
-        reminder.addAlarm(EKAlarm(absoluteDate: due))
-        if let recurrence = recurrence(for: parsed.rule) { reminder.addRecurrenceRule(recurrence) }
+        if let due {
+            reminder.dueDateComponents = calendar.dateComponents(
+                [.calendar, .timeZone, .year, .month, .day, .hour, .minute], from: due)
+            reminder.addAlarm(EKAlarm(absoluteDate: due))
+        }
+        if let recurrence = rule.flatMap(recurrence(for:)) { reminder.addRecurrenceRule(recurrence) }
         do {
             try store.save(reminder, commit: true)
         } catch {
-            throw ReminderAppFailure(message: "Apple Reminders didn't save it: \(error.localizedDescription)")
+            throw ReminderAppFailure(
+                message: "Apple Reminders didn't save it: \(error.localizedDescription)")
         }
     }
 
@@ -81,7 +92,8 @@ enum ReminderAppExporter {
         case .daily:
             return EKRecurrenceRule(recurrenceWith: .daily, interval: 1, end: nil)
         case .weekly(let weekdays, _, _):
-            let days = weekdays.sorted().compactMap(EKWeekday.init(rawValue:)).map(EKRecurrenceDayOfWeek.init)
+            let days = weekdays.sorted().compactMap(EKWeekday.init(rawValue:))
+                .map(EKRecurrenceDayOfWeek.init)
             return EKRecurrenceRule(
                 recurrenceWith: .weekly, interval: 1, daysOfTheWeek: days, daysOfTheMonth: nil,
                 monthsOfTheYear: nil, weeksOfTheYear: nil, daysOfTheYear: nil, setPositions: nil,

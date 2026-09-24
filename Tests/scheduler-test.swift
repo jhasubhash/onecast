@@ -32,6 +32,7 @@ struct SchedulerTests {
         colourInstructionsLiftOutOfThePhrase()
         aBareColourWordStaysInTheTitle()
         appCuesLiftOutOfThePhrase()
+        onePhraseCanNameEveryPlace()
         appWordsWithoutACueStayInTheTitle()
         thingsLinkCarriesTheTitleAndReminderTime()
         appsRefuseTheRepeatsTheyCannotHold()
@@ -301,27 +302,32 @@ struct SchedulerTests {
         expect(parsed?.title == "Buy green tea", "and it stays part of what to be reminded of")
     }
 
-    /// The cue names the app and leaves the title and the time exactly as they would be without it.
+    /// The cue names where it goes and leaves the title and the time as they would be without it.
     static func appCuesLiftOutOfThePhrase() {
-        let cases: [(String, ReminderApp, String, Int)] = [
-            ("remind me to drink water after 2 min, add it to apple reminder", .appleReminders,
+        let reminders = ReminderTargets(onecast: false, apps: [.appleReminders])
+        let things = ReminderTargets(onecast: false, apps: [.things])
+        let cases: [(String, ReminderTargets, String, Int)] = [
+            ("remind me to drink water after 2 min, add it to apple reminder", reminders,
                 "Drink water", 2),
-            ("remind me to open laptop after 10 min, add it to things", .things, "Open laptop", 10),
-            ("remind me to stretch in 5 min in the Things 3 app", .things, "Stretch", 5),
-            ("remind me to stretch in 5 min and put it in my Reminders", .appleReminders, "Stretch", 5),
+            ("remind me to open laptop after 10 min, add it to things", things, "Open laptop", 10),
+            ("remind me to stretch in 5 min in the Things 3 app", things, "Stretch", 5),
+            ("remind me to stretch in 5 min and put it in my Reminders", reminders, "Stretch", 5),
+            ("remind me to stretch in 5 min, add it tp thngs", things, "Stretch", 5),
+            ("remind me to stretch in 5 min, add it to things and apple reminders",
+                ReminderTargets(onecast: false, apps: [.things, .appleReminders]), "Stretch", 5),
         ]
-        for (phrase, app, title, minutes) in cases {
-            let (found, request) = ReminderPhraseParser.splittingApp(phrase)
+        for (phrase, targets, title, minutes) in cases {
+            let (found, request) = ReminderPhraseParser.splittingTargets(phrase)
             let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
             let due = utcCalendar.date(byAdding: .minute, value: minutes, to: baseCreatedAt)!
-            expect(found == app, "“\(phrase)” goes to \(app.title)")
-            expect(parsed?.title == title, "“\(phrase)” keeps its title clean of the app")
+            expect(found == targets, "“\(phrase)” goes to \(targets.apps.map(\.title))")
+            expect(parsed?.title == title, "“\(phrase)” keeps its title clean of the apps")
             expect(parsed?.rule == .once(due), "“\(phrase)” still fires in \(minutes) minutes")
         }
-        let (app, request) = ReminderPhraseParser.splittingApp(
+        let (found, request) = ReminderPhraseParser.splittingTargets(
             "remind me to go to shop at 3pm tomorrow , add this to things app")
         let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: localCalendar)
-        expect(app == .things, "a clock time and a day survive the cue after them")
+        expect(found == things, "a clock time and a day survive the cue after them")
         guard case .once(let date) = parsed?.rule else {
             return expect(false, "tomorrow at 3pm is a one-time reminder")
         }
@@ -329,14 +335,33 @@ struct SchedulerTests {
         expect(localCalendar.component(.hour, from: date) == 15, "at 3pm")
     }
 
+    /// A typo in the connector and Onecast among the apps: all three are named, the errand remains.
+    static func onePhraseCanNameEveryPlace() {
+        let (targets, request) = ReminderPhraseParser.splittingTargets(
+            "Close the door , add it tp apple reminder and things and onecast")
+        expect(
+            targets == ReminderTargets(onecast: true, apps: [.appleReminders, .things]),
+            "Apple Reminders, Things and Onecast are all named")
+        expect(ReminderPhraseParser.title(of: request) == "Close the door", "and the title is the errand")
+        expect(
+            ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar) == nil,
+            "with no time in it, so nothing may be scheduled as though one were given")
+        expect(
+            ReminderPhraseParser.asksForATarget("remind me in 5 min, ad it too thigns"),
+            "a destination the cue cannot name still reads as asked for, for the model to read")
+        expect(
+            !ReminderPhraseParser.asksForATarget("remind me to add salt to the soup in 5 min"),
+            "while an errand that merely adds something does not")
+    }
+
     static func appWordsWithoutACueStayInTheTitle() {
         for (phrase, title) in [
             ("remind me to sort the things in the attic in 10 min", "Sort the things in the attic"),
             ("remind me to check my reminders in 10 min", "Check my reminders"),
         ] {
-            let (app, request) = ReminderPhraseParser.splittingApp(phrase)
+            let (targets, request) = ReminderPhraseParser.splittingTargets(phrase)
             let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
-            expect(app == nil, "“\(phrase)” names no app to hand it to")
+            expect(targets == .onecastOnly, "“\(phrase)” stays a Onecast reminder")
             expect(parsed?.title == title, "“\(phrase)” keeps every word it had")
         }
     }
@@ -349,6 +374,10 @@ struct SchedulerTests {
             url?.absoluteString
                 == "things:///add?title=Milk%20%26%20eggs%20%2B%20tea&when=2025-01-15%4010%3A03",
             "the link names the to-do and reminds at the next whole minute")
+        expect(
+            ThingsURL.add(title: "Close the door", at: nil, calendar: utcCalendar)?.absoluteString
+                == "things:///add?title=Close%20the%20door",
+            "a to-do with no time carries no `when`, so Things files it in the Inbox")
     }
 
     static func appsRefuseTheRepeatsTheyCannotHold() {

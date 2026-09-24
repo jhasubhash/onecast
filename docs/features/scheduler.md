@@ -126,12 +126,13 @@ register a script.
 
 `scheduleFromPhrase` tries the deterministic `ReminderPhraseParser` first: it is Foundation-only,
 instant, and works on every Mac with no AI, covering "remind me to book the ticket in next 20 min",
-"drink water every day at 8am" and the like. Only when it returns nil does the phrase fall to
-`ReminderPhraseModel`, the on-device backstop that extracts `{title, when, repeats}` from the Apple
-Intelligence model via guided generation (`@Generable`). The model path returns nil whenever the model
-is unavailable or its answer is unusable, so an unparseable phrase surfaces "Couldn't find a time in
-…" rather than a guess. Unlike the AI-chat tool, this fallback needs no tool-capable model — the
-deterministic parser is the whole path on most Macs.
+"drink water every day at 8am" and the like. The phrase goes to `ReminderPhraseModel` instead when
+the parser finds no time, or when it asks to send the reminder somewhere ("add it …") that no cue
+could name (`asksForATarget`). The model reads the whole phrase, typos included, into a
+`ReminderReading` — title, time, repeat and where it goes — via guided generation (`@Generable`); its
+`namesATime` field comes first, so a phrase with no time is never given an invented one. A time or an
+app the parser did find outranks the model's. With no model, or no usable answer, the parser's own
+reading stands, and a phrase with no time for Onecast surfaces an error rather than a guess.
 
 When the typed phrase reads as a reminder request — `IntentClassifier.standard` scores it `.reminder`
 off a keyword like "remind me" or "notify me", before any time is even typed — `FallbackCoordinator`
@@ -146,16 +147,20 @@ either parser sees it, so the title stays "Drink water" and the time is untouche
 bare colour word ("buy green tea") stays in the title. The AI tool takes the same choice as an
 optional `color` argument.
 
-**A phrase can name the app that keeps it.** `ReminderPhraseParser.splittingApp` lifts "…, add it to
-Apple Reminders", "put this in my Reminders" or "in the Things app" out first, so neither parser sees
-it; like a colour it needs a cue, so "sort the things in the attic" keeps its words. The reminder then
-goes to `ReminderAppExporter` instead of the store, since that app does the reminding. Apple Reminders
-is written through EventKit to the default list, with a due date, an alarm and a daily, weekly or
-monthly recurrence; Things gets `things:///add?title=…&when=<date>@<time>` (`ThingsURL`, the time
-rounded up to the minute), opened without activating Things. `ReminderApp.refusal` turns down what an
-app cannot hold: every-N-minutes repeats for Reminders, and any repeat for Things, whose URL scheme
-cannot make one. The AI tool takes the same choice as an optional `app` argument, handed a
-`ReminderHandOff` closure so it stays compilable without EventKit.
+**A phrase can name where it goes.** `ReminderPhraseParser.splittingTargets` lifts "…, add it to
+Apple Reminders", "put this in my Reminders", "in the Things app" or a list — "add it to Things and
+Apple Reminders and Onecast" — out first, so neither parser sees it. The cue is loose, since these are
+typed fast ("add it tp thngs"), but like a colour it needs one: "sort the things in the attic" keeps
+its words. With no cue it is Onecast's alone; named, it goes to exactly the `ReminderTargets` listed.
+Every target is checked before any is written — its app switched on, a time where Onecast needs one,
+a rule the app can hold — so a phrase is never half-kept; only an app's own save can still fail, and
+the HUD then names what was kept and what was not. `ReminderAppExporter` writes Apple Reminders through
+EventKit to the default list, with a due date, an alarm and a daily, weekly or monthly recurrence, and
+Things through `things:///add?title=…&when=<date>@<time>` (`ThingsURL`, the time rounded up to the
+minute), opened without activating Things. With no time, both keep an undated to-do.
+`ReminderApp.refusal` turns down what an app cannot hold: every-N-minutes repeats for Reminders, and any repeat for
+Things, whose URL scheme cannot make one. The AI tool takes the same choice as an optional `app`
+argument, once per app, handed a `ReminderHandOff` closure so it stays compilable without EventKit.
 
 ## Settings and backup
 
