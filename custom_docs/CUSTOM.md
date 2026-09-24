@@ -1,6 +1,6 @@
 # Custom fork
 
-This checkout is **`jhasubhash/tinycast`**, a fork of **`abue-ammar/tinycast`**. Everything upstream
+This checkout is **`jhasubhash/onecast`**, a fork of **`abue-ammar/tinycast`**. Everything upstream
 says still applies — [AGENTS.md](../AGENTS.md) and [docs/](../docs/README.md) are unchanged and
 authoritative. This file covers only what is true *here*: the branch model, the local build and
 signing setup, how to pull upstream in, and the register of changes this fork carries.
@@ -13,7 +13,7 @@ directly. There is no `custom` branch and no sync automation; both were removed.
 | | |
 | --- | --- |
 | Checkout | `~/Developer/onecast` |
-| `origin` | `https://github.com/jhasubhash/tinycast` |
+| `origin` | `git@github-personal:jhasubhash/onecast.git` (SSH through the `github-personal` host alias) |
 | `upstream` | `https://github.com/abue-ammar/tinycast.git` (push URL `DISABLED` on purpose) |
 
 ## Branch model
@@ -139,7 +139,7 @@ The file is gitignored, so `git status` stays clean, and `git clean -X` or a fre
 ## Extensions and plugins live outside this repo
 
 Custom extensions and native plugins are **not** built here. They live one per folder under
-`~/Developer/onecast_addons/extensions/` — its own repo, `github.com/jhasubhash/tinycast_addons` —
+`~/Developer/onecast_addons/extensions/` — its own repo, `github.com/jhasubhash/onecast_addons` —
 alongside the native plugins.
 
 - **JS extensions** each build with one esbuild line in their `package.json`;
