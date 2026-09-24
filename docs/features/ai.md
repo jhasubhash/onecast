@@ -310,6 +310,22 @@ Assistant replies render Markdown; user messages remain literal. A reply keeps s
 palette is hidden or showing another screen — the state is `AppCore`'s, not the view's — and is
 saved when it finishes; only Stop, New Chat, deleting the chat or quitting cut it short.
 
+**A reply is one native text view, so one drag selects across every block of it.** SwiftUI's text
+selection never crosses from one `Text` into the next, so `MarkdownView` is a TextKit 1
+`MarkdownTextView`, not a stack of views. `MarkdownRenderer` turns the parsed blocks into one
+attributed string. Paragraph spacing stands in for blank lines, and a right tab plus a hanging indent
+sets list markers. Code, quotes and rules are custom `NSTextBlock`s that draw their own card, bar or
+line, and a table is an `NSTextTable`. It is TextKit 1 because TextKit 2 has neither. A block needs a
+content width, or it lays out zero wide and is never asked to draw. A copy writes plain text only, so
+no appearance's ink rides along. Runs tagged `markdownCopyText` copy differently from how they draw:
+markers as typed, table cells tab-separated, and a code card's drawn language label not at all.
+**Only a click may focus a reply.** `acceptsFirstResponder` is true just while `mouseDown` tracks,
+then focus and caret go back to the composer, so typing, ↵ and ⎋ never strand in read-only text.
+Because the window focuses a clicked view before `mouseDown` runs, anything looser loses the
+composer. ⌘C with no composer selection copies the reply's selection instead: `PalettePanel` answers
+it in `sendEvent` and the pop-out in `performKeyEquivalent`. The context menu's untargeted items name
+the reply, since focus has moved on before a picked item fires.
+
 Tool activity persists in `message_tools` beside `message_searches`, and `ChatMessage.segments`
 interleaves the two by text offset so a reply renders what it did in the order it did it. A call
 loaded still marked running belonged to a process that is gone, so it reads back as failed — the same
@@ -380,8 +396,8 @@ and `MCPCoordinator` the twentieth.
   `ai-chats.sqlite3`. Switching AI off, waiting past a boundary and switching back on prunes nothing
   that was saved before it went off.
 - Harnesses: `ai-provider-test` (endpoints, request bodies, stream decoding, persistence repair,
-  Codex framing, on-device routing), `ai-chat-test` (`ChatSession`, `MarkdownBlock`,
-  `ChatHistoryStore`, `AIToolLoopProvider`),
+  Codex framing, on-device routing), `ai-chat-test` (`ChatSession`, `MarkdownBlock`, the copy text
+  `MarkdownRenderer` gives a selection, `ChatHistoryStore`, `AIToolLoopProvider`),
   `codex-turn-test` (the Stop path, driven against a stub app-server stalled where Stop races the
   turn ID, plus the no-config-mutation boundary), `installed-ai-test` (Claude/OpenCode flags, prompt
   framing, streaming and cleanup) and `apple-intelligence-test` (status copy, snapshot deltas,

@@ -218,6 +218,13 @@ final class PalettePanel: NSPanel {
         {
             return
         }
+        // A reply's selection leaves the keyboard in the composer, so its ⌘C is answered here.
+        if event.type == .keyDown, Self.isCopyChord(event),
+            (fieldEditor?.selectedRange().length ?? 0) == 0,
+            MarkdownTextView.copySelection(in: self)
+        {
+            return
+        }
         // The controller owns the chords the field editor or a missing main menu would eat.
         if event.type == .keyDown,
             event.modifierFlags.contains(.command),
@@ -227,6 +234,12 @@ final class PalettePanel: NSPanel {
         }
         super.sendEvent(event)
     }
+
+    private static func isCopyChord(_ event: NSEvent) -> Bool {
+        event.modifierFlags.intersection([.command, .option, .control, .shift]) == .command
+            && ASCIIKeyboardLayout.character(for: event)?.lowercased() == "c"
+    }
+
     init<Content: View>(rootView: Content) {
         super.init(
             contentRect: NSRect(

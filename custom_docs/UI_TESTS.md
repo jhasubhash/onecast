@@ -295,6 +295,18 @@ that moves no focus.
 **Fix.** `.searchFocused($searchFocused)`, and ⌘F sets that focus directly.
 **Check.** Search, ↓ into the results, ⌘F, ⌘A, type — the field must take the new query.
 
+### A chat reply selected one block at a time — 2026-09
+
+**Symptom.** A drag in an AI reply stopped at the paragraph or list item it began in; two bullets
+could not be selected together, and tables never joined a selection.
+**Cause.** Each markdown block was its own SwiftUI `Text`, and `.textSelection` never crosses views.
+**Fix.** One TextKit 1 `MarkdownTextView` per reply (docs/features/ai.md). It takes focus only while
+a click tracks, then returns it: accepting focus at other times let AppKit hand it a reply, which
+stranded typing and ⎋ in read-only text.
+**Check.** Drag from a paragraph through a list into a table; type (it must land in the composer);
+⌘C with an empty composer, then right-click → Copy. Both must paste one line per paragraph or item,
+`•`/`1.` markers, tab-separated cells, no blank lines. ⌘A in the composer then ⌘C copies the draft.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

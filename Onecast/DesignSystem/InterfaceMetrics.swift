@@ -177,7 +177,7 @@ struct InterfaceMetrics: Equatable, Sendable {
         }
 
         /// Its own descriptor, so `.headline` stays Bold and `.caption2` Medium rather than lightening.
-        private func nsFont(_ style: NSFont.TextStyle) -> NSFont {
+        func nsFont(_ style: NSFont.TextStyle) -> NSFont {
             let base = NSFont.preferredFont(forTextStyle: style)
             guard scale != 1 else { return base }
             return NSFont(descriptor: base.fontDescriptor, size: scaledPoints(base.pointSize, scale)) ?? base

@@ -110,6 +110,12 @@ final class PopOutWindowPanel: NSPanel {
             if commandMenu.open { commandMenu.reset() }
             return true
         }
+        // A reply's selection leaves the keyboard in the composer, so its ⌘C is answered here.
+        if key == "c", (fieldEditor?.selectedRange().length ?? 0) == 0,
+            MarkdownTextView.copySelection(in: self)
+        {
+            return true
+        }
         if let command = commandsProvider?().first(where: { $0.shortcut == key }) {
             commandMenu?.open = false
             command.action()

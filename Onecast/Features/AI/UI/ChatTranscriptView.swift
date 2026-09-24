@@ -242,7 +242,10 @@ private struct ChatMessageView: View {
                 ForEach(Array(message.segments.enumerated()), id: \.offset) { _, segment in
                     switch segment {
                     case .text(let text):
-                        MarkdownView(blocks: MarkdownBlock.parse(text))
+                        MarkdownView(
+                            markdown: text,
+                            color: message.state == .failed
+                                ? Theme.Colors.destructive : Theme.Colors.textPrimary)
                     case .search(let search):
                         ChatSearchRow(search: search)
                     case .tool(let use):

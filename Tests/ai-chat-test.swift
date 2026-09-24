@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SQLite3
 
@@ -31,6 +32,7 @@ struct AIChatTests {
         markdownParsesStreamingFriendlyBlocks()
         markdownParsesTablesQuotesAndLists()
         markdownKeepsCommonMarkEdges()
+        markdownCopiesAsTypedText()
         segmentsClampSearchOffsets()
         leavingAConversationDropsItsStagedImages()
         retentionPrunesByAgeAndCascades()
@@ -751,6 +753,33 @@ struct AIChatTests {
                 .paragraph("one\ntwo"), .paragraph("three")
             ],
             "soft breaks stay inside a paragraph and a blank line ends it")
+    }
+
+    /// A selection copies the reply as a person would type it: no blank-line padding, real markers.
+    static func markdownCopiesAsTypedText() {
+        let font = NSFont.systemFont(ofSize: 13)
+        let style = MarkdownTextStyle(
+            body: font, headings: [font, font, font], code: font, inlineCode: font,
+            tableHeader: font, codeLabel: font, text: .black, secondary: .gray, tertiary: .gray,
+            checked: .green, inlineCodeFill: .clear, cardFill: .clear, cardStroke: .gray,
+            quoteBar: .gray, blockGap: 10, headingGap: 6, itemGap: 4, markerWidth: 20, markerGap: 6,
+            cardInset: CGSize(width: 12, height: 10), cardRadius: 10, codeHeader: 22,
+            quoteBarWidth: 2, quoteGap: 10, tableColumnGap: 12, tableRowGap: 6, hairline: 1)
+        func copied(_ markdown: String) -> String {
+            MarkdownRenderer.plainText(MarkdownRenderer.render(MarkdownBlock.parse(markdown), style: style))
+        }
+        expect(
+            copied("One **bold**\nstill one.\n\nTwo.\n\n- a\n- b") == "One bold\nstill one.\nTwo.\n• a\n• b",
+            "paragraphs and items copy one per line, with the soft break kept and no gap lines")
+        expect(
+            copied("1. first\n   - nested\n2. second") == "1. first\n    • nested\n2. second",
+            "numbers and nested bullets copy as typed text, indented by depth")
+        expect(
+            copied("| A | B |\n|---|---|\n| 1 | 2 |") == "A\tB\n1\t2",
+            "a table copies as tab-separated rows, which a spreadsheet splits into columns")
+        expect(
+            copied("```swift\nlet x = 1\n    y\n```\nafter") == "let x = 1\n    y\nafter",
+            "code keeps its lines and indentation, and the drawn language label never copies")
     }
 
     static func segmentsClampSearchOffsets() {
