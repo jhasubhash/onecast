@@ -50,6 +50,14 @@ struct AIChatTests {
         await anUnlimitedToolLoopStopsWhenItsHistoryIsFull()
         await toolOutputIsBoundedBeforeItIsBilled()
         toolUsesPersistAndSettleOnReload()
+        renamesAndPinsSurviveSavesAndSpareRetention()
+        transcriptsExportAndDropOnlyATrailingReply()
+        await regenerateAsksTheSameQuestionAgain()
+        chatsKeepTheirOwnModel()
+        titlesAreCleanedAndNeverBeatARename()
+        referencesAreTheLinksAReplyCites()
+        toolScopeSwitchesServersPerChat()
+        choicesComeOutOfTheirFence()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -1094,6 +1102,243 @@ struct AIChatTests {
         expect(
             removing.stagingGeneration == beforeRemove,
             "taking one staged image back leaves another's decode on its way")
+    }
+
+    static func temporaryStore(_ name: String) -> (ChatHistoryStore, URL) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("onecast-ai-\(name)-\(UUID().uuidString)", isDirectory: true)
+        return (ChatHistoryStore(directory: directory), directory)
+    }
+
+    static func saved(_ store: ChatHistoryStore, _ text: String, at moment: Date) -> UUID {
+        var session = ChatSession(createdAt: moment)
+        session.append(ChatMessage(role: .user, text: text, sentAt: moment))
+        session.append(ChatMessage(role: .assistant, text: "answer", sentAt: moment))
+        store.save(session)
+        return session.id
+    }
+
+    /// A rename or a pin is the reader's; neither a later save nor a retention sweep may undo it.
+    static func renamesAndPinsSurviveSavesAndSpareRetention() {
+        let (store, directory) = temporaryStore("meta")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        let old = saved(store, "an old question", at: now.addingTimeInterval(-90 * 86_400))
+        let pinned = saved(store, "a keeper", at: now.addingTimeInterval(-90 * 86_400))
+        let fresh = saved(store, "a fresh question", at: now)
+
+        store.rename(id: fresh, to: "  Trip planning  ")
+        store.setPinned(true, id: pinned)
+        expect(
+            store.conversation(id: fresh)?.displayTitle == "Trip planning",
+            "a rename is trimmed and shown in place of the first question")
+        expect(store.search("trip").first?.id == fresh, "search matches the renamed title")
+
+        var continued = store.session(id: fresh)!
+        continued.append(ChatMessage(role: .user, text: "and hotels?", sentAt: now))
+        store.save(continued)
+        expect(
+            store.conversation(id: fresh)?.displayTitle == "Trip planning",
+            "saving a later turn keeps the rename")
+
+        let reopened = ChatHistoryStore(directory: directory)
+        reopened.load()
+        expect(
+            reopened.conversation(id: fresh)?.customTitle == "Trip planning",
+            "a rename survives reopening")
+        expect(reopened.conversation(id: pinned)?.isPinned == true, "a pin survives reopening")
+
+        reopened.rename(id: fresh, to: "   ")
+        expect(
+            reopened.conversation(id: fresh)?.displayTitle == "a fresh question",
+            "a blank rename hands the title back to the first question")
+
+        let cutoff = AIRetention.month.cutoff(from: now)!
+        expect(reopened.prune(before: cutoff) == 1, "retention removes only the unpinned old chat")
+        expect(reopened.conversation(id: old) == nil, "the old chat is gone")
+        expect(reopened.session(id: pinned) != nil, "a pinned chat outlives retention")
+
+        reopened.clearAll()
+        expect(
+            reopened.conversations.map(\.id) == [pinned],
+            "Delete All keeps the pinned chat and nothing else")
+        expect(
+            count(
+                directory.appendingPathComponent("ai-chats.sqlite3"),
+                "SELECT COUNT(*) FROM conversation_details") == 1,
+            "a deleted chat's rename cascades away with it")
+    }
+
+    static func transcriptsExportAndDropOnlyATrailingReply() {
+        var session = ChatSession()
+        expect(!session.dropTrailingReply(), "an empty chat has no reply to drop")
+        session.append(
+            ChatMessage(
+                role: .user, text: "Summarise this",
+                documents: [AIDocument(data: Data("x".utf8), mimeType: "text/plain", name: "a.txt")]))
+        expect(!session.dropTrailingReply(), "a question with no reply keeps the question")
+        session.append(ChatMessage(role: .assistant, text: "It says x."))
+        expect(
+            session.markdownTranscript(title: "Notes")
+                == "# Notes\n\n**You** _(attached: a.txt)_\n\nSummarise this\n\n**AI**\n\nIt says x.",
+            "a transcript names each speaker and each attachment")
+        expect(
+            session.historyBytes == "Summarise this".utf8.count + "It says x.".utf8.count,
+            "the context gauge counts every turn that would go out as history")
+        let budgeted = ChatSession(messages: [
+            ChatMessage(role: .user, text: String(repeating: "a", count: 40)),
+            ChatMessage(role: .assistant, text: String(repeating: "b", count: 40)),
+            ChatMessage(role: .user, text: "Now?")
+        ])
+        for budget in [10, 50, 100, 1_000] {
+            expect(
+                budgeted.sentMessageCount(textBudget: budget)
+                    == budgeted.requestMessages(textBudget: budget).count,
+                "the gauge's count agrees with the request at a \(budget)-byte budget")
+        }
+        expect(session.dropTrailingReply(), "a trailing reply can be dropped")
+        expect(
+            session.messages.map(\.role) == [.user], "dropping the reply leaves the question it answered")
+    }
+
+    static func regenerateAsksTheSameQuestionAgain() async {
+        let (store, directory) = temporaryStore("regenerate")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let chat = AIChatState(history: store)
+        let provider = ScriptedProvider(rounds: [
+            [.text("First"), .finished], [.text("Second"), .finished]
+        ])
+        chat.send("Why?", using: { provider })
+        await settle { !chat.isStreaming }
+        expect(chat.lastAssistantText == "First", "the first reply arrives")
+        expect(chat.regenerate(using: { provider }), "a finished reply can be regenerated")
+        await settle { !chat.isStreaming }
+        expect(
+            chat.session.messages.map(\.text) == ["Why?", "Second"],
+            "regenerating replaces the reply rather than adding one")
+        expect(
+            provider.requests.last?.messages.map(\.text) == ["Why?"],
+            "the second request carries the question, not the discarded answer")
+        expect(
+            store.session(id: chat.session.id)?.messages.map(\.text) == ["Why?", "Second"],
+            "the stored transcript holds only the new reply")
+    }
+
+    static func chatsKeepTheirOwnModel() {
+        let (store, directory) = temporaryStore("model")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let opus = AIModelSelection.claude(model: "opus", effort: "high")
+        let chat = AIChatState(history: store)
+        chat.setModel(opus)
+        expect(chat.session.model == opus, "a new chat holds its pick before its first message")
+        chat.send("Hi", using: { ScriptedProvider(rounds: []) })
+        expect(
+            ChatHistoryStore(directory: directory).session(id: chat.session.id)?.model == opus,
+            "the first save records the chat's model")
+        let sonnet = AIModelSelection.claude(model: "sonnet", effort: nil)
+        chat.setModel(sonnet)
+        let reopened = AIChatState(history: ChatHistoryStore(directory: directory))
+        expect(reopened.open(id: chat.session.id), "the chat reopens")
+        expect(reopened.session.model == sonnet, "a later pick is what the chat reopens on")
+    }
+
+    static func titlesAreCleanedAndNeverBeatARename() {
+        expect(
+            ChatTitle.sanitize("Title: \"Weekend Hiking Trip Plan.\"\nmore")
+                == "Weekend Hiking Trip Plan",
+            "a title loses its label, quotes, full stop and any second line")
+        expect(ChatTitle.sanitize("## Trip plan") == "Trip plan", "a heading marker is not the title")
+        expect(ChatTitle.sanitize("  \n ") == nil, "an empty answer names nothing")
+        var session = ChatSession()
+        expect(ChatTitle.description(of: session) == nil, "an empty chat has nothing to name")
+        session.append(ChatMessage(role: .user, text: "Is 1001 prime?"))
+        expect(
+            ChatTitle.description(of: session) == "User: Is 1001 prime?",
+            "a chat is named from its question alone while the answer is still coming")
+        session.append(ChatMessage(role: .assistant, text: "No: 7 × 11 × 13."))
+        expect(
+            ChatTitle.description(of: session) == "User: Is 1001 prime?\nAssistant: No: 7 × 11 × 13.",
+            "a title is asked for from the first question and answer")
+
+        let (store, directory) = temporaryStore("titles")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        store.save(session)
+        store.setGeneratedTitle("Prime factors of 1001", id: session.id)
+        expect(
+            store.conversation(id: session.id)?.displayTitle == "Prime factors of 1001",
+            "a generated title replaces the first question's")
+        store.save(session)
+        let reopened = ChatHistoryStore(directory: directory)
+        reopened.load()
+        expect(
+            reopened.conversation(id: session.id)?.generatedTitle == "Prime factors of 1001",
+            "a generated title survives a later save and reopening")
+        reopened.rename(id: session.id, to: "Maths")
+        expect(reopened.conversation(id: session.id)?.displayTitle == "Maths", "a rename still wins")
+    }
+
+    static func referencesAreTheLinksAReplyCites() {
+        let reply = """
+            See [the Swift book](https://www.swift.org/documentation/tspl/) and \
+            https://forums.swift.org/t/example/42. Also https://www.swift.org/documentation/tspl.
+
+            ```sh
+            curl https://example.com/not-a-source
+            ```
+            """
+        let references = ChatReferences.extract(from: reply)
+        expect(references.count == 2, "a page cited twice is one source, got \(references.count)")
+        expect(
+            references.first?.title == "the Swift book"
+                && references.first?.host == "swift.org",
+            "a Markdown link keeps its own name and a readable host")
+        expect(
+            references.last?.url.absoluteString == "https://forums.swift.org/t/example/42",
+            "a bare URL is a source too, its trailing full stop left out")
+        expect(
+            !references.contains { $0.host == "example.com" },
+            "a URL inside a code sample is not a source")
+        expect(ChatReferences.extract(from: "No links here.").isEmpty, "prose alone cites nothing")
+    }
+
+    static func toolScopeSwitchesServersPerChat() {
+        var scope = ChatToolScope()
+        expect(scope.allows("files"), "a new chat may call every connected server")
+        scope.toggle("files")
+        expect(!scope.allows("files") && scope.allows("web"), "one server switches off alone")
+        scope.toggle("files")
+        scope.isEnabled = false
+        expect(!scope.allows("web"), "switching tools off stops every server")
+    }
+
+    static func choicesComeOutOfTheirFence() {
+        let reply = "Which one?\n\n```choices\n- Summarise it\n2. Translate it\n\n```\nThanks."
+        let split = ChatChoices.split(reply)
+        expect(split.choices == ["Summarise it", "Translate it"], "a fence's lines are the choices")
+        expect(split.text == "Which one?\n\nThanks.", "the fence never shows as prose")
+        let streaming = ChatChoices.split("Pick:\n```choices\nA\nB")
+        expect(
+            streaming.choices == ["A", "B"] && streaming.text == "Pick:",
+            "an unclosed fence is already hidden while it streams")
+        let code = "Use this:\n```swift\nlet choices = 1\n```"
+        expect(ChatChoices.split(code).choices.isEmpty, "an ordinary code fence is not a choice list")
+        let inline = ChatChoices.split("Say ```choices``` to me")
+        expect(inline.choices.isEmpty, "a fence mid-line is prose, not choices")
+        let unfenced = ChatChoices.split(
+            "Here are a few ways I can help:\n\n* Open it\n\nchoices\n\n- Open the bar\n- Open a window\n")
+        expect(
+            unfenced.choices == ["Open the bar", "Open a window"]
+                && unfenced.text == "Here are a few ways I can help:\n\n* Open it",
+            "a bare `choices` label over a closing list is a choice list: \(unfenced)")
+        expect(
+            ChatChoices.split("**Choices:**\n1. Yes\n2. No").choices == ["Yes", "No"],
+            "the label may be bold, capitalised or end in a colon")
+        let proseAfter = "choices\n- A\n- B\n\nThat is all."
+        expect(
+            ChatChoices.split(proseAfter).choices.isEmpty, "a list followed by prose is not the reply's end")
+        expect(
+            ChatChoices.split("Your choices matter.\n- A").choices.isEmpty,
+            "the word inside a sentence is not a label")
     }
 }
 

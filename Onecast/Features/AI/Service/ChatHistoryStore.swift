@@ -67,6 +67,14 @@ final class ChatHistoryStore {
           text_offset INTEGER NOT NULL,
           PRIMARY KEY(message_id, position)
         );
+        CREATE TABLE IF NOT EXISTS conversation_details(
+          conversation_id TEXT PRIMARY KEY NOT NULL
+            REFERENCES conversations(id) ON DELETE CASCADE,
+          custom_title TEXT,
+          generated_title TEXT,
+          pinned INTEGER NOT NULL DEFAULT 0,
+          model TEXT
+        );
         CREATE INDEX IF NOT EXISTS messages_by_conversation
           ON messages(conversation_id, position);
         CREATE INDEX IF NOT EXISTS conversations_by_recency
@@ -87,8 +95,11 @@ final class ChatHistoryStore {
     func load() {
         guard ensureDatabase(), let database else { return }
         let sql = """
-            SELECT id, title, preview, created_at, updated_at, message_count
-            FROM conversations WHERE assistant_id IS ? ORDER BY updated_at DESC;
+            SELECT c.id, c.title, c.preview, c.created_at, c.updated_at, c.message_count,
+              m.custom_title, COALESCE(m.pinned, 0), m.generated_title
+            FROM conversations c
+            LEFT JOIN conversation_details m ON m.conversation_id = c.id
+            WHERE c.assistant_id IS ? ORDER BY c.updated_at DESC;
             """
         guard let statement = prepare(sql, in: database) else { return }
         defer { sqlite3_finalize(statement) }
@@ -101,7 +112,10 @@ final class ChatHistoryStore {
                     id: id, title: text(statement, 1), preview: text(statement, 2),
                     createdAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 3)),
                     updatedAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 4)),
-                    messageCount: Int(sqlite3_column_int64(statement, 5))))
+                    messageCount: Int(sqlite3_column_int64(statement, 5)),
+                    customTitle: optionalText(statement, 6),
+                    isPinned: sqlite3_column_int64(statement, 7) != 0,
+                    generatedTitle: optionalText(statement, 8)))
         }
         conversations = loaded
     }
@@ -133,10 +147,49 @@ final class ChatHistoryStore {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return conversations }
         return conversations.filter {
-            $0.title.localizedCaseInsensitiveContains(query)
+            $0.displayTitle.localizedCaseInsensitiveContains(query)
                 || $0.preview.localizedCaseInsensitiveContains(query)
         }
     }
+
+    func conversation(id: UUID) -> ChatConversation? {
+        conversations.first { $0.id == id }
+    }
+
+    /// A blank name hands the title back to the first question rather than storing an empty one.
+    func rename(id: UUID, to title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let custom = trimmed.isEmpty ? nil : String(trimmed.prefix(Self.titleLimit))
+        guard var conversation = conversation(id: id),
+            write(.customTitle(custom), of: id)
+        else { return }
+        conversation.customTitle = custom
+        replace(conversation)
+    }
+
+    /// The model's name for a chat; stored beside it, so a later save cannot derive it away.
+    func setGeneratedTitle(_ title: String, id: UUID) {
+        guard var conversation = conversation(id: id), write(.generatedTitle(title), of: id)
+        else { return }
+        conversation.generatedTitle = title
+        replace(conversation)
+    }
+
+    func setPinned(_ pinned: Bool, id: UUID) {
+        guard var conversation = conversation(id: id), conversation.isPinned != pinned,
+            write(.pinned(pinned), of: id)
+        else { return }
+        conversation.isPinned = pinned
+        replace(conversation)
+    }
+
+    /// A chat already saved changes model between turns; one not yet saved takes it on its first.
+    func setModel(_ model: AIModelSelection, id: UUID) {
+        guard conversation(id: id) != nil else { return }
+        _ = write(.model(model), of: id)
+    }
+
+    private static let titleLimit = 120
 
     func session(id: UUID) -> ChatSession? {
         guard ensureDatabase(), let database else { return nil }
@@ -180,13 +233,15 @@ final class ChatHistoryStore {
                     toolUses: toolUses[messageID] ?? []))
         }
         return ChatSession(
-            id: id, createdAt: createdAt, updatedAt: updatedAt, messages: messages)
+            id: id, createdAt: createdAt, updatedAt: updatedAt, messages: messages,
+            model: model(forConversation: id, in: database))
     }
 
     func save(_ session: ChatSession) {
         guard !session.messages.isEmpty, !ephemeral, ensureDatabase(), let database else { return }
         guard sqlite3_exec(database, "BEGIN IMMEDIATE", nil, nil, nil) == SQLITE_OK else { return }
-        guard saveConversation(session, in: database), rewriteTail(of: session, database: database)
+        guard saveConversation(session, in: database), rewriteTail(of: session, database: database),
+            saveModel(of: session)
         else {
             sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
             return
@@ -195,9 +250,80 @@ final class ChatHistoryStore {
             sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
             return
         }
-        var updated = conversations.filter { $0.id != session.id }
-        updated.append(session.summary)
+        var summary = session.summary
+        // The summary is derived afresh; a rename and a pin are the reader's, so they carry over.
+        if let existing = conversation(id: session.id) {
+            summary.customTitle = existing.customTitle
+            summary.isPinned = existing.isPinned
+            summary.generatedTitle = existing.generatedTitle
+        }
+        replace(summary)
+    }
+
+    private func replace(_ conversation: ChatConversation) {
+        var updated = conversations.filter { $0.id != conversation.id }
+        updated.append(conversation)
         conversations = updated.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// One fact a conversation's details row holds; writing one never touches the others.
+    private enum Detail {
+        case customTitle(String?)
+        case generatedTitle(String)
+        case pinned(Bool)
+        case model(AIModelSelection)
+
+        var column: String {
+            switch self {
+            case .customTitle: "custom_title"
+            case .generatedTitle: "generated_title"
+            case .pinned: "pinned"
+            case .model: "model"
+            }
+        }
+    }
+
+    private func write(_ detail: Detail, of id: UUID) -> Bool {
+        guard !ephemeral, ensureDatabase(), let database else { return false }
+        let column = detail.column
+        let sql = """
+            INSERT INTO conversation_details(conversation_id, \(column)) VALUES(?, ?)
+            ON CONFLICT(conversation_id) DO UPDATE SET \(column) = excluded.\(column);
+            """
+        guard let statement = prepare(sql, in: database) else { return false }
+        defer { sqlite3_finalize(statement) }
+        bind(id.uuidString, to: statement, at: 1)
+        switch detail {
+        case .customTitle(let title): if let title { bind(title, to: statement, at: 2) }
+        case .generatedTitle(let title): bind(title, to: statement, at: 2)
+        case .pinned(let pinned): sqlite3_bind_int64(statement, 2, pinned ? 1 : 0)
+        case .model(let model):
+            guard let json = try? JSONEncoder().encode(model),
+                let encoded = String(bytes: json, encoding: .utf8)
+            else { return false }
+            bind(encoded, to: statement, at: 2)
+        }
+        return sqlite3_step(statement) == SQLITE_DONE
+    }
+
+    /// After the conversation's row, which the details row references; a chat with no pick has none.
+    private func saveModel(of session: ChatSession) -> Bool {
+        guard let model = session.model else { return true }
+        return write(.model(model), of: session.id)
+    }
+
+    /// A route removed since is the coordinator's to repair; an unreadable one is simply absent.
+    private func model(forConversation id: UUID, in database: OpaquePointer) -> AIModelSelection? {
+        guard
+            let statement = prepare(
+                "SELECT model FROM conversation_details WHERE conversation_id = ? AND model IS NOT NULL;",
+                in: database)
+        else { return nil }
+        defer { sqlite3_finalize(statement) }
+        bind(id.uuidString, to: statement, at: 1)
+        guard sqlite3_step(statement) == SQLITE_ROW else { return nil }
+        return try? JSONDecoder().decode(
+            AIModelSelection.self, from: Data(text(statement, 0).utf8))
     }
 
     func remove(id: UUID) {
@@ -210,12 +336,18 @@ final class ChatHistoryStore {
         conversations.removeAll { $0.id == id }
     }
 
+    /// Pinned chats are the ones the reader asked to keep, so clearing the rest spares them.
     func clearAll() {
         guard ensureDatabase(), let database,
-            sqlite3_exec(database, "DELETE FROM conversations", nil, nil, nil) == SQLITE_OK
+            sqlite3_exec(
+                database, "DELETE FROM conversations WHERE id NOT IN (\(Self.pinnedIDs))", nil,
+                nil, nil) == SQLITE_OK
         else { return }
-        conversations = []
+        conversations.removeAll { !$0.isPinned }
     }
+
+    private static let pinnedIDs =
+        "SELECT conversation_id FROM conversation_details WHERE pinned = 1"
 
     /// Delete every conversation belonging to one Assistant — the whole scope goes when it is removed.
     /// Cascades to its messages via the foreign key.
@@ -233,7 +365,9 @@ final class ChatHistoryStore {
     @discardableResult
     func prune(before cutoff: Date) -> Int {
         guard ensureDatabase(), let database,
-            let statement = prepare("DELETE FROM conversations WHERE updated_at < ?;", in: database)
+            let statement = prepare(
+                "DELETE FROM conversations WHERE updated_at < ? AND id NOT IN (\(Self.pinnedIDs));",
+                in: database)
         else { return 0 }
         var removed = 0
         defer {
@@ -244,7 +378,7 @@ final class ChatHistoryStore {
         guard sqlite3_step(statement) == SQLITE_DONE else { return 0 }
         removed = Int(sqlite3_changes(database))
         guard removed > 0 else { return 0 }
-        conversations.removeAll { $0.updatedAt < cutoff }
+        conversations.removeAll { $0.updatedAt < cutoff && !$0.isPinned }
         return removed
     }
 
@@ -550,5 +684,9 @@ final class ChatHistoryStore {
     private func text(_ statement: OpaquePointer?, _ index: Int32) -> String {
         guard let value = sqlite3_column_text(statement, index) else { return "" }
         return String(cString: value)
+    }
+
+    private func optionalText(_ statement: OpaquePointer?, _ index: Int32) -> String? {
+        sqlite3_column_type(statement, index) == SQLITE_NULL ? nil : text(statement, index)
     }
 }

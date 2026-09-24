@@ -16,6 +16,10 @@ final class AIChatState {
     /// Set when the user deliberately starts a new chat, so closing and reopening keeps the empty
     /// session rather than resurrecting the last saved one. Cleared the moment it holds a message.
     private(set) var startedFresh = false
+    /// Which MCP servers this chat may call; the window's tools menu edits it.
+    var toolScope = ChatToolScope()
+    /// Fired once a reply completes, wherever this state lives now, so a chat can be named.
+    @ObservationIgnored var onReplyFinished: (@MainActor (AIChatState) -> Void)?
 
     /// Every path that consumes or drops the staged images moves this on, so a late decode knows
     @ObservationIgnored private(set) var stagingGeneration = 0
@@ -59,6 +63,36 @@ final class AIChatState {
         let request = AIRequest(
             instructions: instructions,
             messages: session.requestMessages(textBudget: contextBudget), webSearch: webSearch)
+        beginReply(request, using: makeProvider)
+        return true
+    }
+
+    /// Drop the trailing reply and ask its question again, so only the answer is replaced.
+    @discardableResult
+    func regenerate(
+        using makeProvider: @escaping @MainActor () async throws -> any AIProvider,
+        webSearch: Bool = false,
+        instructions: String? = nil, contextBudget: Int = ChatSession.defaultTextBudget
+    ) -> Bool {
+        guard !isStreaming, session.dropTrailingReply(), session.messages.last?.role == .user
+        else { return false }
+        notice = nil
+        let request = AIRequest(
+            instructions: instructions,
+            messages: session.requestMessages(textBudget: contextBudget), webSearch: webSearch)
+        beginReply(request, using: makeProvider)
+        return true
+    }
+
+    /// A chat keeps the route it was last given; a saved one stores it at once.
+    func setModel(_ model: AIModelSelection) {
+        session.model = model
+        history.setModel(model, id: session.id)
+    }
+
+    private func beginReply(
+        _ request: AIRequest, using makeProvider: @escaping @MainActor () async throws -> any AIProvider
+    ) {
         session.append(ChatMessage(role: .assistant, text: "", state: .streaming))
         isStreaming = true
         isThinking = false
@@ -85,7 +119,6 @@ final class AIChatState {
                 state.finishLast(state: .failed, fallback: error.localizedDescription)
             }
         }
-        return true
     }
 
     func report(_ message: String) {
@@ -144,6 +177,7 @@ final class AIChatState {
         session = ChatSession()
         usage = nil
         notice = nil
+        toolScope = ChatToolScope()
         clearStaging()
         startedFresh = userInitiated
     }
@@ -198,6 +232,7 @@ final class AIChatState {
         session = loaded
         usage = nil
         notice = nil
+        toolScope = ChatToolScope()
         clearStaging()
         startedFresh = false
         return true
@@ -367,6 +402,7 @@ final class AIChatState {
         stopStallWatch()
         replyTask = nil
         replyRelay = nil
+        if state == .complete { onReplyFinished?(self) }
     }
 }
 

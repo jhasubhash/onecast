@@ -488,6 +488,12 @@ run ai-chat-test           Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/JSONValue.swift \
                            Onecast/Features/AI/Model/ChatMessage.swift \
                            Onecast/Features/AI/Model/ChatSession.swift \
+                           Onecast/Features/AI/Model/AIConnection.swift \
+                           Onecast/Features/AI/Model/AppleIntelligence.swift \
+                           Onecast/Features/AI/Model/ChatChoices.swift \
+                           Onecast/Features/AI/Model/ChatReferences.swift \
+                           Onecast/Features/AI/Model/ChatTitle.swift \
+                           Onecast/Features/AI/Model/ChatToolScope.swift \
                            Onecast/Features/AI/Model/MarkdownBlock.swift \
                            Onecast/Features/AI/UI/MarkdownRenderer.swift \
                            Onecast/Features/AI/Service/AIProvider.swift \
