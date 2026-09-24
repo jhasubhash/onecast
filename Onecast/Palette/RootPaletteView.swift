@@ -408,8 +408,8 @@ struct RootPaletteView: View {
                 vm.fileSearchQuickLook = false
                 if menuOpen { closeMenus() }
                 scroll = ScrollIntent(kind: .top)
-                // Leaving `.ai` mounts a new field; `searchFocused` won't re-seat it, so toggle.
-                if old == .ai, !screen.hidesSearchField {
+                // `.ai` has its own field, so crossing in or out mounts one `searchFocused` won't seat.
+                if (old == .ai) != (vm.mode == .ai), !screen.hidesSearchField {
                     searchFocused = false
                     Task { @MainActor in searchFocused = true }
                 } else {
@@ -635,12 +635,16 @@ struct RootPaletteView: View {
             }
             // AI Chat's own ⌘ chords, ahead of the row-shortcut handler that reads ⌘Y / ⇧⌘C too.
             .onKeyPress(phases: .down) { press in
-                guard vm.mode == .ai, press.modifiers.contains(.command),
+                guard vm.mode == .ai || vm.mode == .aiHistory, press.modifiers.contains(.command),
                     press.modifiers.isDisjoint(with: [.option, .control])
                 else { return .ignored }
                 let shift = press.modifiers.contains(.shift)
                 let match = { ASCIIKeyboardLayout.matches(press.key, character: $0) }
-                if !shift, match("n") {
+                // ⌘Y shows and hides history, as it shows and hides the AI Chat window's sidebar.
+                if vm.mode == .aiHistory {
+                    guard !shift, match("y") else { return .ignored }
+                    goBack()
+                } else if !shift, match("n") {
                     core.aiChatCoordinator.startNewChat()
                 } else if shift, match("c") {
                     core.aiChatCoordinator.copyLastResponse()
@@ -723,7 +727,7 @@ struct RootPaletteView: View {
             // Matches the list rows and section headers' own indent below.
             headerGutter(width: metrics.spacing.md * 2)
             // Every sub-screen leaves the same way, so the slot reads the same on all of them.
-            if vm.mode != .launcher, !vm.aiBar {
+            if vm.mode != .launcher, !(vm.aiBar && vm.mode == .ai) {
                 HeaderBackButton(help: backHelp, action: goBack)
             } else if vm.mode == .ai, let assistant = activeAssistant {
                 AssistantGlyph(symbol: assistant.symbol, tint: assistant.tint)

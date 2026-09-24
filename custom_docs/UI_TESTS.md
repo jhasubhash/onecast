@@ -333,6 +333,17 @@ point it happened, stored in `message_thinking`.
 **Check.** On a reasoning route, a live block streams open, then folds to "Thought for Ns" when the
 answer starts; thinking mid-answer gets its own block; the chat reopens after a relaunch with both.
 
+### A low AI bar's history ran off-screen, and window shortcuts missed — 2026-09
+
+**Symptom.** ⌘Y in a bar docked low opened history growing down past the screen's bottom, and its
+back step became the full-window chat. In the AI Chat window ⌘Y did nothing and ⌘, opened General.
+**Cause.** `openScreen` dropped the bar flavor on any mode but `.ai`, so history took the launcher's
+placement. The window's key monitor had no ⌘Y or ⌘,, so the app menu's plain Settings… answered.
+**Fix.** `aiBar` spans `.ai` and `.aiHistory`, ⌘Y toggles; re-entering `.ai` re-seats focus in its
+own field. The window's ⌘Y toggles the sidebar and its ⌘, opens the AI pane.
+**Check.** Bar docked at the bottom: ⌘Y four times — history grows up, the bottom edge never moves,
+and each press lands. In a window: ⌘Y hides and shows the sidebar; ⌘, opens Settings on AI.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

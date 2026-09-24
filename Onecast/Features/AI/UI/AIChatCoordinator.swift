@@ -339,6 +339,7 @@ final class AIChatCoordinator {
         // History is left behind rather than stacked under, so one back step leaves chat for good.
         _ = palette.pop()
         palette.replace(mode: .ai)
+        if palette.aiBar { palette.aiBarExpanded = !chat.session.messages.isEmpty }
     }
 
     func deleteChat(id: UUID) {

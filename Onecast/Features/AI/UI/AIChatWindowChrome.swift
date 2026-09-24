@@ -165,6 +165,11 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
             showActions()
         case ([.command], "n"):
             session.newChat()
+        case ([.command], "y"):
+            toggleHistory(in: window)
+        case ([.command], ","):
+            // The app menu's ⌘, opens Settings where it was left; from a chat, AI is the pane.
+            session.coordinator.showSettings()
         case ([.command], "r"):
             guard session.coordinator.canRegenerate else { return false }
             session.coordinator.regenerate()
@@ -183,6 +188,11 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
             return false
         }
         return true
+    }
+
+    /// The sidebar is this window's chat history, so ⌘Y shows and hides it as the bar's does.
+    private func toggleHistory(in window: NSWindow) {
+        (window.contentViewController as? NSSplitViewController)?.toggleSidebar(nil)
     }
 
     // MARK: - Actions menu
@@ -228,6 +238,16 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
         menu.addItem(item("Find in Chat", "magnifyingglass", key: "f") { [weak self] in
             self?.searchItem?.beginSearchInteraction()
         })
+        if let window {
+            let split = window.contentViewController as? NSSplitViewController
+            let shown = split?.splitViewItems.first.map { !$0.isCollapsed } ?? true
+            menu.addItem(
+                item(shown ? "Hide Chat History" : "Show Chat History", "sidebar.left", key: "y") {
+                    [weak self, weak window] in
+                    guard let window else { return }
+                    self?.toggleHistory(in: window)
+                })
+        }
         let key = session.key
         let allSpaces = controller.showsOnAllSpaces(key: key)
         let spacesTitle = allSpaces ? "Show on This Space Only" : "Show on All Spaces"
@@ -242,7 +262,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
                 controller?.setKeepsInFront(!inFront, key: key)
             })
         menu.addItem(.separator())
-        menu.addItem(item("AI Settings", "gearshape") { coordinator.showSettings() })
+        menu.addItem(item("AI Settings", "gearshape", key: ",") { coordinator.showSettings() })
         return menu
     }
 

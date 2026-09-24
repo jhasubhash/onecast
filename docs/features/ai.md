@@ -136,8 +136,10 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   It resizes from any edge or corner (collapsed: width only), remembered in `AppSettings.aiBarSize`
   and cleared by ⌘K → Reset Bar Size; see [palette.md](palette.md#window-placement).
   `AIChatCoordinator.toggleBar` is the whole entry point; `showChat` — the launcher command — stays the
-  full window. Its actions carry shortcuts: New Chat `⌘N`, Copy Last Response `⇧⌘C`, Chat History `⌘Y`,
-  AI Settings `⌘,`. The composer is multi-line where the launcher's field is not: it wraps, shrinks its
+  full window. Its actions carry shortcuts: New Chat `⌘N`, Copy Last Response `⇧⌘C`, Chat History `⌘Y`
+  (a second press returns to the chat), AI Settings `⌘,`. Its history stays the bar (`aiBar` spans
+  `.ai` and `.aiHistory`), so it keeps the bar's size and grows the same way, up from a low bar.
+  The composer is multi-line where the launcher's field is not: it wraps, shrinks its
   font once wrapped, grows the bar to a six-line cap then scrolls, takes ⇧↵ for a line break, and can be
   dragged by its glyph — all measured off the one shared field, which every other mode keeps single-line.
 - **Arriving with a question skips the open policy entirely.** `ask(_:)` — ⇥ from the launcher, and
@@ -346,7 +348,8 @@ items name the reply, since focus has moved on before a picked item fires.
 Out carries the bar's conversation, a reply still arriving included, into the default chat's or the
 Assistant's window; Chat History's **Open in AI Chat Window** opens a saved one there. The window is
 an `AppWindowController` with `AIChatWindowChrome` (toolbar: sidebar, New Chat ⌘N, Find in Chat ⌘F,
-Actions ⌘K) and an `AIChatSplitViewController`: `AIChatSidebarView` groups the scope's conversations
+Actions ⌘K; ⌘Y shows and hides the sidebar, and ⌘, opens Settings on AI rather than where it was
+left) and an `AIChatSplitViewController`: `AIChatSidebarView` groups the scope's conversations
 as Pinned then `DateBucket`, and pins, renames, copies, exports and deletes them; `AIChatDetailView`
 is the transcript over the composer, with the model, reasoning and per-chat **Tools** menus and a
 context gauge. Each window's `AIChatWindowSession` owns its own `ChatHistoryStore`, coordinator

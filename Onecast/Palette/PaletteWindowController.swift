@@ -404,9 +404,8 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             if core.palette.mode == .ai, core.aiChatCoordinator.removeLastAttachment() {
                 return true
             }
-            // The dedicated bar is its own root, not a step off the launcher: an empty backspace
-            // stays in it rather than falling back to the command bar.
-            if core.palette.aiBar { return true }
+            // The bar's chat is its own root: an empty backspace stays put there; history steps back.
+            if core.palette.aiBar, core.palette.mode == .ai { return true }
             if core.palette.pop() { return true }
             guard core.palette.mode != .launcher else { return false }
             core.palette.prepare(mode: .launcher)
@@ -437,7 +436,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             switch character {
             case ",":
                 // In AI Chat, ⌘, lands on the AI pane the actions menu advertises, not General.
-                if self.core.palette.mode == .ai {
+                if self.core.palette.mode == .ai || self.core.palette.mode == .aiHistory {
                     self.core.aiChatCoordinator.showSettings()
                 } else {
                     self.core.settingsCoordinator.showSettings()

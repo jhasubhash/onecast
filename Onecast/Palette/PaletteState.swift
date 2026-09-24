@@ -176,8 +176,8 @@ final class PaletteState {
         emojiGridColumnsOverride = nil
         fileSearchQuickLook = false
         forceExpanded = false
-        // The bar flavor lives only within `.ai`; leaving it drops both the flag and its placement.
-        if mode != .ai {
+        // The bar flavor spans `.ai` and the history it opens; leaving both drops it and its placement.
+        if mode != .ai, mode != .aiHistory {
             aiBar = false
             aiBarExpanded = false
             aiBarGrowsUp = false

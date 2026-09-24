@@ -76,6 +76,18 @@ struct PaletteNavigationTests {
             nested.pop() && nested.mode == .launcher && nested.query == "clipboard",
             "and chat returns to the search that found it")
 
+        // The floating bar's history is the bar's: it keeps the bar's placement and way of growing.
+        let bar = PaletteState()
+        bar.prepare(mode: .ai)
+        bar.aiBar = true
+        bar.aiBarGrowsUp = true
+        bar.push(mode: .aiHistory)
+        expect(bar.aiBar && bar.aiBarGrowsUp, "history opened from the bar stays in the bar")
+        expect(bar.pop() && bar.mode == .ai && bar.aiBar, "and steps back to the bar, not the window")
+        bar.push(mode: .aiHistory)
+        bar.replace(mode: .launcher)
+        expect(!bar.aiBar && !bar.aiBarGrowsUp, "leaving AI for another screen drops the bar flavor")
+
         // `replace` is for a screen swapping its own contents, which is not a step of its own.
         let replaced = searchingLauncher()
         replaced.push(mode: .ai)
