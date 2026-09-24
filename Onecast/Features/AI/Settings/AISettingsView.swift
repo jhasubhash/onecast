@@ -144,6 +144,13 @@ struct AISettingsView: View {
                 Text(
                     "Sends prompts on to a search engine when the route offers one — Codex and OpenRouter.")
             }
+            Picker(selection: $settings.toolRounds) {
+                ForEach(AIToolRounds.allCases) { Text($0.title).tag($0) }
+            } label: {
+                SettingsRowTitle(.aiChat, "Tool call rounds")
+                Text(
+                    "A reply stops after this many; Unlimited runs until Stop. API connections only.")
+            }
             Toggle(isOn: $settings.showReasoning) {
                 SettingsRowTitle(.aiChat, "Stream reasoning")
                 Text("Shows the model's thinking as it streams, instead of a lone spinner.")

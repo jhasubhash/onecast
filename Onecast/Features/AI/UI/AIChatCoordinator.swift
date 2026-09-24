@@ -262,7 +262,9 @@ final class AIChatCoordinator {
         }
         // The HTTP routes hand calls back to the loop; the on-device model runs them in-process.
         if capabilities.tools {
-            return AIToolLoopProvider(base: provider, tools: tools, invoke: invoke)
+            return AIToolLoopProvider(
+                base: provider, tools: tools, maxRounds: core.aiSettings.toolRounds.limit,
+                invoke: invoke)
         }
         if let onDevice = provider as? AppleIntelligenceProvider {
             return onDevice.executingHostTools(tools, invoke: invoke)

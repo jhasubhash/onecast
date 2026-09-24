@@ -86,6 +86,7 @@ enum AppSettingsKey: String, CaseIterable {
     case aiRetention = "aiRetentionDays"
     case aiOpensTo = "aiOpensTo"
     case aiNewChatAfter = "aiNewChatAfterMinutes"
+    case aiToolRounds = "aiToolRounds"
     case aiAssistants = "aiAssistants"
     case aiSkills = "aiSkills"
     case aiAssistantsShowInLauncher = "aiAssistantsShowInLauncher"

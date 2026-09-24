@@ -136,6 +136,9 @@ enum SettingsBackupCoverage {
         AppSettingsKey.aiNewChatAfter.rawValue:
             "Paces the same decision as the setting it accompanies, against conversations that stay "
             + "on the Mac that had them.",
+        AppSettingsKey.aiToolRounds.rawValue:
+            "Decides how much a tool-driven reply may spend on this Mac's own connections; no other "
+            + "AI setting travels, and an import must not raise a spending limit unasked.",
         AppSettingsKey.aiAssistants.rawValue:
             "An assistant bundles a prompt, a model destination, machine-local placement and a "
             + "reference to skills and MCP servers this Mac has; an import must not arrive carrying one.",
