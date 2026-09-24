@@ -99,7 +99,8 @@ struct MCPServerEditor: View {
                             TextField("Header", text: $headerName, prompt: Text("Authorization"))
                         }
                         field("Value") {
-                            SecureField("Value", text: $headerValue, prompt: Text("Bearer …"))
+                            RevealableSecureField(
+                                title: "Value", text: $headerValue, prompt: Text("Bearer …"))
                         }
                     } else {
                         field("Command") {

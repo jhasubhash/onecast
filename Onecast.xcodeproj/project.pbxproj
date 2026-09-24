@@ -69,6 +69,7 @@
 		160F9CAFEAB87ADAF596E62F /* WindowSwitchOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B82FE471E7E946BEEE89160 /* WindowSwitchOrder.swift */; };
 		1616469406C5DA9AE2CCCEAE /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E37DC02F95A12807A127FE /* SectionHeader.swift */; };
 		1630D65F2EAFD0A4B0F2B6AB /* Signposts.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6642C46BF28A95FC6DA38F3 /* Signposts.swift */; };
+		16357C1C81B6B86DC6B8C4A8 /* RevealableSecureField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83F0E1ADE36E916FDDC28AE5 /* RevealableSecureField.swift */; };
 		1650E402C98CB7B82BFB222C /* AssistantStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E4D1F3043DDBFBAE4C47F90 /* AssistantStore.swift */; };
 		16BB136520F8BD56631FC43A /* MeetingLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8639C0190753DF0AC6E228BA /* MeetingLink.swift */; };
 		16BBA3FF62D067D437D9CB42 /* KeychainSecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5FD6A301590DD62E329C56 /* KeychainSecretStore.swift */; };
@@ -1075,6 +1076,7 @@
 		8388C605A16B6358128D3EC0 /* BackupCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupCategory.swift; sourceTree = "<group>"; };
 		8398206F46651518F7109CA9 /* AppIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconView.swift; sourceTree = "<group>"; };
 		83D59D46A9898B8D083BCD50 /* FeatureCommandsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureCommandsSection.swift; sourceTree = "<group>"; };
+		83F0E1ADE36E916FDDC28AE5 /* RevealableSecureField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealableSecureField.swift; sourceTree = "<group>"; };
 		841C2E7F58E1C79FB3716A4C /* FilePreviewStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePreviewStage.swift; sourceTree = "<group>"; };
 		849FAB6D66037D390449E72A /* BundleSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSignature.swift; sourceTree = "<group>"; };
 		84ABC1EB79B6E96DFEE09532 /* MCPStdioTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPStdioTransport.swift; sourceTree = "<group>"; };
@@ -1442,7 +1444,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_01C50E5A-88CA-454C-B645-31D02269AF6F" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_05E7951A-B64D-4B97-9CAA-7C9F0479A0D1" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2984,6 +2986,7 @@
 				EC218973C158541362BA73FA /* PopoverMenu.swift */,
 				73AB10613F602EA4A4D3DDC8 /* RedactedPlaceholder.swift */,
 				B35AA2EA3F0B02A4DAFEEDE7 /* RedactedText.swift */,
+				83F0E1ADE36E916FDDC28AE5 /* RevealableSecureField.swift */,
 				8292A452E1D6ACE64C5499CD /* SettingsComponents.swift */,
 				0AEFCA129B84ADE187EE4D0D /* SymbolImage.swift */,
 				8CEDF7BD616FC282105D06F0 /* SymbolPicker.swift */,
@@ -3379,10 +3382,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_7B091787-DDD7-4C21-B6FE-DADB4CD361DD" /* onecast */ = {
+		"TEMP_FAFE2B3D-182C-49F4-A6D4-F1D847AFDAEE" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_01C50E5A-88CA-454C-B645-31D02269AF6F" /* Signing.xcconfig */,
+				"TEMP_05E7951A-B64D-4B97-9CAA-7C9F0479A0D1" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -4077,6 +4080,7 @@
 				7C9A90CBA26346465EDBAB6A /* ReminderPhraseModel.swift in Sources */,
 				19CA58F83FAA630C2F45ED98 /* ReminderPhraseParser.swift in Sources */,
 				79B366DEB86241DF367323BF /* RenderNode.swift in Sources */,
+				16357C1C81B6B86DC6B8C4A8 /* RevealableSecureField.swift in Sources */,
 				975813C51F0C51A0A64AB3EA /* RightClick.swift in Sources */,
 				D2E5A3FF7141A9951E85FA62 /* RootPaletteView.swift in Sources */,
 				5E218CDD0FF9B5BE0BB4427C /* RowClick.swift in Sources */,
@@ -4285,7 +4289,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_01C50E5A-88CA-454C-B645-31D02269AF6F" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_05E7951A-B64D-4B97-9CAA-7C9F0479A0D1" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -4488,7 +4492,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_01C50E5A-88CA-454C-B645-31D02269AF6F" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_05E7951A-B64D-4B97-9CAA-7C9F0479A0D1" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

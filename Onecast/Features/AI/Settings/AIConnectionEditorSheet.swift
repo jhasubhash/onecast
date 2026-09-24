@@ -54,8 +54,8 @@ struct AIConnectionEditorSheet: View {
                             prompt: Text(connection.provider.defaultBaseURL))
                     }
                     editorField("API Key") {
-                        SecureField(
-                            "API Key", text: $key, prompt: Text(apiKeyPlaceholder))
+                        RevealableSecureField(
+                            title: "API Key", text: $key, prompt: Text(apiKeyPlaceholder))
                     }
                     if storedKeyMatchesTarget {
                         Label("A key is already stored in Keychain", systemImage: "lock.fill")
