@@ -360,6 +360,15 @@ final class AppSettings {
         didSet { defaults.set(schedulerPlaysSound, forKey: Key.schedulerPlaysSound.rawValue) }
     }
 
+    /// Apps a reminder phrase may hand its reminder to; none until the user switches one on.
+    var schedulerReminderApps: Set<ReminderApp> {
+        didSet {
+            defaults.set(
+                schedulerReminderApps.map(\.rawValue).sorted(),
+                forKey: Key.schedulerReminderApps.rawValue)
+        }
+    }
+
     /// With AI on, controls only whether the assistants' "Ask <Name>" rows appear in the launcher.
     var aiAssistantsShowInLauncher: Bool {
         didSet {
@@ -795,5 +804,8 @@ final class AppSettings {
         schedulerPlaysSound =
             defaults.object(forKey: Key.schedulerPlaysSound.rawValue) == nil
             || defaults.bool(forKey: Key.schedulerPlaysSound.rawValue)
+        schedulerReminderApps = Set(
+            (defaults.stringArray(forKey: Key.schedulerReminderApps.rawValue) ?? [])
+                .compactMap(ReminderApp.init(rawValue:)))
     }
 }

@@ -35,6 +35,10 @@ without re-firing what was skipped.
 - **The AI tool schedules notifications only.** `SchedulerAITool` (`scheduler__create_reminder`) can
   post a *future notification* but can never register a shell script — untrusted model output must not
   gain unattended code execution.
+- **A reminder reaches another app only with consent.** Apple Reminders and Things are each off
+  until switched on in **Settings → Scheduler → Reminder apps** (`schedulerReminderApps`, never in a
+  backup), and Apple Reminders also needs macOS's own Reminders grant. A phrase naming an app that
+  is off is refused with a HUD, never quietly scheduled in Onecast instead.
 
 ## Model and persistence
 
@@ -142,16 +146,28 @@ either parser sees it, so the title stays "Drink water" and the time is untouche
 bare colour word ("buy green tea") stays in the title. The AI tool takes the same choice as an
 optional `color` argument.
 
+**A phrase can name the app that keeps it.** `ReminderPhraseParser.splittingApp` lifts "…, add it to
+Apple Reminders", "put this in my Reminders" or "in the Things app" out first, so neither parser sees
+it; like a colour it needs a cue, so "sort the things in the attic" keeps its words. The reminder then
+goes to `ReminderAppExporter` instead of the store, since that app does the reminding. Apple Reminders
+is written through EventKit to the default list, with a due date, an alarm and a daily, weekly or
+monthly recurrence; Things gets `things:///add?title=…&when=<date>@<time>` (`ThingsURL`, the time
+rounded up to the minute), opened without activating Things. `ReminderApp.refusal` turns down what an
+app cannot hold: every-N-minutes repeats for Reminders, and any repeat for Things, whose URL scheme
+cannot make one. The AI tool takes the same choice as an optional `app` argument, handed a
+`ReminderHandOff` closure so it stays compilable without EventKit.
+
 ## Settings and backup
 
-`schedulerEnabled`, `schedulerShowInLauncher` and `schedulerPlaysSound` live in
+`schedulerEnabled`, `schedulerShowInLauncher`, `schedulerPlaysSound` and `schedulerReminderApps` live in
 `AppSettings`/`AppSettingsKey`. `schedulerPlaysSound` (on by default; **Settings → Scheduler →
 Notifications → Play a sound**) chimes the system "Glass" sound when a scheduled notification or a
 script's finish toast appears. `schedulerShowInLauncher` and `schedulerPlaysSound` are backed up like
 every other preference. `schedulerEnabled` is in `SettingsBackupCoverage.deliberatelyExcluded`: it
 doubles as consent to run a script or action unattended, so — like `snippetsEnabled`,
 `calendarEnabled` and `cameraPreview` — an imported backup must never be able to arm the machine to
-fire on a timer by itself.
+fire on a timer by itself. `schedulerReminderApps` is excluded too: it is consent to write to another
+app's data. The Reminders grant also shows in **Settings → Permissions**, beside Calendars.
 
 ## Notifications module
 

@@ -50,6 +50,13 @@ enum SchedulerAITool {
                         "Optional accent for the notification card, only when the user asks for a "
                             + "colour, e.g. 'make it green'."),
                 ]),
+                "app": .object([
+                    "type": .string("string"),
+                    "enum": .array(ReminderApp.allCases.map { .string($0.rawValue) }),
+                    "description": .string(
+                        "Only when the user asks to keep it in Apple Reminders or Things: add it to "
+                            + "that app instead of scheduling a Onecast notification."),
+                ]),
             ]),
             "required": .array([.string("title"), .string("when")]),
         ]),
@@ -88,10 +95,12 @@ enum SchedulerAITool {
 
     @MainActor
     static func invoke(
-        _ call: AIToolCall, store: ScheduledTaskStore, calendar: Calendar, now: Date
-    ) -> AIToolResult {
+        _ call: AIToolCall, store: ScheduledTaskStore, handOff: ReminderHandOff,
+        calendar: Calendar, now: Date
+    ) async -> AIToolResult {
         switch call.name {
-        case createName: return create(call, store: store, calendar: calendar, now: now)
+        case createName:
+            return await create(call, store: store, handOff: handOff, calendar: calendar, now: now)
         case listName: return list(call, store: store)
         case deleteName: return delete(call, store: store)
         default: return .failure(call.id, "Unknown scheduler tool \"\(call.name)\".")
@@ -110,17 +119,19 @@ enum SchedulerAITool {
         let when: String
         let repeatRule: String?
         let color: String?
+        let app: String?
 
         enum CodingKeys: String, CodingKey {
-            case title, body, when, color
+            case title, body, when, color, app
             case repeatRule = "repeat"
         }
     }
 
     @MainActor
     private static func create(
-        _ call: AIToolCall, store: ScheduledTaskStore, calendar: Calendar, now: Date
-    ) -> AIToolResult {
+        _ call: AIToolCall, store: ScheduledTaskStore, handOff: ReminderHandOff,
+        calendar: Calendar, now: Date
+    ) async -> AIToolResult {
         guard let data = call.arguments.data(using: .utf8),
             let args = try? JSONDecoder().decode(CreateArguments.self, from: data)
         else {
@@ -140,6 +151,21 @@ enum SchedulerAITool {
             rule = .daily(hour: parts.hour ?? 9, minute: parts.minute ?? 0)
         } else {
             rule = .once(fireDate)
+        }
+
+        if let name = args.app {
+            guard let app = ReminderApp(rawValue: name) else {
+                return .failure(call.id, "Unknown reminder app \"\(name)\".")
+            }
+            do throws(ReminderAppFailure) {
+                let due = try await handOff(ParsedReminder(title: args.title, rule: rule), app)
+                let stamp = formatter.string(from: due)
+                return AIToolResult(
+                    callID: call.id, content: "Added \"\(args.title)\" to \(app.title) for \(stamp).",
+                    isError: false)
+            } catch {
+                return .failure(call.id, error.message)
+            }
         }
 
         let task = ScheduledTask.notification(

@@ -106,4 +106,5 @@ enum AppSettingsKey: String, CaseIterable {
     case schedulerEnabled = "schedulerEnabled"
     case schedulerShowInLauncher = "schedulerShowInLauncher"
     case schedulerPlaysSound = "schedulerPlaysSound"
+    case schedulerReminderApps = "schedulerReminderApps"
 }

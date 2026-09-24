@@ -5,6 +5,7 @@ struct PermissionsSettingsView: View {
     @Environment(AppCore.self) private var core
     @State private var accessibilityTrusted = Permissions.isAccessibilityTrusted()
     @State private var calendarAccess = Permissions.calendarAccess()
+    @State private var remindersAccess = Permissions.remindersAccess()
     private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -66,6 +67,38 @@ struct PermissionsSettingsView: View {
             } header: {
                 SettingsSectionHeader(.permissionsCalendars)
             }
+
+            Section {
+                LabeledContent {
+                    let status = Self.status(of: remindersAccess == .granted, asked: remindersAccess != .notDetermined)
+                    Label(status.title, systemImage: status.symbol)
+                        .foregroundStyle(status.tint)
+                } label: {
+                    SettingsRowTitle(.permissionsReminders, "Reminders")
+                    Text("Lets Onecast add a reminder to Apple Reminders when you ask it to.")
+                }
+
+                LabeledContent {
+                    Button(remindersAccess == .notDetermined ? "Grant Access…" : "Open…") {
+                        if remindersAccess == .notDetermined {
+                            Task {
+                                _ = await Permissions.requestRemindersAccess()
+                                refresh()
+                            }
+                        } else {
+                            Permissions.openRemindersSettings()
+                        }
+                    }
+                } label: {
+                    Text(remindersAccess == .notDetermined ? "Grant access" : "Manage in System Settings")
+                    Text(
+                        remindersAccess == .notDetermined
+                            ? "Asks macOS for access to Apple Reminders."
+                            : "Opens Privacy & Security › Reminders.")
+                }
+            } header: {
+                SettingsSectionHeader(.permissionsReminders)
+            }
         }
         .formStyle(.grouped)
         .settingsScrollTarget(.permissions)
@@ -76,11 +109,14 @@ struct PermissionsSettingsView: View {
     private var calendarNeedsPrompt: Bool { calendarAccess == .notDetermined }
 
     private var calendarStatus: (title: String, symbol: String, tint: Color) {
-        switch calendarAccess {
-        case .granted: return ("Granted", "checkmark.circle.fill", .green)
-        case .notDetermined: return ("Not asked yet", "questionmark.circle.fill", .secondary)
-        case .denied: return ("Not granted", "exclamationmark.triangle.fill", .orange)
-        }
+        Self.status(of: calendarAccess == .granted, asked: calendarAccess != .notDetermined)
+    }
+
+    private static func status(of granted: Bool, asked: Bool) -> (title: String, symbol: String, tint: Color) {
+        if granted { return ("Granted", "checkmark.circle.fill", .green) }
+        return asked
+            ? ("Not granted", "exclamationmark.triangle.fill", .orange)
+            : ("Not asked yet", "questionmark.circle.fill", .secondary)
     }
 
     private func refresh() {
@@ -88,5 +124,7 @@ struct PermissionsSettingsView: View {
         if trusted != accessibilityTrusted { accessibilityTrusted = trusted }
         let access = Permissions.calendarAccess()
         if access != calendarAccess { calendarAccess = access }
+        let reminders = Permissions.remindersAccess()
+        if reminders != remindersAccess { remindersAccess = reminders }
     }
 }

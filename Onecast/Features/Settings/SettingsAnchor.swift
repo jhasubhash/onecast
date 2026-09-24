@@ -101,10 +101,12 @@ extension SettingsAnchor {
 
     static let schedulerScheduler = Self(tab: .scheduler, title: "Scheduler")
     static let schedulerNotifications = Self(tab: .scheduler, title: "Notifications")
+    static let schedulerReminderApps = Self(tab: .scheduler, title: "Reminder apps")
     static let schedulerCommands = Self(tab: .scheduler, title: "Commands")
 
     static let permissionsAccessibility = Self(tab: .permissions, title: "Accessibility")
     static let permissionsCalendars = Self(tab: .permissions, title: "Calendars")
+    static let permissionsReminders = Self(tab: .permissions, title: "Reminders")
 
     static let backupExport = Self(tab: .backup, title: "Export")
     static let backupImport = Self(tab: .backup, title: "Import")

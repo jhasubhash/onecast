@@ -17,15 +17,16 @@ struct SchedulerAIToolTests {
         }
     }
 
-    static func main() {
-        createSchedulesAReminder()
-        listNamesEveryReminder()
-        listIgnoresScriptTasks()
-        deleteRemovesTheSoleReminder()
-        deletePrefersAnExactNameOverASubstring()
-        deleteReportsWhenNothingMatches()
-        deleteRefusesAnAmbiguousName()
-        deleteNeverTouchesAScriptTask()
+    static func main() async {
+        await createSchedulesAReminder()
+        await listNamesEveryReminder()
+        await listIgnoresScriptTasks()
+        await deleteRemovesTheSoleReminder()
+        await deletePrefersAnExactNameOverASubstring()
+        await deleteReportsWhenNothingMatches()
+        await deleteRefusesAnAmbiguousName()
+        await deleteNeverTouchesAScriptTask()
+        await aNamedAppGetsTheReminderInstead()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -63,57 +64,86 @@ struct SchedulerAIToolTests {
         AIToolCall(id: "c1", name: name, arguments: arguments)
     }
 
-    private static func run(_ store: ScheduledTaskStore, _ call: AIToolCall) -> AIToolResult {
-        SchedulerAITool.invoke(call, store: store, calendar: calendar, now: now)
+    /// Refuses every app unless a test hands in its own, so no test ever reaches a real app.
+    private static func run(
+        _ store: ScheduledTaskStore, _ call: AIToolCall,
+        handOff: @escaping ReminderHandOff = { _, app throws(ReminderAppFailure) in
+            throw .notEnabled(app)
+        }
+    ) async -> AIToolResult {
+        await SchedulerAITool.invoke(call, store: store, handOff: handOff, calendar: calendar, now: now)
     }
 
-    static func createSchedulesAReminder() {
+    /// The app keeps the reminder, so Onecast must not also fire one; a refusal reaches the model.
+    static func aNamedAppGetsTheReminderInstead() async {
         let store = store([])
-        let result = run(
+        var handed: [(ParsedReminder, ReminderApp)] = []
+        let request = call(
+            SchedulerAITool.createName, #"{"title":"Buy milk","when":"tomorrow at 9am","app":"things"}"#)
+        let taken = await run(store, request) { reminder, app throws(ReminderAppFailure) in
+            handed.append((reminder, app))
+            return now.addingTimeInterval(3600)
+        }
+        expect(!taken.isError, "a reminder an app took is reported as added")
+        expect(
+            handed.count == 1 && handed[0].1 == .things && handed[0].0.title == "Buy milk",
+            "it is handed to the app it named, under its own title")
+        expect(store.tasks.isEmpty, "and Onecast schedules no notification of its own")
+
+        let refused = await run(store, request)
+        expect(
+            refused.isError && refused.content.contains("Settings"),
+            "an app left off is refused with where to turn it on")
+        expect(store.tasks.isEmpty, "and still nothing is scheduled in its place")
+    }
+
+    static func createSchedulesAReminder() async {
+        let store = store([])
+        let result = await run(
             store,
             call(SchedulerAITool.createName, #"{"title":"Standup","when":"tomorrow at 9am"}"#))
         expect(!result.isError, "a well-formed reminder schedules without error")
         expect(store.tasks.count == 1 && store.tasks[0].name == "Standup", "and lands in the store")
     }
 
-    static func listNamesEveryReminder() {
+    static func listNamesEveryReminder() async {
         let store = store([reminder("Standup"), reminder("Drink water")])
-        let result = run(store, call(SchedulerAITool.listName, "{}"))
+        let result = await run(store, call(SchedulerAITool.listName, "{}"))
         expect(!result.isError, "listing is never an error")
         expect(
             result.content.contains("Standup") && result.content.contains("Drink water"),
             "and names every reminder so the model can pick one to delete")
     }
 
-    static func listIgnoresScriptTasks() {
+    static func listIgnoresScriptTasks() async {
         let store = store([script("Nightly Backup")])
-        let result = run(store, call(SchedulerAITool.listName, "{}"))
+        let result = await run(store, call(SchedulerAITool.listName, "{}"))
         expect(
             !result.content.contains("Nightly Backup"),
             "a user's script automation is never exposed through the reminder surface")
     }
 
-    static func deleteRemovesTheSoleReminder() {
+    static func deleteRemovesTheSoleReminder() async {
         let store = store([reminder("Post the reel")])
         // The demoed failure: "delete that schedule" with a vague title must still remove the one.
-        let result = run(
+        let result = await run(
             store, call(SchedulerAITool.deleteName, #"{"title":"the previous reminder"}"#))
         expect(!result.isError, "a lone reminder is unambiguous even under a vague name")
         expect(store.tasks.isEmpty, "and is actually deleted, not re-created as a new reminder")
     }
 
-    static func deletePrefersAnExactNameOverASubstring() {
+    static func deletePrefersAnExactNameOverASubstring() async {
         let store = store([reminder("Call"), reminder("Call mom")])
-        let result = run(store, call(SchedulerAITool.deleteName, #"{"title":"Call"}"#))
+        let result = await run(store, call(SchedulerAITool.deleteName, #"{"title":"Call"}"#))
         expect(!result.isError, "an exact name resolves even when it is a prefix of another")
         expect(
             store.tasks.count == 1 && store.tasks[0].name == "Call mom",
             "exactly the named reminder goes, not the one it is a substring of")
     }
 
-    static func deleteReportsWhenNothingMatches() {
+    static func deleteReportsWhenNothingMatches() async {
         let store = store([reminder("Standup"), reminder("Lunch")])
-        let result = run(store, call(SchedulerAITool.deleteName, #"{"title":"Groceries"}"#))
+        let result = await run(store, call(SchedulerAITool.deleteName, #"{"title":"Groceries"}"#))
         expect(result.isError, "a name that matches nothing is an error the model can recover from")
         expect(
             result.content.contains("Standup") && result.content.contains("Lunch"),
@@ -121,16 +151,16 @@ struct SchedulerAIToolTests {
         expect(store.tasks.count == 2, "nothing is deleted on a miss")
     }
 
-    static func deleteRefusesAnAmbiguousName() {
+    static func deleteRefusesAnAmbiguousName() async {
         let store = store([reminder("Standup team"), reminder("Standup 1:1")])
-        let result = run(store, call(SchedulerAITool.deleteName, #"{"title":"standup"}"#))
+        let result = await run(store, call(SchedulerAITool.deleteName, #"{"title":"standup"}"#))
         expect(result.isError, "a name matching several reminders is refused rather than guessed")
         expect(store.tasks.count == 2, "and none are deleted while it is ambiguous")
     }
 
-    static func deleteNeverTouchesAScriptTask() {
+    static func deleteNeverTouchesAScriptTask() async {
         let store = store([script("Nightly Backup")])
-        let result = run(store, call(SchedulerAITool.deleteName, #"{"title":"Nightly Backup"}"#))
+        let result = await run(store, call(SchedulerAITool.deleteName, #"{"title":"Nightly Backup"}"#))
         expect(result.isError, "the delete tool sees no reminders when only a script task exists")
         expect(store.tasks.count == 1, "so a user's automation is left intact")
     }

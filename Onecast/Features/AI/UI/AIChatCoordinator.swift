@@ -286,14 +286,19 @@ final class AIChatCoordinator {
         let chatID = chat.session.id
         let mcp = core.mcpCoordinator
         let store = core.scheduledTasks
+        let settings = core.settings
+        let handOff: ReminderHandOff = { reminder, app throws(ReminderAppFailure) in
+            guard settings.schedulerReminderApps.contains(app) else { throw .notEnabled(app) }
+            return try await ReminderAppExporter.add(reminder, to: app, now: Date(), calendar: .current)
+        }
         let computer = computerUse ? ComputerUseTool(controller: core.computerController) : nil
-        let invoke: @Sendable (AIToolCall) async -> AIToolResult = { [mcp, store, computer] call in
+        let invoke: @Sendable (AIToolCall) async -> AIToolResult = { [mcp, store, handOff, computer] call in
             if let computer, ComputerUseTool.handles(call.name) {
                 return await computer.invoke(call)
             }
             if SchedulerAITool.handles(call.name) {
                 return await SchedulerAITool.invoke(
-                    call, store: store, calendar: .current, now: Date())
+                    call, store: store, handOff: handOff, calendar: .current, now: Date())
             }
             return await mcp.invoke(call, in: chatID)
         }

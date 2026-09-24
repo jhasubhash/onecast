@@ -241,9 +241,9 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
         if let window {
             let split = window.contentViewController as? NSSplitViewController
             let shown = split?.splitViewItems.first.map { !$0.isCollapsed } ?? true
+            let title = shown ? "Hide Chat History" : "Show Chat History"
             menu.addItem(
-                item(shown ? "Hide Chat History" : "Show Chat History", "sidebar.left", key: "y") {
-                    [weak self, weak window] in
+                item(title, "sidebar.left", key: "y") { [weak self, weak window] in
                     guard let window else { return }
                     self?.toggleHistory(in: window)
                 })

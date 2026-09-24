@@ -183,6 +183,8 @@ enum SettingsBackupCoverage {
         AppSettingsKey.schedulerEnabled.rawValue:
             "Doubles as consent to run a scheduled script or action unattended; an import must not "
             + "arm the machine to fire on a timer by itself.",
+        AppSettingsKey.schedulerReminderApps.rawValue:
+            "Consent to write to Reminders or Things on this Mac; an import must not grant it.",
         AppSettingsKey.aiComputerUse.rawValue:
             "Arms a model to drive the mouse and keyboard through Screen Recording and Accessibility; "
             + "a flag that grants a capability is never carried by a backup.",

@@ -569,7 +569,8 @@ run slow computer-use-bridge-test \
                            Onecast/Features/AI/Model/JSONValue.swift \
                            Onecast/Platform/Permissions.swift \
                            Onecast/Platform/CameraAccess.swift \
-                           Onecast/Platform/CalendarAccess.swift
+                           Onecast/Platform/CalendarAccess.swift \
+                           Onecast/Platform/RemindersAccess.swift
 run assistant-store-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Model/*.swift \
                            Onecast/Features/AI/Service/AssistantStore.swift \

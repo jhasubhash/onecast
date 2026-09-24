@@ -31,6 +31,10 @@ struct SchedulerTests {
         reminderPhraseParserRejectsTimelessPhrase()
         colourInstructionsLiftOutOfThePhrase()
         aBareColourWordStaysInTheTitle()
+        appCuesLiftOutOfThePhrase()
+        appWordsWithoutACueStayInTheTitle()
+        thingsLinkCarriesTheTitleAndReminderTime()
+        appsRefuseTheRepeatsTheyCannotHold()
         savedNotificationsWithoutAColourStayNeutral()
         inkContrastsWithTheBackground()
 
@@ -295,6 +299,71 @@ struct SchedulerTests {
         let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
         expect(tint == nil, "a colour word with no instruction around it sets no tint")
         expect(parsed?.title == "Buy green tea", "and it stays part of what to be reminded of")
+    }
+
+    /// The cue names the app and leaves the title and the time exactly as they would be without it.
+    static func appCuesLiftOutOfThePhrase() {
+        let cases: [(String, ReminderApp, String, Int)] = [
+            ("remind me to drink water after 2 min, add it to apple reminder", .appleReminders,
+                "Drink water", 2),
+            ("remind me to open laptop after 10 min, add it to things", .things, "Open laptop", 10),
+            ("remind me to stretch in 5 min in the Things 3 app", .things, "Stretch", 5),
+            ("remind me to stretch in 5 min and put it in my Reminders", .appleReminders, "Stretch", 5),
+        ]
+        for (phrase, app, title, minutes) in cases {
+            let (found, request) = ReminderPhraseParser.splittingApp(phrase)
+            let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
+            let due = utcCalendar.date(byAdding: .minute, value: minutes, to: baseCreatedAt)!
+            expect(found == app, "“\(phrase)” goes to \(app.title)")
+            expect(parsed?.title == title, "“\(phrase)” keeps its title clean of the app")
+            expect(parsed?.rule == .once(due), "“\(phrase)” still fires in \(minutes) minutes")
+        }
+        let (app, request) = ReminderPhraseParser.splittingApp(
+            "remind me to go to shop at 3pm tomorrow , add this to things app")
+        let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: localCalendar)
+        expect(app == .things, "a clock time and a day survive the cue after them")
+        guard case .once(let date) = parsed?.rule else {
+            return expect(false, "tomorrow at 3pm is a one-time reminder")
+        }
+        expect(parsed?.title == "Go to shop", "and the title is the errand alone")
+        expect(localCalendar.component(.hour, from: date) == 15, "at 3pm")
+    }
+
+    static func appWordsWithoutACueStayInTheTitle() {
+        for (phrase, title) in [
+            ("remind me to sort the things in the attic in 10 min", "Sort the things in the attic"),
+            ("remind me to check my reminders in 10 min", "Check my reminders"),
+        ] {
+            let (app, request) = ReminderPhraseParser.splittingApp(phrase)
+            let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
+            expect(app == nil, "“\(phrase)” names no app to hand it to")
+            expect(parsed?.title == title, "“\(phrase)” keeps every word it had")
+        }
+    }
+
+    /// A seconds tail rounds up, and a title's `&` or `+` must never split or turn into a space.
+    static func thingsLinkCarriesTheTitleAndReminderTime() {
+        let due = baseCreatedAt.addingTimeInterval(2 * 60 + 30)
+        let url = ThingsURL.add(title: "Milk & eggs + tea", at: due, calendar: utcCalendar)
+        expect(
+            url?.absoluteString
+                == "things:///add?title=Milk%20%26%20eggs%20%2B%20tea&when=2025-01-15%4010%3A03",
+            "the link names the to-do and reminds at the next whole minute")
+    }
+
+    static func appsRefuseTheRepeatsTheyCannotHold() {
+        let daily = ScheduleRule.daily(hour: 8, minute: 0)
+        expect(ReminderApp.appleReminders.refusal(of: daily) == nil, "Reminders repeats daily")
+        expect(
+            ReminderApp.appleReminders.refusal(of: .weekly(weekdays: [2], hour: 8, minute: 0)) == nil,
+            "and weekly")
+        expect(
+            ReminderApp.appleReminders.refusal(of: .interval(seconds: 600)) != nil,
+            "but not every ten minutes")
+        expect(ReminderApp.things.refusal(of: daily) != nil, "Things takes no repeat from a link")
+        expect(
+            ReminderApp.things.refusal(of: .once(baseCreatedAt.addingTimeInterval(60))) == nil,
+            "only a one-time reminder")
     }
 
     /// Tasks saved before colour existed must still load, or the store drops every one of them.

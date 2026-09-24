@@ -28,33 +28,51 @@ final class SchedulerEditorCoordinator {
         present()
     }
 
-    /// The launcher reminder fallback: parse a typed phrase into a notification task and confirm via
-    /// a HUD, no form. The deterministic parser answers instantly; only its miss falls to the model.
+    /// The launcher reminder fallback: a phrase becomes a notification, or goes to the app it names.
     func scheduleFromPhrase(_ text: String) {
         let phrase = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !phrase.isEmpty else { return }
         core.paletteCoordinator.hidePalette(restoreFocus: false)
         let now = Date(), calendar = Calendar.current
-        // Colour first, so "color it green" reaches neither the time parser nor the model's title.
-        let (tint, request) = ReminderPhraseParser.splittingTint(phrase)
+        // The app and colour first, so neither cue reaches the time parser or the model's title.
+        let (app, rest) = ReminderPhraseParser.splittingApp(phrase)
+        if let app, !core.settings.schedulerReminderApps.contains(app) {
+            core.showMessage(ReminderAppFailure.notEnabled(app).message, tone: .danger)
+            return
+        }
+        let (tint, request) = ReminderPhraseParser.splittingTint(rest)
         if let parsed = ReminderPhraseParser.parse(request, now: now, calendar: calendar) {
-            commit(parsed, tint: tint, now: now)
+            deliver(parsed, to: app, tint: tint, now: now, calendar: calendar)
             return
         }
         Task { [weak self] in
             guard let self else { return }
             if let parsed = await ReminderPhraseModel.extract(request, now: now, calendar: calendar) {
-                commit(parsed, tint: tint, now: now)
+                deliver(parsed, to: app, tint: tint, now: now, calendar: calendar)
             } else {
                 core.showMessage("Couldn't find a time in “\(phrase)”.", tone: .danger)
             }
         }
     }
 
-    private func commit(_ parsed: ParsedReminder, tint: NotificationTint?, now: Date) {
-        store.add(
-            ScheduledTask.notification(title: parsed.title, rule: parsed.rule, tint: tint, now: now))
-        core.showMessage("Reminder set — \(ScheduleFormatter.rule(parsed.rule))")
+    private func deliver(
+        _ parsed: ParsedReminder, to app: ReminderApp?, tint: NotificationTint?, now: Date,
+        calendar: Calendar
+    ) {
+        guard let app else {
+            store.add(
+                ScheduledTask.notification(title: parsed.title, rule: parsed.rule, tint: tint, now: now))
+            core.showMessage("Reminder set — \(ScheduleFormatter.rule(parsed.rule))")
+            return
+        }
+        Task { [weak self] in
+            do throws(ReminderAppFailure) {
+                _ = try await ReminderAppExporter.add(parsed, to: app, now: now, calendar: calendar)
+                self?.core.showMessage("Added to \(app.title) — \(ScheduleFormatter.rule(parsed.rule))")
+            } catch {
+                self?.core.showMessage(error.message, tone: .danger)
+            }
+        }
     }
 
     /// The form's primary action: persist the draft, then leave the editor.

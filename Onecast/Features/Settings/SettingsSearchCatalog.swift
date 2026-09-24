@@ -577,6 +577,12 @@ enum SettingsSearchCatalog {
             .schedulerNotifications, "Play a sound",
             keywords: ["notification", "sound", "chime", "alert", "mute", "silent"]),
         .init(
+            .schedulerReminderApps, "Apple Reminders",
+            keywords: ["reminders", "eventkit", "to-do", "todo", "export", "apple"]),
+        .init(
+            .schedulerReminderApps, "Things",
+            keywords: ["things 3", "cultured code", "to-do", "todo", "export"]),
+        .init(
             group: .schedulerCommands, "Scheduled task commands",
             keywords: ["shortcut", "hotkey", "launcher", "alias"])
     ]
@@ -590,7 +596,10 @@ enum SettingsSearchCatalog {
             keywords: ["paste", "keystrokes", "privacy", "grant"]),
         .init(
             .permissionsCalendars, "Calendars",
-            keywords: ["events", "privacy", "grant", "eventkit"])
+            keywords: ["events", "privacy", "grant", "eventkit"]),
+        .init(
+            .permissionsReminders, "Reminders",
+            keywords: ["apple reminders", "privacy", "grant", "eventkit", "to-do"])
     ]
 
     private static let backup: [SettingsSearchEntry] = [
