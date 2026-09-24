@@ -515,7 +515,8 @@ final class AIChatCoordinator {
         // The pop-out's composer has no attachment chips to show or clear them from.
         chat.clearAttachments()
         core.aiChatWindowController.popOut(scope: palette.activeAssistantID, from: chat)
-        paletteCoordinator.hidePalette()
+        // Handing focus back to the previous app would bury the window just raised.
+        paletteCoordinator.hidePalette(restoreFocus: false)
     }
 
     /// Take over `source`'s conversation, and any reply still arriving, under this (pinned)

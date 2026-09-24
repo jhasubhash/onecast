@@ -344,6 +344,18 @@ own field. The window's ⌘Y toggles the sidebar and its ⌘, opens the AI pane.
 **Check.** Bar docked at the bottom: ⌘Y four times — history grows up, the bottom edge never moves,
 and each press lands. In a window: ⌘Y hides and shows the sidebar; ⌘, opens Settings on AI.
 
+### The bar's ⌘, opened General, and a pop-out sank behind the last app — 2026-09
+
+**Symptom.** ⌘, from the floating bar still opened Settings on General; ⌘J opened the chat window
+behind whatever app had been in front.
+**Cause.** AppKit offers a ⌘ chord to the key window's `performKeyEquivalent` and the main menu
+before `sendEvent`, so the menu's plain Settings… took ⌘, first. `popOut` raised the window and
+then hid the palette with focus restored to the previous app.
+**Fix.** `PalettePanel.performKeyEquivalent` gives ⌘, to the palette's own handler; `popOut` hides
+the palette with `restoreFocus: false`.
+**Check.** With another app in front, summon the bar: ⌘, opens Settings on AI; ⌘J leaves the chat
+window frontmost and key.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

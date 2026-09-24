@@ -235,6 +235,18 @@ final class PalettePanel: NSPanel {
         super.sendEvent(event)
     }
 
+    /// The app menu's Settings… answers ⌘, before `sendEvent`; the palette picks the pane first.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.type == .keyDown,
+            event.modifierFlags.intersection([.command, .option, .control, .shift]) == .command,
+            ASCIIKeyboardLayout.character(for: event) == ",",
+            onCommandShortcut?(event) == true
+        {
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
     private static func isCopyChord(_ event: NSEvent) -> Bool {
         event.modifierFlags.intersection([.command, .option, .control, .shift]) == .command
             && ASCIIKeyboardLayout.character(for: event)?.lowercased() == "c"

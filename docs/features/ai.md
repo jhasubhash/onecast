@@ -346,7 +346,8 @@ items name the reply, since focus has moved on before a picked item fires.
 
 **The AI Chat window is one per scope, each with a sidebar of that scope's chats.** ⌘J or ⌘K → Pop
 Out carries the bar's conversation, a reply still arriving included, into the default chat's or the
-Assistant's window; Chat History's **Open in AI Chat Window** opens a saved one there. The window is
+Assistant's window, which comes to the front as the key window; Chat History's **Open in AI Chat
+Window** opens a saved one there. The window is
 an `AppWindowController` with `AIChatWindowChrome` (toolbar: sidebar, New Chat ⌘N, Find in Chat ⌘F,
 Actions ⌘K; ⌘Y shows and hides the sidebar, and ⌘, opens Settings on AI rather than where it was
 left) and an `AIChatSplitViewController`: `AIChatSidebarView` groups the scope's conversations
