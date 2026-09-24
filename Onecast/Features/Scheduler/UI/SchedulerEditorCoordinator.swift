@@ -47,10 +47,13 @@ final class SchedulerEditorCoordinator {
         Task { [weak self] in
             guard let self else { return }
             if let reading = await ReminderPhraseModel.read(request, now: now, calendar: calendar) {
-                // What the parser found outranks the model: its time, and any apps it named.
-                let targets = named == .onecastOnly ? reading.targets : named
+                // The parser outranks the model: its time, the places it read, and its title.
+                let targets = named == .onecastOnly ? Self.grounded(reading.targets, in: phrase) : named
+                // A place only the model found left its words in the parser's title; the model's is clean.
+                let parserTitle = parsed?.title ?? ReminderPhraseParser.title(of: request)
+                let title = targets == named ? parserTitle ?? reading.title : reading.title
                 let rule = parsed?.rule ?? reading.rule
-                deliver(reading.title, rule: rule, to: targets, tint: tint, now: now, calendar: calendar)
+                deliver(title, rule: rule, to: targets, tint: tint, now: now, calendar: calendar)
             } else if let parsed {
                 deliver(parsed.title, rule: parsed.rule, to: named, tint: tint, now: now, calendar: calendar)
             } else if !named.onecast, let title = ReminderPhraseParser.title(of: request) {
@@ -59,6 +62,13 @@ final class SchedulerEditorCoordinator {
                 core.showMessage("Couldn't find a time in “\(phrase)”.", tone: .danger)
             }
         }
+    }
+
+    /// A model may only send a reminder where the phrase itself names; naming nowhere is Onecast.
+    private static func grounded(_ reading: ReminderTargets, in phrase: String) -> ReminderTargets {
+        let mentioned = ReminderPhraseParser.mentionedTargets(phrase)
+        let apps = reading.apps.filter(mentioned.apps.contains)
+        return ReminderTargets(onecast: apps.isEmpty || reading.onecast && mentioned.onecast, apps: apps)
     }
 
     private func deliver(

@@ -126,13 +126,16 @@ register a script.
 
 `scheduleFromPhrase` tries the deterministic `ReminderPhraseParser` first: it is Foundation-only,
 instant, and works on every Mac with no AI, covering "remind me to book the ticket in next 20 min",
-"drink water every day at 8am" and the like. The phrase goes to `ReminderPhraseModel` instead when
-the parser finds no time, or when it asks to send the reminder somewhere ("add it …") that no cue
-could name (`asksForATarget`). The model reads the whole phrase, typos included, into a
-`ReminderReading` — title, time, repeat and where it goes — via guided generation (`@Generable`); its
-`namesATime` field comes first, so a phrase with no time is never given an invented one. A time or an
-app the parser did find outranks the model's. With no model, or no usable answer, the parser's own
-reading stands, and a phrase with no time for Onecast surfaces an error rather than a guess.
+"drink water every day at 8am" and the like. Clock slips are normalised first ("9:am", "9.30 a.m.";
+`NaturalDateParser.normalizingClock`), a bare clock time already past today means tomorrow, a time
+takes the "at" before it, and the title is cleaned clause by clause, so a repeated "…, remind me at
+9am" leaves nothing behind. The phrase goes to `ReminderPhraseModel` when the parser finds no time, or
+when a cue sits by an app name no list could be read from (`asksForATarget`). The model reads the
+whole phrase, typos included, into a `ReminderReading` — title, time, repeat and where it goes — via
+guided generation (`@Generable`); its `namesATime` field comes first, so a phrase with no time is
+never given an invented one. The parser outranks it: its time, its title and any places it read. The
+model's places count only where the phrase itself mentions that app. With no model, or no usable
+answer, the parser's reading stands, and a phrase with no time for Onecast surfaces an error.
 
 When the typed phrase reads as a reminder request — `IntentClassifier.standard` scores it `.reminder`
 off a keyword like "remind me" or "notify me", before any time is even typed — `FallbackCoordinator`
@@ -147,11 +150,15 @@ either parser sees it, so the title stays "Drink water" and the time is untouche
 bare colour word ("buy green tea") stays in the title. The AI tool takes the same choice as an
 optional `color` argument.
 
-**A phrase can name where it goes.** `ReminderPhraseParser.splittingTargets` lifts "…, add it to
-Apple Reminders", "put this in my Reminders", "in the Things app" or a list — "add it to Things and
-Apple Reminders and Onecast" — out first, so neither parser sees it. The cue is loose, since these are
-typed fast ("add it tp thngs"), but like a colour it needs one: "sort the things in the attic" keeps
-its words. With no cue it is Onecast's alone; named, it goes to exactly the `ReminderTargets` listed.
+**A phrase can name where it goes.** `ReminderPhraseParser.splittingTargets` reads each word's role
+rather than matching fixed wording: an app (Apple Reminders, Things, Onecast), a sending verb ("add",
+"set", "keep"…), a preposition ("to", "in"…), glue ("and", "it", "the app", "too"…), a clause break,
+or the errand. Spelling is matched within one edit, swaps included, so fast typing passes; a two-
+letter word may only be a mistyped "to". Places are the run of such words ending the phrase, a whole
+clause made only of them, or, mid-clause, a preposition before an app with a sending verb within
+reach ("add oat milk to things at 6pm"). Each needs an app and a cue, so "sort the things in the
+attic", "check my reminders" or "reply to things" keep their words. With none it is Onecast's alone;
+named, it goes to exactly the `ReminderTargets` listed, in the order named.
 Every target is checked before any is written — its app switched on, a time where Onecast needs one,
 a rule the app can hold — so a phrase is never half-kept; only an app's own save can still fail, and
 the HUD then names what was kept and what was not. `ReminderAppExporter` writes Apple Reminders through

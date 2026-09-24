@@ -12,14 +12,14 @@ struct ParsedReminder: Equatable, Sendable {
 /// harness pins every shape.
 enum ReminderPhraseParser {
     static func parse(_ text: String, now: Date, calendar: Calendar) -> ParsedReminder? {
-        var remainder = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var remainder = NaturalDateParser.normalizingClock(text.trimmingCharacters(in: .whitespacesAndNewlines))
         guard !remainder.isEmpty else { return nil }
 
         let recurrence = Recurrence.detect(in: remainder)
         if let recurrence { remainder = remainder.replacingCharacters(in: recurrence.range, with: " ") }
 
         let time = NaturalDateParser.match(in: remainder, now: now, calendar: calendar)
-        if let time { remainder = remainder.replacingCharacters(in: time.range, with: " ") }
+        if let time { remainder = remainder.replacingCharacters(in: withPreposition(time.range, in: remainder), with: " ") }
 
         let title = cleanTitle(remainder)
         guard !title.isEmpty else { return nil }
@@ -34,6 +34,14 @@ enum ReminderPhraseParser {
             rule = .once(time.date)
         }
         return ParsedReminder(title: title, rule: rule)
+    }
+
+    /// The detector matches "9 am" without the "at" before it, which would open the title.
+    private static func withPreposition(_ range: Range<String.Index>, in text: String) -> Range<String.Index> {
+        let before = text[..<range.lowerBound]
+        guard let match = before.range(of: #"\b(?:at|on|by|around)\s+$"#, options: [.regularExpression, .caseInsensitive])
+        else { return range }
+        return match.lowerBound..<range.upperBound
     }
 
     /// The title alone, for an app that keeps a to-do with no time; nil when nothing is left.
@@ -82,8 +90,15 @@ enum ReminderPhraseParser {
     }
 
     /// Strips the command framing ("remind me to") and the prepositions the time left dangling
-    /// ("standup at "), then sentence-cases what remains.
+    /// ("standup at "), clause by clause, so "…, remind me at 9am" leaves no bare "remind me" behind.
     private static func cleanTitle(_ text: String) -> String {
+        let clauses = text.split(whereSeparator: { ",;".contains($0) }).map { cleanClause(String($0)) }
+        let result = clauses.filter { !$0.isEmpty }.joined(separator: ", ")
+        guard let first = result.first else { return "" }
+        return first.uppercased() + result.dropFirst()
+    }
+
+    private static func cleanClause(_ text: String) -> String {
         var result = text
         while true {
             let trimmed = trimEnds(result)
@@ -93,9 +108,7 @@ enum ReminderPhraseParser {
             }
             result = stripped
         }
-        result = stripTrailingConnectors(trimEnds(result))
-        guard let first = result.first else { return "" }
-        return first.uppercased() + result.dropFirst()
+        return stripTrailingConnectors(trimEnds(result))
     }
 
     private static func trimEnds(_ text: String) -> String {

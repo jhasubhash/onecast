@@ -11,7 +11,25 @@ enum NaturalDateParser {
     }
 
     static func date(from text: String, now: Date, calendar: Calendar) -> Date? {
-        match(in: text, now: now, calendar: calendar)?.date
+        match(in: normalizingClock(text), now: now, calendar: calendar)?.date
+    }
+
+    /// "9:am", "9 : 30 pm", "9.30 a.m." read as the clock times they mean; `NSDataDetector` misses
+    /// them. A caller lifting a match out must normalise first, so the match's range stays its own.
+    static func normalizingClock(_ text: String) -> String {
+        clockRewrites.reduce(text) { result, rewrite in
+            rewrite.pattern.stringByReplacingMatches(
+                in: result, range: NSRange(result.startIndex..., in: result), withTemplate: rewrite.template)
+        }
+    }
+
+    private static let clockRewrites: [(pattern: NSRegularExpression, template: String)] = [
+        (#"\b([ap])\.m\.?(?=\s|$|[,;!?])"#, "$1m"),
+        (#"\b(\d{1,2})\s*[:.]\s*(\d{2})\s*([ap]m)\b"#, "$1:$2 $3"),
+        (#"\b(\d{1,2})\s*[:.]\s*([ap]m)\b"#, "$1 $2"),
+        (#"\b(\d{1,2})\s+:\s*(\d{2})\b"#, "$1:$2"),
+    ].compactMap { source, template in
+        (try? NSRegularExpression(pattern: source, options: [.caseInsensitive])).map { ($0, template) }
     }
 
     /// Relative first — `NSDataDetector` resolves none of the "in N units" forms — then absolute.
@@ -46,9 +64,22 @@ enum NaturalDateParser {
         else { return nil }
         // NSDataDetector resolves "tomorrow" et al. against the live clock; re-anchor onto `now`.
         let driftDays = calendar.dateComponents([.day], from: Date(), to: now).day ?? 0
-        let anchored = calendar.date(byAdding: .day, value: driftDays, to: detected) ?? detected
+        var anchored = calendar.date(byAdding: .day, value: driftDays, to: detected) ?? detected
+        // A bare clock time already past today means its next one: "at 9am" said at noon is tomorrow.
+        if anchored <= now, !namesADay(String(text[range])) {
+            anchored = calendar.date(byAdding: .day, value: 1, to: anchored) ?? anchored
+        }
         return Match(date: anchored, range: range)
     }
+
+    private static func namesADay(_ phrase: String) -> Bool {
+        dayWords?.firstMatch(in: phrase, range: NSRange(phrase.startIndex..., in: phrase)) != nil
+    }
+
+    private static let dayWords = try? NSRegularExpression(
+        pattern: #"\b(?:today|tonight|tomorrow|yesterday|mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|"#
+            + #"may|jun|jul|aug|sep|oct|nov|dec|next|this|\d{1,2}(?:st|nd|rd|th)|\d{1,4}[/-]\d{1,2})"#,
+        options: [.caseInsensitive])
 
     private static func number(_ token: String) -> Int? {
         if let value = Int(token) { return value }

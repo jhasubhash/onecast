@@ -307,9 +307,9 @@ struct SchedulerTests {
         let reminders = ReminderTargets(onecast: false, apps: [.appleReminders])
         let things = ReminderTargets(onecast: false, apps: [.things])
         let cases: [(String, ReminderTargets, String, Int)] = [
-            ("remind me to drink water after 2 min, add it to apple reminder", reminders,
-                "Drink water", 2),
-            ("remind me to open laptop after 10 min, add it to things", things, "Open laptop", 10),
+            ("remind me to refill the printer after 2 min, add it to apple reminder", reminders,
+                "Refill the printer", 2),
+            ("remind me to check the oven after 10 min, add it to things", things, "Check the oven", 10),
             ("remind me to stretch in 5 min in the Things 3 app", things, "Stretch", 5),
             ("remind me to stretch in 5 min and put it in my Reminders", reminders, "Stretch", 5),
             ("remind me to stretch in 5 min, add it tp thngs", things, "Stretch", 5),
@@ -325,30 +325,56 @@ struct SchedulerTests {
             expect(parsed?.rule == .once(due), "“\(phrase)” still fires in \(minutes) minutes")
         }
         let (found, request) = ReminderPhraseParser.splittingTargets(
-            "remind me to go to shop at 3pm tomorrow , add this to things app")
+            "remind me to collect the parcel at 3pm tomorrow , add this to things app")
         let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: localCalendar)
         expect(found == things, "a clock time and a day survive the cue after them")
         guard case .once(let date) = parsed?.rule else {
             return expect(false, "tomorrow at 3pm is a one-time reminder")
         }
-        expect(parsed?.title == "Go to shop", "and the title is the errand alone")
+        expect(parsed?.title == "Collect the parcel", "and the title is the errand alone")
         expect(localCalendar.component(.hour, from: date) == 15, "at 3pm")
     }
 
-    /// A typo in the connector and Onecast among the apps: all three are named, the errand remains.
+    /// Places read by role and near-spelling, wherever in the phrase they are and however typed.
     static func onePhraseCanNameEveryPlace() {
-        let (targets, request) = ReminderPhraseParser.splittingTargets(
-            "Close the door , add it tp apple reminder and things and onecast")
+        let every = ReminderTargets(onecast: true, apps: [.things, .appleReminders])
+        let reminders = ReminderTargets(onecast: false, apps: [.appleReminders])
+        let things = ReminderTargets(onecast: false, apps: [.things])
+        let cases: [(String, ReminderTargets, String, hour: Int?)] = [
+            // Framing said twice, a malformed clock time, and a list opened by a verb and mistyped.
+            ("remind me to review the draft plan for the team meeting , remind me at 8:am, keep onecast , "
+                + "things nad apple reminder", every, "Review the draft plan for the team meeting", 8),
+            ("Water the ferns , put it ot things and apple remindr and onecast", every, "Water the ferns", nil),
+            ("remind me to renew the passport at 10am tomorrow and put it in reminders", reminders,
+                "Renew the passport", 10),
+            ("ring the dentist at 4pm, save to thngs and onecast",
+                ReminderTargets(onecast: true, apps: [.things]), "Ring the dentist", 16),
+            ("remind me at 7 am to feed the fish, add this to my things app too", things, "Feed the fish", 7),
+            ("stretch at 6:30 a.m., keep it in apple remiders", reminders, "Stretch", 6),
+            ("remind me to back up the laptop at 11am to things", things, "Back up the laptop", 11),
+            ("set a reminder in things to book a table at 8pm", things, "Book a table", 20),
+            ("add oat milk to things at 6pm", things, "Add oat milk", 18),
+        ]
+        for (phrase, expected, title, hour) in cases {
+            let (targets, request) = ReminderPhraseParser.splittingTargets(phrase)
+            expect(targets == expected, "“\(phrase)” goes to \(expected)")
+            let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: localCalendar)
+            guard let hour else {
+                expect(parsed == nil, "“\(phrase)” names no time, so none may be made up")
+                expect(ReminderPhraseParser.title(of: request) == title, "“\(phrase)” is “\(title)”")
+                continue
+            }
+            guard case .once(let date) = parsed?.rule else {
+                expect(false, "“\(phrase)” is one reminder at \(hour)")
+                continue
+            }
+            expect(parsed?.title == title, "“\(phrase)” is titled “\(title)”, got “\(parsed?.title ?? "")”")
+            expect(localCalendar.component(.hour, from: date) == hour, "“\(phrase)” is at \(hour)")
+            expect(date > baseCreatedAt, "“\(phrase)” is still ahead, a passed clock time meaning tomorrow")
+        }
         expect(
-            targets == ReminderTargets(onecast: true, apps: [.appleReminders, .things]),
-            "Apple Reminders, Things and Onecast are all named")
-        expect(ReminderPhraseParser.title(of: request) == "Close the door", "and the title is the errand")
-        expect(
-            ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar) == nil,
-            "with no time in it, so nothing may be scheduled as though one were given")
-        expect(
-            ReminderPhraseParser.asksForATarget("remind me in 5 min, ad it too thigns"),
-            "a destination the cue cannot name still reads as asked for, for the model to read")
+            ReminderPhraseParser.asksForATarget("remind me in 5 min to add it to thingz please now"),
+            "a place asked for where no list can be read still goes to the model")
         expect(
             !ReminderPhraseParser.asksForATarget("remind me to add salt to the soup in 5 min"),
             "while an errand that merely adds something does not")
@@ -358,6 +384,9 @@ struct SchedulerTests {
         for (phrase, title) in [
             ("remind me to sort the things in the attic in 10 min", "Sort the things in the attic"),
             ("remind me to check my reminders in 10 min", "Check my reminders"),
+            ("remind me to put things away in 10 min", "Put things away"),
+            ("remind me in 10 min to update onecast", "Update onecast"),
+            ("set a reminder to feed the cat in 10 min", "Feed the cat"),
         ] {
             let (targets, request) = ReminderPhraseParser.splittingTargets(phrase)
             let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
@@ -375,8 +404,8 @@ struct SchedulerTests {
                 == "things:///add?title=Milk%20%26%20eggs%20%2B%20tea&when=2025-01-15%4010%3A03",
             "the link names the to-do and reminds at the next whole minute")
         expect(
-            ThingsURL.add(title: "Close the door", at: nil, calendar: utcCalendar)?.absoluteString
-                == "things:///add?title=Close%20the%20door",
+            ThingsURL.add(title: "Oil the hinge", at: nil, calendar: utcCalendar)?.absoluteString
+                == "things:///add?title=Oil%20the%20hinge",
             "a to-do with no time carries no `when`, so Things files it in the Inbox")
     }
 
