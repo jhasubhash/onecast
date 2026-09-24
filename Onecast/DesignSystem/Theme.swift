@@ -57,6 +57,12 @@ enum Theme {
     enum Size {
         static let panelWidth: CGFloat = 750
         static let panelHeight: CGFloat = 475
+        /// The AI Chat window: a conversations sidebar beside the transcript.
+        static let aiChatWindow = CGSize(width: 960, height: 660)
+        static let aiChatWindowMinimum = CGSize(width: 680, height: 440)
+        static let aiChatSidebarMinimum: CGFloat = 220
+        static let aiChatSidebarMaximum: CGFloat = 340
+        static let aiChatDetailMinimum: CGFloat = 440
         /// Opening size on a first run and the floor: below it the title bar's own parts collide.
         static let noteWindow = CGSize(width: 440, height: 180)
         static let noteEditorInset: CGFloat = 16
@@ -391,6 +397,10 @@ enum Theme {
         static let destructive = Color.red
         /// Success tint: the leading glyph of a `.success` dialog.
         static let success = Color.green
+        /// Find in Chat: every match faint, the current one solid, with ink that reads on it.
+        static let findMatch = Color.yellow.opacity(0.28)
+        static let findCurrent = Color.yellow
+        static let findCurrentInk = Color.black
         /// Progress tint: the message pill's spinner while the work behind it is still running.
         static let progress = Color.blue
         /// The command output window's page: a flat surface the log sits directly on.

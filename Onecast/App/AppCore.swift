@@ -515,7 +515,7 @@ final class AppCore {
         snippetListener.stop()
         snippetsStore.stop()
         aiChat.cancel()
-        aiChatWindowController.closeAll()
+        aiChatWindowController.closeAllForQuit()
         chatGPTSubscription.stop()
         mcpOAuth.stop()
         mcp.stop()

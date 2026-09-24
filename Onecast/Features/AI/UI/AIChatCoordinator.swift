@@ -37,6 +37,7 @@ final class AIChatCoordinator {
         self.paletteCoordinator = paletteCoordinator
         self.settingsCoordinator = settingsCoordinator
         self.core = core
+        chat.onReplyFinished = { [weak self] finished in self?.nameIfNeeded(finished) }
     }
 
     func applyEnabled() {
@@ -199,10 +200,42 @@ final class AIChatCoordinator {
     @discardableResult
     func send(_ input: String) -> Bool {
         guard settings.aiEnabled else { return false }
-        let assistant = activeAssistant
-        let webSearch =
-            (assistant?.webSearch ?? core.aiSettings.webSearchEnabled) && capabilities.webSearch
         let address = MCPComposerAddress.parse(input, slugs: core.mcpCoordinator.slugs)
+        let turn = turn(addressing: address.slug)
+        // Provider build defers into the reply task, so a bind failure fails the reply, not input.
+        let sent = chat.send(
+            address.rest, using: provider(for: turn), webSearch: turn.webSearch,
+            instructions: turn.instructions, contextBudget: contextBudget)
+        // The first message grows the bar past its composer into the transcript.
+        if sent, isDynamic { palette.aiBarExpanded = true }
+        return sent
+    }
+
+    /// Asks the last question again with whatever this scope now sends a turn with.
+    @discardableResult
+    func regenerate() -> Bool {
+        guard settings.aiEnabled else { return false }
+        let turn = turn(addressing: nil)
+        return chat.regenerate(
+            using: provider(for: turn), webSearch: turn.webSearch, instructions: turn.instructions,
+            contextBudget: contextBudget)
+    }
+
+    var canRegenerate: Bool {
+        !chat.isStreaming && chat.session.messages.last?.role == .assistant
+            && chat.session.messages.count > 1
+    }
+
+    /// What one turn goes out with; send and regenerate must agree on it.
+    private struct Turn {
+        let webSearch: Bool
+        let instructions: String?
+        let slug: String?
+        let allowed: Set<UUID>?
+    }
+
+    private func turn(addressing slug: String?) -> Turn {
+        let assistant = activeAssistant
         let skills = assistant.map { core.skills.enabledSkills(ids: $0.skillIDs) } ?? []
         let skillBudget: Int
         if effectiveModel?.isOnDevice == true {
@@ -212,27 +245,31 @@ final class AIChatCoordinator {
         } else {
             skillBudget = AISkillBudget.default
         }
-        let composed = AIInstructions.compose(
+        let instructions = AIInstructions.compose(
             userPrompt: assistant?.systemPrompt ?? core.aiSettings.systemPrompt,
             skills: skills, skillBudget: skillBudget,
             allowsSkillScripts: assistant?.allowShellTools ?? false,
             isEnabled: assistant?.systemPromptEnabled ?? core.aiSettings.systemPromptEnabled)
-        let slug = address.slug
-        let allowed = assistant?.mcpServerIDs
-        // Provider build defers into the reply task, so a bind failure fails the reply, not input.
-        let sent = chat.send(
-            address.rest,
-            using: { [weak self] in
-                guard let self else { throw CancellationError() }
-                return self.toolAware(
-                    try await self.effectiveProvider(), scopedTo: slug, allowed: allowed)
-            },
-            webSearch: webSearch,
-            instructions: composed,
-            contextBudget: contextBudget)
-        // The first message grows the bar past its composer into the transcript.
-        if sent, isDynamic { palette.aiBarExpanded = true }
-        return sent
+        return Turn(
+            webSearch: (assistant?.webSearch ?? core.aiSettings.webSearchEnabled)
+                && capabilities.webSearch,
+            instructions: instructions, slug: slug, allowed: allowedServers(for: assistant))
+    }
+
+    private func provider(for turn: Turn) -> @MainActor () async throws -> any AIProvider {
+        { [weak self] in
+            guard let self else { throw CancellationError() }
+            return self.toolAware(
+                try await self.effectiveProvider(), scopedTo: turn.slug, allowed: turn.allowed)
+        }
+    }
+
+    /// An Assistant's own servers, narrowed by the window's tools menu; nil is every server.
+    private func allowedServers(for assistant: Assistant?) -> Set<UUID>? {
+        let scope = chat.toolScope
+        guard !isDynamic, scope != ChatToolScope() else { return assistant?.mcpServerIDs }
+        let permitted = Set(core.mcpCoordinator.servers.filter { scope.allows($0.slug) }.map(\.id))
+        return assistant.map { $0.mcpServerIDs.intersection(permitted) } ?? permitted
     }
 
     /// Only chat wraps a route in the tool loop; a text rewrite has nothing to call.
@@ -327,6 +364,138 @@ final class AIChatCoordinator {
         Paster.copyPlainText(text)
     }
 
+    /// A saved chat opened in its scope's AI Chat window, from the launcher's Chat History.
+    func openInWindow(id: UUID) {
+        guard settings.aiEnabled else { return }
+        core.aiChatWindowController.openInWindow(id: id, scope: scopeAssistantID)
+        paletteCoordinator.hidePalette()
+    }
+
+    // MARK: - The AI Chat window's chat actions
+
+    /// What the window's title and a sidebar row call a chat: rename, then generated, then derived.
+    func title(of session: ChatSession) -> String {
+        if let conversation = history.conversation(id: session.id) {
+            return conversation.displayTitle
+        }
+        return session.messages.isEmpty ? "New Chat" : session.title
+    }
+
+    func rename(id: UUID, to title: String) {
+        history.rename(id: id, to: title)
+    }
+
+    func togglePin(id: UUID) {
+        let pinned = history.conversation(id: id)?.isPinned ?? false
+        history.setPinned(!pinned, id: id)
+    }
+
+    func isPinned(id: UUID) -> Bool {
+        history.conversation(id: id)?.isPinned ?? false
+    }
+
+    /// The whole conversation as Markdown, each turn under its speaker.
+    func copyChat(id: UUID) {
+        guard let session = transcriptSession(id: id) else { return }
+        Paster.copyPlainText(session.markdownTranscript(title: title(of: session)))
+    }
+
+    func exportChat(id: UUID) {
+        guard let session = transcriptSession(id: id) else { return }
+        let title = title(of: session)
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.init(filenameExtension: "md") ?? .plainText]
+        // A slash or colon in a title would name a folder or a legacy path separator.
+        panel.nameFieldStringValue =
+            title.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
+            + ".md"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? session.markdownTranscript(title: title).write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// The live chat is the freshest copy of itself; a saved one is read back from history.
+    private func transcriptSession(id: UUID) -> ChatSession? {
+        chat.session.id == id ? chat.session : history.session(id: id)
+    }
+
+    func confirmDelete(id: UUID) async -> Bool {
+        let title = history.conversation(id: id)?.displayTitle ?? "this chat"
+        return await core.confirm(
+            title: "Delete “\(title)”?", message: "This conversation will be removed.",
+            symbol: "trash", confirmTitle: "Delete")
+    }
+
+    // MARK: - Titles
+
+    private var naming: Set<UUID> = []
+
+    /// One side request per chat, after its first finished answer; a rename is never overwritten.
+    private func nameIfNeeded(_ finished: AIChatState) {
+        let session = finished.session
+        guard let conversation = history.conversation(id: session.id),
+            conversation.customTitle == nil, conversation.generatedTitle == nil,
+            !naming.contains(session.id), let description = ChatTitle.description(of: session),
+            let model = effectiveModel, Self.namesChats(model)
+        else { return }
+        naming.insert(session.id)
+        let history = history
+        Task { [weak self] in
+            defer { self?.naming.remove(session.id) }
+            guard let provider = try? self?.core.aiProvider(for: model, cliTools: nil) else { return }
+            let request = AIRequest(
+                instructions: ChatTitle.instructions,
+                messages: [AIMessage(role: .user, text: description)], maxOutputTokens: 64)
+            var text = ""
+            do {
+                for try await event in provider.stream(request) {
+                    if case .text(let delta) = event { text += delta }
+                }
+            } catch {
+                return
+            }
+            guard let title = ChatTitle.sanitize(text) else { return }
+            history.setGeneratedTitle(title, id: session.id)
+        }
+    }
+
+    /// A CLI route would start and bill a whole process just to name a chat, so only these do.
+    private static func namesChats(_ model: AIModelSelection) -> Bool {
+        switch model.source.installedKind {
+        case nil, .codex?: true
+        case .claude?, .openCode?, .copilot?: false
+        }
+    }
+
+    // MARK: - Tools and context
+
+    /// The servers the window's tools menu offers: an Assistant's own, else every enabled one.
+    var toolServers: [MCPServer] {
+        guard capabilities.tools else { return [] }
+        let servers = core.mcpCoordinator.servers
+        guard let assistant = activeAssistant else { return servers }
+        return servers.filter { assistant.mcpServerIDs.contains($0.id) }
+    }
+
+    func setToolsEnabled(_ enabled: Bool) {
+        chat.toolScope.isEnabled = enabled
+    }
+
+    func toggleToolServer(_ slug: String) {
+        chat.toolScope.toggle(slug)
+    }
+
+    /// What the next message carries, for the window's context gauge.
+    var contextReport: ChatContextReport {
+        let session = chat.session
+        let servers = toolServers.filter { chat.toolScope.allows($0.slug) }.count
+        return ChatContextReport(
+            modelTitle: selectedModelTitle, historyBytes: session.historyBytes,
+            budget: contextBudget, sentMessages: session.sentMessageCount(textBudget: contextBudget),
+            totalMessages: session.historyMessages.count,
+            stagedFiles: chat.pendingAttachments.count,
+            totalTokens: chat.usage?.totalTokens, toolServers: servers)
+    }
+
     /// Only the default bar keeps a dragged size; Assistants and the full window never resize.
     var canResetBarSize: Bool {
         palette.aiBar && palette.activeAssistantID == nil && core.settings.aiBarSize != nil
@@ -392,10 +561,14 @@ final class AIChatCoordinator {
         }
     }
 
-    /// The model the summon uses: the assistant's, else the global default. The fall-through keeps
-    /// the default bar (`activeAssistant == nil`) byte-for-byte today's behaviour.
+    /// The model a turn uses: a window chat's own pick, else the assistant's, else the default.
     var effectiveModel: AIModelSelection? {
-        activeAssistant?.model ?? core.aiSettings.defaultModel
+        chatModel ?? activeAssistant?.model ?? core.aiSettings.defaultModel
+    }
+
+    /// Only a window chat keeps its own route; the launcher's follows its bar or its Assistant.
+    private var chatModel: AIModelSelection? {
+        isDynamic ? nil : chat.session.model
     }
 
     /// The user's arming of computer use for the active route, independent of route capabilities.
@@ -416,7 +589,7 @@ final class AIChatCoordinator {
 
     private func effectiveProvider() async throws -> any AIProvider {
         let cliTools = await cliToolConfig()
-        if let model = activeAssistant?.model {
+        if let model = chatModel ?? activeAssistant?.model {
             return try core.aiProvider(for: model, cliTools: cliTools)
         }
         return try core.aiProvider(cliTools: cliTools)
@@ -739,13 +912,14 @@ final class AIChatCoordinator {
                 subscription: core.chatGPTSubscription, installedAI: core.installedAI))
     }
 
-    /// A live model choice writes to the active Assistant, or to the global default for the bar.
+    /// A pick moves the Assistant or the default, so the next chat starts on it; a window keeps it.
     private func applyModelSelection(_ selection: AIModelSelection) {
         if let assistant = activeAssistant {
             core.assistants.setModel(selection, for: assistant.id)
         } else {
             core.aiSettings.select(selection)
         }
+        if !isDynamic { chat.setModel(selection) }
     }
 
     var reasoningEfforts: [ChatGPTSubscription.Effort] {

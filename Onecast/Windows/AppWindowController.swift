@@ -14,20 +14,25 @@ private final class AppWindow: NSWindow {
 final class AppWindowController: NSObject, NSWindowDelegate {
     private let title: String
     private let contentSize: CGSize
+    private let minimumSize: CGSize
     private let isResizable: Bool
     private let autosaveName: String?
     private let activation: ActivationPolicy
     private let closesOnEscape: Bool
-    private var window: NSWindow?
+    private(set) var window: NSWindow?
     /// Rebuilt with the window, so a chrome's state never outlives the window it decorated.
     private var chrome: WindowChrome?
+    /// Told after the window closes, however it closed.
+    var onClose: (() -> Void)?
 
+    /// `minimumSize` defaults to `contentSize`, so a window cannot shrink below where it opens.
     init(
-        title: String, contentSize: CGSize, resizable: Bool = false, autosaveName: String? = nil,
-        activation: ActivationPolicy, closesOnEscape: Bool = false
+        title: String, contentSize: CGSize, minimumSize: CGSize? = nil, resizable: Bool = false,
+        autosaveName: String? = nil, activation: ActivationPolicy, closesOnEscape: Bool = false
     ) {
         self.title = title
         self.contentSize = contentSize
+        self.minimumSize = minimumSize ?? contentSize
         self.isResizable = resizable
         self.autosaveName = autosaveName
         self.activation = activation
@@ -50,7 +55,10 @@ final class AppWindowController: NSObject, NSWindowDelegate {
 
     /// A prebuilt controller; Settings needs one to bridge its SwiftUI toolbar into the window.
     @discardableResult
-    func show(chrome: WindowChrome? = nil, contentViewController: () -> NSViewController) -> Bool {
+    func show(
+        chrome: WindowChrome? = nil, activating: Bool = true,
+        contentViewController: () -> NSViewController
+    ) -> Bool {
         if let window {
             raise(window)
             return false
@@ -59,7 +67,8 @@ final class AppWindowController: NSObject, NSWindowDelegate {
         self.chrome = chrome
         self.window = window
         activation.windowDidOpen(window)
-        raise(window)
+        // A window restored at launch comes back behind whatever the user is doing.
+        if activating { raise(window) } else { window.orderFront(nil) }
         return true
     }
 
@@ -96,6 +105,7 @@ final class AppWindowController: NSObject, NSWindowDelegate {
         self.window = nil
         self.chrome = nil
         activation.windowDidClose(window)
+        onClose?()
     }
 
     // MARK: - Private
@@ -118,7 +128,7 @@ final class AppWindowController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         // AppKit would otherwise resurrect the window at launch, before anything is wired up.
         window.isRestorable = false
-        window.contentMinSize = contentSize
+        window.contentMinSize = minimumSize
         window.delegate = self
         // Before the content: a bridged SwiftUI toolbar restores the title flags it mounted over.
         chrome?.install(in: window)

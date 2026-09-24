@@ -4,6 +4,7 @@ import SwiftUI
 struct ChatTranscriptView: View {
 
     @Environment(\.metrics) private var metrics
+    @Environment(\.chatFindHighlight) private var findHighlight
     let messages: [ChatMessage]
     let status: String?
     let showReasoning: Bool
@@ -32,7 +33,8 @@ struct ChatTranscriptView: View {
                             message: message,
                             showReasoning: showReasoning,
                             status: message.id == messages.last?.id ? status : nil,
-                            thinking: thinking && message.id == messages.last?.id
+                            thinking: thinking && message.id == messages.last?.id,
+                            isLast: message.id == messages.last?.id
                         )
                         .id(message.id)
                     }
@@ -72,6 +74,12 @@ struct ChatTranscriptView: View {
             .onChange(of: messages.count) { follow(proxy, always: true) }
             .onChange(of: messages) { follow(proxy, always: false) }
             .onChange(of: usage) { follow(proxy, always: false) }
+            // A reply scrolls its own match into view; what the reader typed is scrolled to here.
+            .onChange(of: findHighlight?.current) { _, current in
+                guard let current, current.part == ChatFindOccurrence.userPart else { return }
+                followsTail = false
+                withAnimation { proxy.scrollTo(current.messageID, anchor: .center) }
+            }
             .overlay(alignment: .bottom) {
                 ResumeFollowingButton {
                     followsTail = true
@@ -114,11 +122,15 @@ private struct ResumeFollowingButton: View {
 private struct ChatMessageView: View {
 
     @Environment(\.metrics) private var metrics
+    @Environment(\.chatTranscriptActions) private var actions
+    @Environment(\.chatFindHighlight) private var findHighlight
     let message: ChatMessage
     let showReasoning: Bool
     let status: String?
     /// Live while the model is thinking; false for any settled or non-last message.
     let thinking: Bool
+    /// Only the last reply offers its choices and a regenerate: earlier questions are settled.
+    let isLast: Bool
 
     @State private var hovered = false
 
@@ -128,6 +140,11 @@ private struct ChatMessageView: View {
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: metrics.spacing.xxs) {
                 content
                 if message.state != .streaming { footer }
+                if let choose = actions.choose, !choices.isEmpty {
+                    ChatChoiceChips(choices: choices, choose: choose)
+                        .padding(.horizontal, metrics.spacing.sm)
+                        .padding(.top, metrics.spacing.sm)
+                }
             }
             .contentShape(Rectangle())
             .onHover { isHovered in
@@ -147,7 +164,10 @@ private struct ChatMessageView: View {
     private var footer: some View {
         HStack(spacing: metrics.spacing.sm) {
             if message.role == .user { timestamp }
-            ChatCopyButton(text: message.text)
+            ChatCopyButton(text: copiedText)
+            if let regenerate = actions.regenerate, isLast, message.role == .assistant {
+                ChatRegenerateButton(action: regenerate)
+            }
             if message.role == .assistant { timestamp }
         }
         .opacity(hovered ? 1 : 0)
@@ -159,6 +179,23 @@ private struct ChatMessageView: View {
         Text(message.sentAt.formatted(date: .omitted, time: .shortened))
             .font(metrics.typography.keyCap)
             .foregroundStyle(Theme.Colors.textTertiary)
+    }
+
+    /// A reply's choices fence drew buttons, so a copy carries only its prose.
+    private var copiedText: String {
+        message.role == .assistant ? ChatChoices.split(message.text).text : message.text
+    }
+
+    /// Offered once the reply is whole, and only by the last one: earlier questions are answered.
+    private var choices: [String] {
+        guard isLast, message.role == .assistant, message.state == .complete else { return [] }
+        return ChatChoices.split(message.text).choices
+    }
+
+    /// A link mid-stream is not a source yet; a finished reply lists the pages it relied on.
+    private var references: [ChatReference] {
+        guard message.role == .assistant, message.state == .complete else { return [] }
+        return ChatReferences.extract(from: ChatChoices.split(message.text).text)
     }
 
     @ViewBuilder private var content: some View {
@@ -209,6 +246,9 @@ private struct ChatMessageView: View {
             if !message.text.isEmpty || !message.searches.isEmpty || !message.toolUses.isEmpty {
                 rendered
             }
+            if !references.isEmpty {
+                ChatSourceChips(references: references)
+            }
             if thinking, !showReasoning || message.reasoning.isEmpty {
                 thinkingIndicator
             }
@@ -239,13 +279,15 @@ private struct ChatMessageView: View {
     @ViewBuilder private var rendered: some View {
         if message.role == .assistant {
             VStack(alignment: .leading, spacing: metrics.spacing.lg) {
-                ForEach(Array(message.segments.enumerated()), id: \.offset) { _, segment in
+                ForEach(Array(message.segments.enumerated()), id: \.offset) { part, segment in
                     switch segment {
                     case .text(let text):
                         MarkdownView(
-                            markdown: text,
+                            markdown: ChatChoices.split(text).text,
                             color: message.state == .failed
-                                ? Theme.Colors.destructive : Theme.Colors.textPrimary)
+                                ? Theme.Colors.destructive : Theme.Colors.textPrimary,
+                            findNeedle: findHighlight?.needle,
+                            findCurrent: findHighlight?.current(in: message.id, part: part))
                     case .search(let search):
                         ChatSearchRow(search: search)
                     case .tools(let uses):
@@ -254,8 +296,25 @@ private struct ChatMessageView: View {
                 }
             }
         } else {
-            Text(message.text)
+            Text(highlightedUserText)
         }
+    }
+
+    /// The same match rule a reply's text view paints with, so a count is what the reader sees.
+    private var highlightedUserText: AttributedString {
+        var text = AttributedString(message.text)
+        guard let findHighlight else { return text }
+        let current = findHighlight.current(in: message.id, part: ChatFindOccurrence.userPart)
+        let ranges = ChatFindState.ranges(of: findHighlight.needle, in: message.text)
+        for (index, range) in ranges.enumerated() {
+            guard let stringRange = Range(range, in: message.text),
+                let attributedRange = Range<AttributedString.Index>(stringRange, in: text)
+            else { continue }
+            text[attributedRange].backgroundColor =
+                index == current ? Theme.Colors.findCurrent : Theme.Colors.findMatch
+            if index == current { text[attributedRange].foregroundColor = Theme.Colors.findCurrentInk }
+        }
+        return text
     }
 }
 

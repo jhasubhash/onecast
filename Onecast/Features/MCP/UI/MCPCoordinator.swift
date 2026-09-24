@@ -45,6 +45,11 @@ final class MCPCoordinator {
         return Set(store.enabledServers.map(\.slug))
     }
 
+    /// What a chat's tools menu lists: every enabled server, while MCP is on.
+    var servers: [MCPServer] {
+        isActive ? store.enabledServers : []
+    }
+
     func server(slug: String) -> MCPServer? {
         guard isActive else { return nil }
         return store.enabledServers.first { $0.slug == slug }

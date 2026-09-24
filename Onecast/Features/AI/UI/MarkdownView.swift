@@ -6,6 +6,9 @@ struct MarkdownView: NSViewRepresentable {
     @Environment(\.metrics) private var metrics
     let markdown: String
     var color: Color = Theme.Colors.textPrimary
+    /// Find in Chat's needle, and which of this view's matches is current, if it holds that one.
+    var findNeedle: String?
+    var findCurrent: Int?
 
     func makeNSView(context: Context) -> MarkdownTextView {
         MarkdownTextView()
@@ -13,6 +16,7 @@ struct MarkdownView: NSViewRepresentable {
 
     func updateNSView(_ view: MarkdownTextView, context: Context) {
         view.show(MarkdownTextView.Content(markdown: markdown, color: color, metrics: metrics))
+        view.highlight(MarkdownTextView.Highlight(needle: findNeedle, current: findCurrent))
     }
 
     func sizeThatFits(
@@ -35,6 +39,16 @@ final class MarkdownTextView: NSTextView {
     private static weak var selectionOwner: MarkdownTextView?
 
     private var content: Content?
+
+    struct Highlight: Equatable {
+        var needle: String?
+        var current: Int?
+    }
+
+    /// Re-applied after every render, since a new text storage drops the painted matches.
+    private var highlighted: Highlight?
+    private var highlightedRender = -1
+    private var renders = 0
     private var copyButtons: [(block: MarkdownCodeBlock, view: NSHostingView<AnyView>)] = []
 
     init() {
@@ -68,8 +82,51 @@ final class MarkdownTextView: NSTextView {
         let selection = selectedRange()
         storage.setAttributedString(rendered)
         if NSMaxRange(selection) <= rendered.length { setSelectedRange(selection) }
+        renders += 1
         syncCopyButtons(next.metrics)
         needsLayout = true
+    }
+
+    /// Temporary attributes paint the matches, so neither a copy nor the storage ever carries them.
+    func highlight(_ next: Highlight) {
+        guard next != highlighted || highlightedRender != renders,
+            let layout = layoutManager, let storage = textStorage
+        else { return }
+        let movedToCurrent = next.current != nil && (next != highlighted)
+        highlighted = next
+        highlightedRender = renders
+        let whole = NSRange(location: 0, length: storage.length)
+        layout.removeTemporaryAttribute(.backgroundColor, forCharacterRange: whole)
+        layout.removeTemporaryAttribute(.foregroundColor, forCharacterRange: whole)
+        guard let needle = next.needle, !needle.isEmpty else { return }
+        let ranges = ChatFindState.ranges(of: needle, in: storage.string)
+        for (index, range) in ranges.enumerated() {
+            let isCurrent = index == next.current
+            layout.addTemporaryAttribute(
+                .backgroundColor,
+                value: NSColor(isCurrent ? Theme.Colors.findCurrent : Theme.Colors.findMatch),
+                forCharacterRange: range)
+            if isCurrent {
+                layout.addTemporaryAttribute(
+                    .foregroundColor, value: NSColor(Theme.Colors.findCurrentInk),
+                    forCharacterRange: range)
+            }
+        }
+        guard movedToCurrent, let current = next.current, ranges.indices.contains(current) else {
+            return
+        }
+        let target = ranges[current]
+        // After this turn's layout, so the match has a frame to scroll to.
+        DispatchQueue.main.async { [weak self] in self?.reveal(target) }
+    }
+
+    private func reveal(_ range: NSRange) {
+        guard let layout = layoutManager, let container = textContainer,
+            NSMaxRange(range) <= (textStorage?.length ?? 0)
+        else { return }
+        let glyphs = layout.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        let rect = layout.boundingRect(forGlyphRange: glyphs, in: container)
+        scrollToVisible(rect.insetBy(dx: 0, dy: -80))
     }
 
     func height(forWidth width: CGFloat) -> CGFloat {

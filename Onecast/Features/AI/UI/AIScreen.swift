@@ -59,7 +59,8 @@ struct AIScreen: PaletteScreen {
             })
         items.append(
             PopoverMenuItem(
-                title: "Pop Out", systemImage: "macwindow.badge.plus", startsSection: true
+                title: "Pop Out", systemImage: "macwindow.badge.plus", startsSection: true,
+                shortcut: "⌘J"
             ) {
                 coordinator.popOut()
             })
@@ -115,7 +116,12 @@ struct AIScreen: PaletteScreen {
             AIChatView(
                 chat: chat, settings: settings, availability: coordinator.availability,
                 showReasoning: coordinator.activeAssistant?.showReasoning ?? settings.showReasoning,
-                onConfigure: coordinator.showSettings, onAppear: coordinator.prepareForChat))
+                onConfigure: coordinator.showSettings, onAppear: coordinator.prepareForChat)
+            .environment(
+                \.chatTranscriptActions,
+                ChatTranscriptActions(
+                    choose: { coordinator.send($0) },
+                    regenerate: coordinator.canRegenerate ? { coordinator.regenerate() } : nil)))
     }
 }
 

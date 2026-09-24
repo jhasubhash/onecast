@@ -91,12 +91,15 @@ enum ChatHistoryActionsMenu {
         conversation: ChatConversation, coordinator: AIChatCoordinator
     ) -> PopoverMenuContent {
         PopoverMenuContent(
-            header: conversation.title,
+            header: conversation.displayTitle,
             items: [
                 PopoverMenuItem(
                     title: "Open Chat", systemImage: "bubble.left.and.bubble.right", shortcut: "↵"
                 ) {
                     coordinator.openChat(id: conversation.id)
+                },
+                PopoverMenuItem(title: "Open in AI Chat Window", systemImage: "macwindow") {
+                    coordinator.openInWindow(id: conversation.id)
                 },
                 PopoverMenuItem(
                     title: "Delete Chat", systemImage: "trash", startsSection: true, shortcut: "⌃X",

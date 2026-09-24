@@ -329,8 +329,33 @@ markers as typed, table cells tab-separated, and a code card's drawn language la
 then focus and caret go back to the composer, so typing, ↵ and ⎋ never strand in read-only text.
 Because the window focuses a clicked view before `mouseDown` runs, anything looser loses the
 composer. ⌘C with no composer selection copies the reply's selection instead: `PalettePanel` answers
-it in `sendEvent` and the pop-out in `performKeyEquivalent`. The context menu's untargeted items name
-the reply, since focus has moved on before a picked item fires.
+it in `sendEvent` and the AI Chat window in its chrome's key monitor. The context menu's untargeted
+items name the reply, since focus has moved on before a picked item fires.
+
+**The AI Chat window is one per scope, each with a sidebar of that scope's chats.** ⌘J or ⌘K → Pop
+Out carries the bar's conversation, a reply still arriving included, into the default chat's or the
+Assistant's window; Chat History's **Open in AI Chat Window** opens a saved one there. The window is
+an `AppWindowController` with `AIChatWindowChrome` (toolbar: sidebar, New Chat ⌘N, Find in Chat ⌘F,
+Actions ⌘K) and an `AIChatSplitViewController`: `AIChatSidebarView` groups the scope's conversations
+as Pinned then `DateBucket`, and pins, renames, copies, exports and deletes them; `AIChatDetailView`
+is the transcript over the composer, with the model, reasoning and per-chat **Tools** menus and a
+context gauge. Each window's `AIChatWindowSession` owns its own `ChatHistoryStore`, coordinator
+(pinned to the scope) and `ChatFindState`. Opening another chat never cancels a reply: the answering
+`AIChatState` is handed off and parked, the sidebar shows its spinner, and reopening it takes the
+live state back. A window chat keeps its own model (`ChatSession.model`, stored in
+`conversation_details`); the launcher's bar never does, so a window pick cannot override the bar. The
+Tools menu narrows `ChatToolScope`, turned into the `allowed` server set the tool loop already
+takes. Quitting remembers the open windows (`closeAllForQuit`), so they reopen, unfocused, at launch.
+
+**Choices, sources, titles and Find.** A reply's closing ```choices``` fence is hidden from its text
+and drawn as buttons under the last complete reply, in the bar and the window alike; the preamble
+asks for it. A complete reply lists the pages it linked as numbered source chips (`ChatReferences`).
+Regenerate (⌘R, or the footer's arrow) drops the trailing reply and asks again. After a chat's first
+complete answer, `ChatTitle` asks its route for a short name — on-device, API and Codex routes only,
+since a Claude, OpenCode or Copilot CLI would start and bill a whole process for it; a rename always
+wins. Find in Chat searches each reply as it renders (`MarkdownRenderer` output) and what the reader
+typed, with one match rule shared by `ChatFindState.ranges` and the painting, so the count is what
+the reader sees; a reply paints matches with temporary attributes and scrolls its current one in.
 
 Tool activity persists in `message_tools` beside `message_searches`, and `ChatMessage.segments`
 interleaves the two by text offset so a reply renders what it did in the order it did it. Offsets tie
@@ -412,7 +437,9 @@ and `MCPCoordinator` the twentieth.
   that was saved before it went off.
 - Harnesses: `ai-provider-test` (endpoints, request bodies, stream decoding, persistence repair,
   Codex framing, on-device routing), `ai-chat-test` (`ChatSession`, `MarkdownBlock`, the copy text
-  `MarkdownRenderer` gives a selection, `ChatHistoryStore`, `AIToolLoopProvider`),
+  `MarkdownRenderer` gives a selection, `ChatHistoryStore` with renames, pins, generated titles and
+  per-chat models, regenerate, export, `ChatTitle`, `ChatChoices`, `ChatReferences`,
+  `ChatToolScope`, `AIToolLoopProvider`),
   `codex-turn-test` (the Stop path, driven against a stub app-server stalled where Stop races the
   turn ID, plus the no-config-mutation boundary), `installed-ai-test` (Claude/OpenCode flags, prompt
   framing, streaming and cleanup) and `apple-intelligence-test` (status copy, snapshot deltas,

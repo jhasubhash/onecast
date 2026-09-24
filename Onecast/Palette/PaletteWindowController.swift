@@ -450,6 +450,10 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             case "w":
                 self.core.paletteCoordinator.hidePalette()
                 return true
+            // ⌘J carries the chat on screen into its AI Chat window, reply and all.
+            case "j" where self.core.palette.mode == .ai:
+                self.core.aiChatCoordinator.popOut()
+                return true
             default:
                 return false
             }

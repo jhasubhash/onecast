@@ -106,7 +106,7 @@ private struct ChatHistoryRow: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.secondary))
             VStack(alignment: .leading, spacing: metrics.spacing.xxs) {
-                Text(conversation.title)
+                Text(conversation.displayTitle)
                     .font(metrics.typography.rowTitle)
                     .lineLimit(1)
                 if !conversation.preview.isEmpty {

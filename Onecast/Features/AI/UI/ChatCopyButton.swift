@@ -36,3 +36,21 @@ struct ChatCopyButton: View {
         return Theme.Colors.textSecondary
     }
 }
+
+/// Asks the last question again, replacing the reply beside it.
+struct ChatRegenerateButton: View {
+    @Environment(\.metrics) private var metrics
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "arrow.clockwise")
+                .font(metrics.typography.keyCap)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .frame(width: metrics.size.chatMessageAction, height: metrics.size.chatMessageAction)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Regenerate Response")
+    }
+}

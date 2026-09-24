@@ -307,6 +307,21 @@ stranded typing and ⎋ in read-only text.
 ⌘C with an empty composer, then right-click → Copy. Both must paste one line per paragraph or item,
 `•`/`1.` markers, tab-separated cells, no blank lines. ⌘A in the composer then ⌘C copies the draft.
 
+### AI chat windows never reopened after a quit — 2026-09
+
+**Symptom.** A pop-out left open was gone on the next launch, though the code saved open windows.
+**Cause.** Termination closed every window, and each close saved the list, so it was empty by exit.
+**Fix.** `closeAllForQuit` closes without saving; closing a window by hand still forgets it.
+**Check.** Open an AI Chat window, quit with ⌘Q, relaunch: it reopens on the same chat, unfocused.
+
+### A default-scope chat window listed no chats — 2026-09
+
+**Symptom.** The default chat's window opened empty, and one restored at launch opened a fresh chat.
+**Cause.** Its store is born scoped to the default chat, so `setScope(nil)` returned before loading.
+**Fix.** The window loads its store when it is made. Its typing also lands in the composer: AppKit
+would give first responder to the sidebar's search, so the split view focuses the composer itself.
+**Check.** ⌘J from the bar: the sidebar lists the day's chats, and typing at once fills the composer.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.
