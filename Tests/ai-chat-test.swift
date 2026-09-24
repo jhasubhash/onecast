@@ -37,6 +37,13 @@ struct AIChatTests {
         leavingAConversationDropsItsStagedImages()
         retentionPrunesByAgeAndCascades()
         segmentsInterleaveSearchesAndTools()
+        consecutiveToolCallsMerge()
+        searchesSeparateToolRuns()
+        arrivalOrderBreaksOffsetTies()
+        await arrivalOrderSurvivesTheReplyAndReload()
+        textSeparatesToolRuns()
+        singleToolCallsStaySingle()
+        toolRunsDescribeTheirState()
         await theToolLoopRunsUntilTheModelStopsAsking()
         await theToolLoopRefusesToRunForever()
         await anUnlimitedToolLoopRunsPastEveryStep()
@@ -52,29 +59,204 @@ struct AIChatTests {
     static func segmentsInterleaveSearchesAndTools() {
         let message = ChatMessage(
             role: .assistant, text: "abcdef",
-            searches: [ChatSearch(query: "q", isComplete: true, textOffset: 4)],
+            searches: [ChatSearch(query: "q", isComplete: true, textOffset: 4, sequence: 1)],
             toolUses: [
                 ChatToolUse(
-                    callID: "1", origin: "Files", title: "read", state: .completed, textOffset: 2)
+                    callID: "1", origin: "Files", title: "read", state: .completed, textOffset: 2,
+                    sequence: 0)
             ])
         expect(
             message.segments == [
                 .text("ab"),
-                .tool(
+                .tools([
                     ChatToolUse(
                         callID: "1", origin: "Files", title: "read", state: .completed,
-                        textOffset: 2)),
+                        textOffset: 2, sequence: 0)]),
                 .text("cd"),
-                .search(ChatSearch(query: "q", isComplete: true, textOffset: 4)),
+                .search(ChatSearch(query: "q", isComplete: true, textOffset: 4, sequence: 1)),
                 .text("ef")
             ],
             "segments interleave by offset, whichever kind of interruption came first")
         expect(
             ChatToolUse(
-                callID: "1", origin: "Files", title: "read", state: .running, textOffset: 0
+                callID: "1", origin: "Files", title: "read", state: .running, textOffset: 0,
+                sequence: 0
             ).label
                 == "Calling Files · read",
             "a running call says so, and names the server it is calling")
+    }
+
+    static func consecutiveToolCallsMerge() {
+        let uses = [
+            ChatToolUse(
+                callID: "1", origin: "Files", title: "read", state: .completed, textOffset: 2,
+                sequence: 0),
+            ChatToolUse(
+                callID: "2", origin: "Files", title: "list", state: .failed, textOffset: 2,
+                sequence: 1),
+            ChatToolUse(
+                callID: "3", origin: "Files", title: "find", state: .running, textOffset: 2,
+                sequence: 2)
+        ]
+        let message = ChatMessage(role: .assistant, text: "abcd", toolUses: uses)
+        expect(
+            message.segments == [.text("ab"), .tools(uses), .text("cd")],
+            "consecutive calls form one run in call order, regardless of state")
+    }
+
+    /// No text has arrived, so every offset is 0 and only the order they came in can place them.
+    static func searchesSeparateToolRuns() {
+        let first = ChatToolUse(
+            callID: "1", origin: "Files", title: "read", state: .completed, textOffset: 0,
+            sequence: 0)
+        let last = ChatToolUse(
+            callID: "2", origin: "Files", title: "list", state: .completed, textOffset: 0,
+            sequence: 3)
+        let searches = [
+            ChatSearch(query: "one", isComplete: true, textOffset: 0, sequence: 1),
+            ChatSearch(query: "two", isComplete: true, textOffset: 0, sequence: 2)
+        ]
+        let message = ChatMessage(
+            role: .assistant, text: "", searches: searches, toolUses: [first, last])
+        expect(
+            message.segments == [
+                .tools([first]), .search(searches[0]), .search(searches[1]), .tools([last])
+            ],
+            "searches stay separate and break tool runs in a reply with no text")
+    }
+
+    static func arrivalOrderBreaksOffsetTies() {
+        let first = ChatToolUse(
+            callID: "1", origin: "Files", title: "read", state: .completed, textOffset: 2,
+            sequence: 0)
+        let search = ChatSearch(query: "q", isComplete: true, textOffset: 2, sequence: 1)
+        let last = ChatToolUse(
+            callID: "2", origin: "Files", title: "list", state: .completed, textOffset: 2,
+            sequence: 2)
+        let message = ChatMessage(
+            role: .assistant, text: "abcd", searches: [search], toolUses: [first, last])
+        expect(
+            message.segments == [
+                .text("ab"), .tools([first]), .search(search), .tools([last]), .text("cd")
+            ],
+            "at one offset a call, a search and a call keep the order they came in")
+    }
+
+    /// Created live, stored and reloaded: the order has to come through all three.
+    static func arrivalOrderSurvivesTheReplyAndReload() async {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("onecast-ai-order-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let chat = AIChatState(history: ChatHistoryStore(directory: directory))
+        let provider = ScriptedProvider(rounds: [
+            [
+                .toolCall(id: "a", origin: "Files", title: "read"),
+                .toolResult(id: "a", isError: false),
+                .searching("news"),
+                .searched("news"),
+                .toolCall(id: "b", origin: "Files", title: "list"),
+                .toolResult(id: "b", isError: false),
+                .text("Done."),
+                .finished
+            ]
+        ])
+        expect(chat.send("go", using: { provider }), "the turn starts")
+        var waited = 0
+        while chat.isStreaming, waited < 400 {
+            try? await Task.sleep(for: .milliseconds(5))
+            waited += 1
+        }
+        let expected = ["tools a", "search news", "tools b", "text Done."]
+        expect(
+            shape(chat.session.messages.last?.segments) == expected,
+            "a search between two calls parts them, live, before any text has arrived")
+
+        let database = directory.appendingPathComponent("ai-chats.sqlite3")
+        let reloaded = ChatHistoryStore(directory: directory).session(id: chat.session.id)
+        expect(
+            shape(reloaded?.messages.last?.segments) == expected,
+            "and still parts them once the chat is reopened from history")
+        expect(
+            count(database, "SELECT position FROM message_searches") == 1,
+            "a search's position is its place among the reply's searches and calls")
+
+        expect(
+            tamper(
+                database,
+                """
+                UPDATE message_searches SET position = 0;
+                UPDATE message_tools SET position = 1 WHERE call_id = 'b';
+                """),
+            "the harness can store positions the way they were stored before")
+        let older = ChatHistoryStore(directory: directory).session(id: chat.session.id)
+        expect(
+            shape(older?.messages.last?.segments) == ["search news", "tools a,b", "text Done."],
+            "a chat stored with each table's own positions loads, a tie going to the search")
+    }
+
+    static func shape(_ segments: [ChatSegment]?) -> [String] {
+        (segments ?? []).map {
+            switch $0 {
+            case .text(let text): "text \(text)"
+            case .search(let search): "search \(search.query ?? "")"
+            case .tools(let uses): "tools \(uses.map(\.callID).joined(separator: ","))"
+            }
+        }
+    }
+
+    static func textSeparatesToolRuns() {
+        let first = ChatToolUse(
+            callID: "1", origin: "Files", title: "read", state: .completed, textOffset: 0,
+            sequence: 0)
+        let last = ChatToolUse(
+            callID: "2", origin: "Files", title: "list", state: .completed, textOffset: 1,
+            sequence: 1)
+        let message = ChatMessage(role: .assistant, text: " ", toolUses: [first, last])
+        expect(
+            message.segments == [.tools([first]), .text(" "), .tools([last])],
+            "even whitespace between calls separates their runs")
+    }
+
+    static func singleToolCallsStaySingle() {
+        let use = ChatToolUse(
+            callID: "1", origin: "Files", title: "read", state: .completed, textOffset: 0,
+            sequence: 0)
+        let message = ChatMessage(role: .assistant, text: "", toolUses: [use])
+        expect(message.segments == [.tools([use])], "a lone call remains a run of one")
+        expect(
+            ChatMessage(role: .assistant, text: "").segments.isEmpty,
+            "a reply without calls never creates an empty run")
+    }
+
+    static func toolRunsDescribeTheirState() {
+        var uses = [
+            ChatToolUse(
+                callID: "1", origin: "Files", title: "read", state: .running, textOffset: 0,
+                sequence: 0),
+            ChatToolUse(
+                callID: "2", origin: "Files", title: "list", state: .running, textOffset: 0,
+                sequence: 1),
+            ChatToolUse(
+                callID: "3", origin: "Files", title: "find", state: .failed, textOffset: 0,
+                sequence: 2)
+        ]
+        expect(uses.isLive, "any running call keeps the run live")
+        expect(uses.runningCall == uses[1], "the latest running call owns the live line")
+        expect(uses.failedCount == 1, "failures are counted while other calls are running")
+        uses[1].state = .completed
+        expect(uses.isLive, "finishing one call cannot settle another that is still running")
+        expect(uses.runningCall == uses[0], "the remaining running call owns the live line")
+        uses[0].state = .completed
+        expect(!uses.isLive && uses.runningCall == nil, "a settled run has no running call")
+        expect(uses.completedLabel == "Called 3 tools · 1 failed", "the summary names one failure")
+        uses[0].state = .failed
+        expect(uses.failedCount == 2, "every failed call is counted")
+        expect(uses.completedLabel == "Called 3 tools · 2 failed", "the summary names all failures")
+        uses[0].state = .completed
+        uses[2].state = .completed
+        expect(uses.failedCount == 0, "successful runs have no failures")
+        expect(uses.completedLabel == "Called 3 tools", "successful summaries omit failures")
     }
 
     static func theToolLoopRunsUntilTheModelStopsAsking() async {
@@ -200,10 +382,10 @@ struct AIChatTests {
                 toolUses: [
                     ChatToolUse(
                         callID: "c1", origin: "Files", title: "read", state: .completed,
-                        textOffset: 3),
+                        textOffset: 3, sequence: 0),
                     ChatToolUse(
                         callID: "c2", origin: "Files", title: "write", state: .running,
-                        textOffset: 7)
+                        textOffset: 7, sequence: 1)
                 ]))
         store.save(session)
 
@@ -431,11 +613,11 @@ struct AIChatTests {
             ChatMessage(
                 role: .assistant, text: "Partial", state: .streaming,
                 sentAt: created.addingTimeInterval(1),
-                searches: [ChatSearch(query: "india news", isComplete: false, textOffset: 3)]))
+                searches: [ChatSearch(query: "india news", isComplete: false, textOffset: 3, sequence: 0)]))
         expect(
             session.messages.last?.segments == [
                 .text("Par"),
-                .search(ChatSearch(query: "india news", isComplete: false, textOffset: 3)),
+                .search(ChatSearch(query: "india news", isComplete: false, textOffset: 3, sequence: 0)),
                 .text("tial")
             ],
             "a search splits the reply where it happened")
@@ -452,7 +634,7 @@ struct AIChatTests {
         expect(loaded?.messages.first?.images == [picture], "attached images survive reopening")
         expect(
             loaded?.messages.last?.searches
-                == [ChatSearch(query: "india news", isComplete: true, textOffset: 3)],
+                == [ChatSearch(query: "india news", isComplete: true, textOffset: 3, sequence: 0)],
             "searches survive reopening and are always finished")
         expect(
             session.requestMessages().first?.images == [picture],
@@ -498,7 +680,7 @@ struct AIChatTests {
         if var reply = session.messages.last {
             reply.text = "Reply two"
             reply.state = .complete
-            reply.searches = [ChatSearch(query: "docs", isComplete: true, textOffset: 0)]
+            reply.searches = [ChatSearch(query: "docs", isComplete: true, textOffset: 0, sequence: 0)]
             session.replaceLast(with: reply)
         }
         store.save(session)
@@ -513,7 +695,7 @@ struct AIChatTests {
         expect(loaded?.messages.last?.text == "Reply two", "the mutable tail row is rewritten")
         expect(
             loaded?.messages.last?.searches
-                == [ChatSearch(query: "docs", isComplete: true, textOffset: 0)],
+                == [ChatSearch(query: "docs", isComplete: true, textOffset: 0, sequence: 0)],
             "tail searches reinsert without tripping their primary key")
 
         expect(
@@ -544,7 +726,7 @@ struct AIChatTests {
             ChatMessage(
                 role: .assistant, text: "Cut", state: .streaming,
                 sentAt: created.addingTimeInterval(1),
-                searches: [ChatSearch(query: "news", isComplete: false, textOffset: 1)]))
+                searches: [ChatSearch(query: "news", isComplete: false, textOffset: 1, sequence: 0)]))
         ChatHistoryStore(directory: directory).save(session)
 
         let reopened = ChatHistoryStore(directory: directory)
@@ -561,7 +743,7 @@ struct AIChatTests {
             "saving a settled chat persists the interrupted state")
         expect(
             verified?.messages.last?.searches
-                == [ChatSearch(query: "news", isComplete: true, textOffset: 1)],
+                == [ChatSearch(query: "news", isComplete: true, textOffset: 1, sequence: 0)],
             "a repaired tail keeps its searches")
     }
 
@@ -826,14 +1008,14 @@ struct AIChatTests {
         let message = ChatMessage(
             role: .assistant, text: "abc",
             searches: [
-                ChatSearch(query: nil, isComplete: true, textOffset: 0),
-                ChatSearch(query: "late", isComplete: true, textOffset: 99)
+                ChatSearch(query: nil, isComplete: true, textOffset: 0, sequence: 0),
+                ChatSearch(query: "late", isComplete: true, textOffset: 99, sequence: 1)
             ])
         expect(
             message.segments == [
-                .search(ChatSearch(query: nil, isComplete: true, textOffset: 0)),
+                .search(ChatSearch(query: nil, isComplete: true, textOffset: 0, sequence: 0)),
                 .text("abc"),
-                .search(ChatSearch(query: "late", isComplete: true, textOffset: 99))
+                .search(ChatSearch(query: "late", isComplete: true, textOffset: 99, sequence: 1))
             ],
             "a search at the start or past the end never produces an empty text segment")
     }

@@ -3,13 +3,14 @@ import SwiftUI
 /// A hover label in Onecast's own vocabulary, replacing a system `.help()` tooltip.
 private struct TooltipModifier: ViewModifier {
     let text: String?
+    let edge: VerticalEdge
     @State private var hovered = false
     @Environment(\.metrics) private var metrics
 
     func body(content: Content) -> some View {
         content
             .onHover { hovered = text != nil && $0 }
-            .overlay(alignment: .top) {
+            .overlay(alignment: edge == .top ? .top : .bottom) {
                 if let text, hovered {
                     Text(text)
                         .font(metrics.typography.keyCap)
@@ -19,7 +20,9 @@ private struct TooltipModifier: ViewModifier {
                         .background(Capsule().fill(Theme.Colors.controlSurface))
                         .overlay(Capsule().strokeBorder(Theme.Colors.border, lineWidth: 1))
                         .fixedSize()
-                        .offset(y: -metrics.spacing.xxl)
+                        // A zero-height frame on the control's edge, so a label of any height hangs off it.
+                        .frame(height: 0, alignment: edge == .top ? .bottom : .top)
+                        .offset(y: edge == .top ? -metrics.spacing.sm : metrics.spacing.sm)
                         .transition(.opacity)
                         .allowsHitTesting(false)
                 }
@@ -29,8 +32,8 @@ private struct TooltipModifier: ViewModifier {
 }
 
 extension View {
-    /// Hover label styled like the palette's keycap chips, for our own chrome.
-    func tooltip(_ text: String?) -> some View {
-        modifier(TooltipModifier(text: text))
+    /// Hover label styled like the palette's keycap chips; hang it `.bottom` at a window's top.
+    func tooltip(_ text: String?, edge: VerticalEdge = .top) -> some View {
+        modifier(TooltipModifier(text: text, edge: edge))
     }
 }
