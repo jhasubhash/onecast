@@ -47,10 +47,12 @@ struct AIToolLoopProvider: AIProvider {
         var spent = 0
         var carried = 0
         var rounds = 0
+        var billed = 0.0
         while maxRounds.map({ rounds < $0 }) ?? (carried < Self.maxTurnHistoryBytes) {
             rounds += 1
             let round = try await streamRound(
-                request.continuing(with: messages, tools: tools), into: continuation)
+                request.continuing(with: messages, tools: tools), billed: billed, into: continuation)
+            billed = round.billed
             guard !round.calls.isEmpty else {
                 continuation.yield(.finished)
                 return
@@ -73,12 +75,13 @@ struct AIToolLoopProvider: AIProvider {
         throw AIProviderError.responseFailed("Stopped after \(rounds) rounds of tool calls.")
     }
 
-    /// One pass over the base route: text flows straight to the transcript, calls are collected.
+    /// One pass over the base route; a prompt holds every earlier round, so only cost adds up.
     private func streamRound(
-        _ request: AIRequest, into continuation: AIProviderStream.Continuation
-    ) async throws -> (text: String, calls: [AIToolCall]) {
+        _ request: AIRequest, billed: Double, into continuation: AIProviderStream.Continuation
+    ) async throws -> (text: String, calls: [AIToolCall], billed: Double) {
         var text = ""
         var calls: [AIToolCall] = []
+        var roundCost = 0.0
         for try await event in base.stream(request) {
             try Task.checkCancellation()
             switch event {
@@ -87,6 +90,10 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(event)
             case .toolCallRequested(let call):
                 calls.append(call)
+            case .usage(var usage):
+                roundCost = usage.costUSD ?? roundCost
+                usage.costUSD = usage.costUSD.map { billed + $0 }
+                continuation.yield(.usage(usage))
             // `.finished` is the loop's to send, once the model has stopped asking for tools.
             case .finished:
                 break
@@ -94,7 +101,7 @@ struct AIToolLoopProvider: AIProvider {
                 continuation.yield(event)
             }
         }
-        return (text, calls)
+        return (text, calls, billed + roundCost)
     }
 
     private func bounded(_ result: AIToolResult, spent: inout Int) -> AIToolResult {

@@ -41,6 +41,8 @@ struct AIChatTests {
         searchesSeparateToolRuns()
         arrivalOrderBreaksOffsetTies()
         await arrivalOrderSurvivesTheReplyAndReload()
+        await reasoningStretchesSitWhereTheyHappenedAndReload()
+        await theToolLoopBillsEveryRound()
         textSeparatesToolRuns()
         singleToolCallsStaySingle()
         toolRunsDescribeTheirState()
@@ -203,12 +205,83 @@ struct AIChatTests {
             "a chat stored with each table's own positions loads, a tie going to the search")
     }
 
+    /// Thinking is split into the stretches the reply spent on it, each kept where it happened.
+    static func reasoningStretchesSitWhereTheyHappenedAndReload() async {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("onecast-ai-thinking-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let chat = AIChatState(history: ChatHistoryStore(directory: directory))
+        let usage = AIUsage(
+            inputTokens: 10, outputTokens: 5, cachedInputTokens: 90, reasoningTokens: 3,
+            contextWindow: 200_000, costUSD: 0.25)
+        let provider = ScriptedProvider(rounds: [
+            [
+                .thinking,
+                .reasoning("Plan"), .reasoning(" it"),
+                .toolCall(id: "a", origin: "Files", title: "read"),
+                .toolResult(id: "a", isError: false),
+                .reasoning("\n\n"), .reasoning("Check"),
+                .text("Answer"),
+                .reasoning("Again"),
+                .text(" end"),
+                .usage(usage),
+                .finished
+            ]
+        ])
+        expect(chat.send("go", using: { provider }), "the turn starts")
+        var waited = 0
+        while chat.isStreaming, waited < 400 {
+            try? await Task.sleep(for: .milliseconds(5))
+            waited += 1
+        }
+        let expected = [
+            "think Plan it", "tools a", "think Check", "text Answer", "think Again", "text  end"
+        ]
+        let reply = chat.session.messages.last
+        expect(
+            shape(reply?.segments) == expected,
+            "thinking after a call follows the call, and thinking mid-answer parts the text")
+        expect(reply?.text == "Answer end", "no thought ever leaks into the answer")
+        expect(
+            reply?.reasoning.allSatisfy { $0.duration != nil } == true,
+            "every stretch is timed once the reply moves on or ends")
+        expect(chat.usage == usage, "the reply keeps what its route reported")
+
+        let reloaded = ChatHistoryStore(directory: directory).session(id: chat.session.id)
+        let stored = reloaded?.messages.last
+        expect(shape(stored?.segments) == expected, "and the chat reopens with them in place")
+        expect(
+            stored?.reasoning.map(\.duration) == reply?.reasoning.map(\.duration),
+            "with each stretch's time")
+        expect(stored?.usage == usage, "and the reply's usage, cost and window included")
+    }
+
+    /// Every round is billed, but a later prompt holds the earlier ones, so tokens never add.
+    static func theToolLoopBillsEveryRound() async {
+        let base = ScriptedProvider(rounds: [
+            [
+                .usage(AIUsage(inputTokens: 100, outputTokens: 10, costUSD: 0.5)),
+                .toolCallRequested(AIToolCall(id: "c1", name: "fs__read", arguments: "{}"))
+            ],
+            [.usage(AIUsage(inputTokens: 150, outputTokens: 20, costUSD: 0.25)), .finished]
+        ])
+        let events = await collect(loop(base, RecordingInvoker(result: "x")))
+        let last = events.compactMap { event -> AIUsage? in
+            if case .usage(let usage) = event { return usage }
+            return nil
+        }.last
+        expect(last?.costUSD == 0.75, "the reply's cost is every round's together")
+        expect(last?.inputTokens == 150, "while its tokens are the last round's, the live context")
+    }
+
     static func shape(_ segments: [ChatSegment]?) -> [String] {
         (segments ?? []).map {
             switch $0 {
             case .text(let text): "text \(text)"
             case .search(let search): "search \(search.query ?? "")"
             case .tools(let uses): "tools \(uses.map(\.callID).joined(separator: ","))"
+            case .reasoning(let block): "think \(block.text)"
             }
         }
     }

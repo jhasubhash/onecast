@@ -576,9 +576,12 @@ struct AIProviderTests {
             """
             data: {"choices":[{"delta":{"reasoning":"working"}}]}
 
+            data: {"choices":[{"delta":{"reasoning_content":"still"}}]}
+
             data: {"choices":[{"delta":{"content":"Hello"}}]}
 
-            data: {"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":2}}
+            data: {"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":2,"cost":0.5,\
+            "completion_tokens_details":{"reasoning_tokens":1}}}
 
             data: [DONE]
 
@@ -586,18 +589,24 @@ struct AIProviderTests {
         var events = (try? openAI.feed(openAIData)) ?? []
         events += (try? openAI.finish()) ?? []
         expect(
-            events.contains { if case .thinking(let r) = $0 { return r == "working" } else { return false } },
-            "reasoning streams as thinking text, not answer text")
+            events.contains(.reasoning("working")) && events.contains(.reasoning("still")),
+            "OpenRouter's and DeepSeek's reasoning both stream as reasoning, not answer text")
         expect(events.contains(.text("Hello")), "OpenAI-compatible text is decoded")
         expect(
-            events.contains(.usage(AIUsage(inputTokens: 3, outputTokens: 2))),
-            "OpenAI-compatible usage is decoded")
+            events.contains(
+                .usage(AIUsage(inputTokens: 3, outputTokens: 2, reasoningTokens: 1, costUSD: 0.5))),
+            "OpenAI-compatible usage carries its thinking tokens and OpenRouter's cost")
         expect(events.last == .finished, "the OpenAI done marker terminates the stream")
 
         var anthropic = AIStreamDecoder(shape: .anthropic)
         let anthropicData = Data(
             """
-            data: {"type":"message_start","message":{"usage":{"input_tokens":4}}}
+            data: {"type":"message_start","message":{"usage":{"input_tokens":4,\
+            "cache_read_input_tokens":30,"cache_creation_input_tokens":5}}}
+
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking"}}
+
+            data: {"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"Hmm"}}
 
             data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}
 
@@ -610,8 +619,12 @@ struct AIProviderTests {
         anthropicEvents += (try? anthropic.finish()) ?? []
         expect(anthropicEvents.contains(.text("Hi")), "Anthropic text is decoded")
         expect(
-            anthropicEvents.contains(.usage(AIUsage(inputTokens: 4, outputTokens: 1))),
-            "Anthropic usage accumulates across events")
+            anthropicEvents.contains(.reasoning("Hmm")),
+            "Anthropic thinking streams as reasoning")
+        expect(
+            anthropicEvents.contains(
+                .usage(AIUsage(inputTokens: 4, outputTokens: 1, cachedInputTokens: 35))),
+            "Anthropic usage accumulates across events, cached prompt tokens counted apart")
         expect(anthropicEvents.last == .finished, "Anthropic message_stop terminates the stream")
     }
 

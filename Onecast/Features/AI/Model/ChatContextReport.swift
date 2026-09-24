@@ -8,8 +8,8 @@ struct ChatContextReport: Equatable, Sendable {
     let sentMessages: Int
     let totalMessages: Int
     let stagedFiles: Int
-    /// What the last reply reported spending, when its route reports it at all.
-    let totalTokens: Int?
+    /// What the last reply reported, when its route reports it at all.
+    let usage: AIUsage?
     let toolServers: Int
 
     /// Past 1 the oldest turns stop going out; an estimate, since not every route counts tokens.

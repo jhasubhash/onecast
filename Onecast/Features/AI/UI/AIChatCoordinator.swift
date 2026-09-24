@@ -493,7 +493,7 @@ final class AIChatCoordinator {
             budget: contextBudget, sentMessages: session.sentMessageCount(textBudget: contextBudget),
             totalMessages: session.historyMessages.count,
             stagedFiles: chat.pendingAttachments.count,
-            totalTokens: chat.usage?.totalTokens, toolServers: servers)
+            usage: chat.usage, toolServers: servers)
     }
 
     /// Only the default bar keeps a dragged size; Assistants and the full window never resize.

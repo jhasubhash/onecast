@@ -263,8 +263,13 @@ was, and the choice rides in `AIModelSelection.effort` like every other route's.
 
 `AIProvider.stream(_:)` accepts provider-neutral messages, optional instructions, a maximum output
 token count and the tools the turn may call. It returns an `AsyncThrowingStream` of text, thinking
-state, tool activity, usage and completion. OpenAI-
-compatible reasoning fields are surfaced as `.thinking`, never mixed into answer text. Anthropic
+state, reasoning text, tool activity, usage and completion. `.thinking` is only the route saying the
+model is thinking; `.reasoning` carries what it shares of it (OpenRouter's `reasoning`, DeepSeek's
+`reasoning_content`, Anthropic and Claude CLI thinking blocks, Codex's reasoning summaries), never
+mixed into answer text and never sent back as context. `AIUsage` carries cached and thinking tokens,
+the window where a route names one (Claude's CLI) and cost where one is reported (OpenRouter, Claude's
+CLI); the tool loop adds each round's cost, but keeps the last round's tokens, whose prompt already
+holds the rounds before it. Anthropic
 system messages are lifted into its top-level `system` field; the other HTTP routes keep system
 messages in the OpenAI message array.
 
@@ -309,8 +314,13 @@ The second footer control is the palette's normal Actions (`⌘K`) menu. It owns
 and AI Settings, plus Stop Response and Copy Last Response when those actions apply. Chat adds no
 separate footer design and no independent window.
 
-`AIChatState` turns provider-neutral stream events into one live assistant message. Thinking state is
-shown without entering the transcript, partial text is preserved on failure, cancellation invalidates
+`AIChatState` turns provider-neutral stream events into one live assistant message. Reasoning lands
+in `ChatMessage.reasoning` as `ChatReasoning` blocks, one per stretch of thinking: a stretch closes
+when text, a search or a call arrives, or the reply ends, and records how long it ran, so a reply
+that thinks, calls, thinks and answers shows each where it happened. Nothing is inferred from the
+stream going quiet; "Thinking…" appears only when the route says so. A block streams open while live
+if **Stream reasoning** is on, folds to "Thought for Ns" once it ends, and keeps a reader's own toggle.
+Partial text is preserved on failure, cancellation invalidates
 the active generation, and only completed assistant messages become context for the next request.
 Assistant replies render Markdown; user messages remain literal. A reply keeps streaming while the
 palette is hidden or showing another screen — the state is `AppCore`'s, not the view's — and is
@@ -353,15 +363,19 @@ asks for it. A complete reply lists the pages it linked as numbered source chips
 Regenerate (⌘R, or the footer's arrow) drops the trailing reply and asks again. After a chat's first
 complete answer, `ChatTitle` asks its route for a short name — on-device, API and Codex routes only,
 since a Claude, OpenCode or Copilot CLI would start and bill a whole process for it; a rename always
-wins. Find in Chat searches each reply as it renders (`MarkdownRenderer` output) and what the reader
-typed, with one match rule shared by `ChatFindState.ranges` and the painting, so the count is what
-the reader sees; a reply paints matches with temporary attributes and scrolls its current one in.
+wins. Find in Chat searches each reply as it renders (`MarkdownRenderer` output), its thinking and
+what the reader typed, with one match rule shared by `ChatFindState.ranges` and the painting, so the
+count is what the reader sees; a reply paints matches with temporary attributes and scrolls its
+current one in, and a folded block holding the current match opens. The context gauge's card lists
+the last reply's tokens in context (of the window, when known), input with cached, output with
+thinking, and cost.
 
-Tool activity persists in `message_tools` beside `message_searches`, and `ChatMessage.segments`
-interleaves the two by text offset so a reply renders what it did in the order it did it. Offsets tie
-whenever no text arrived between two of them, so each search and call also takes a `sequence` — its
-place among the reply's searches and calls — as it is created, and that breaks the tie. Both tables
-store it as their `position`, so no column was added; a chat saved earlier holds each table's own
+Tool activity persists in `message_tools` beside `message_searches`, thinking in `message_thinking`
+(text, offset, duration) and each reply's usage in `message_usage`; `ChatMessage.segments`
+interleaves them by text offset so a reply renders what it did in the order it did it. Offsets tie
+whenever no text arrived between two of them, so each search, call and stretch of thinking also
+takes a `sequence` — its place among the reply's — as it is created, and that breaks the tie. The
+tables store it as their `position`; a chat saved earlier holds each table's own
 index there, so its ties go by that index and then to the search. Consecutive tool calls render as
 one run: the latest running call while live, then an expandable count with any failures once done.
 Text and searches separate runs; a single call keeps its own row. A call loaded still marked running
@@ -439,7 +453,8 @@ and `MCPCoordinator` the twentieth.
   Codex framing, on-device routing), `ai-chat-test` (`ChatSession`, `MarkdownBlock`, the copy text
   `MarkdownRenderer` gives a selection, `ChatHistoryStore` with renames, pins, generated titles and
   per-chat models, regenerate, export, `ChatTitle`, `ChatChoices`, `ChatReferences`,
-  `ChatToolScope`, `AIToolLoopProvider`),
+  `ChatToolScope`, `AIToolLoopProvider` with its per-round cost, reasoning stretches placed, timed
+  and reloaded),
   `codex-turn-test` (the Stop path, driven against a stub app-server stalled where Stop races the
   turn ID, plus the no-config-mutation boundary), `installed-ai-test` (Claude/OpenCode flags, prompt
   framing, streaming and cleanup) and `apple-intelligence-test` (status copy, snapshot deltas,
@@ -464,8 +479,9 @@ windows come from the supported app-server protocol.
 `CodexTurnRunner` is the generation half behind `CodexInstalledProvider`.
 
 It creates an ephemeral thread for each request, injects prior user/assistant messages, and
-streams agent-message deltas, plus `item/started` for the reasoning and web-search items that feed the
-bubble's status line. System messages become developer instructions alongside Onecast's fixed
+streams agent-message deltas and reasoning-summary deltas (a paragraph break between summary parts),
+plus `item/started` for the reasoning and web-search items that feed the bubble's status line.
+System messages become developer instructions alongside Onecast's fixed
 no-tools boundary. Cancellation interrupts the active turn, including one the server has started but
 not yet named: Stop arms that thread, and whichever of `turn/started` or the `turn/start` response
 names the turn first spends a single `turn/interrupt` on it.

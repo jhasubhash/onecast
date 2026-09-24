@@ -373,7 +373,17 @@ private struct ChatContextGauge: View {
             row("Messages", "\(report.sentMessages) of \(report.totalMessages) sent")
             if report.stagedFiles > 0 { row("Attached", "\(report.stagedFiles)") }
             if report.toolServers > 0 { row("MCP servers", "\(report.toolServers)") }
-            if let tokens = report.totalTokens { row("Last reply", "\(tokens.formatted()) tokens") }
+            if let usage = report.usage, let context = usage.contextTokens {
+                Text("Last reply")
+                    .font(metrics.typography.sectionHeader)
+                    .padding(.top, metrics.spacing.xs)
+                row("In context", tokens(context, of: usage.contextWindow))
+                row("Input", input(usage))
+                row("Output", output(usage))
+                if let cost = usage.costUSD {
+                    row("Cost", cost.formatted(.currency(code: "USD").precision(.significantDigits(2))))
+                }
+            }
         }
         .font(metrics.typography.keyCap)
         .padding(metrics.spacing.lg)
@@ -389,5 +399,23 @@ private struct ChatContextGauge: View {
             Spacer(minLength: metrics.spacing.xl)
             Text(value).foregroundStyle(Theme.Colors.textPrimary)
         }
+    }
+
+    private func tokens(_ count: Int, of window: Int?) -> String {
+        guard let window else { return count.formatted() }
+        return "\(count.formatted()) of \(window.formatted(.number.notation(.compactName)))"
+    }
+
+    /// Anthropic bills cached prompt tokens apart from the rest; the reader wants one prompt size.
+    private func input(_ usage: AIUsage) -> String {
+        let prompt = (usage.inputTokens ?? 0) + (usage.cachedInputTokens ?? 0)
+        guard let cached = usage.cachedInputTokens, cached > 0 else { return prompt.formatted() }
+        return "\(prompt.formatted()) · \(cached.formatted()) cached"
+    }
+
+    private func output(_ usage: AIUsage) -> String {
+        let output = usage.outputTokens ?? 0
+        guard let thinking = usage.reasoningTokens, thinking > 0 else { return output.formatted() }
+        return "\(output.formatted()) · \(thinking.formatted()) thinking"
     }
 }

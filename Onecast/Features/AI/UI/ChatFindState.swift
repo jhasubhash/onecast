@@ -4,7 +4,7 @@ import Observation
 /// Where a match sits: which message, which part of it, and which match within that part.
 struct ChatFindOccurrence: Equatable, Hashable, Sendable {
     let messageID: UUID
-    /// A reply's text segment index, or `userPart` for what the reader typed.
+    /// A reply's segment index (its text or a stretch of thinking), or `userPart` for typed text.
     let part: Int
     let index: Int
 
@@ -76,10 +76,17 @@ final class ChatFindState {
         }
         var found: [ChatFindOccurrence] = []
         for (part, segment) in message.segments.enumerated() {
-            guard case .text(let text) = segment else { continue }
-            let rendered = MarkdownRenderer.render(
-                MarkdownBlock.parse(ChatChoices.split(text).text), style: countingStyle
-            ).string
+            let rendered: String
+            switch segment {
+            case .text(let text):
+                rendered = MarkdownRenderer.render(
+                    MarkdownBlock.parse(ChatChoices.split(text).text), style: countingStyle
+                ).string
+            case .reasoning(let block):
+                rendered = block.text
+            case .search, .tools:
+                continue
+            }
             found += ranges(of: needle, in: rendered).indices.map {
                 ChatFindOccurrence(messageID: message.id, part: part, index: $0)
             }

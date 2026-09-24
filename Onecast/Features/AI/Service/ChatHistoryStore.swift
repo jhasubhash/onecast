@@ -75,6 +75,23 @@ final class ChatHistoryStore {
           pinned INTEGER NOT NULL DEFAULT 0,
           model TEXT
         );
+        CREATE TABLE IF NOT EXISTS message_thinking(
+          message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+          position INTEGER NOT NULL,
+          text TEXT NOT NULL,
+          text_offset INTEGER NOT NULL,
+          duration REAL,
+          PRIMARY KEY(message_id, position)
+        );
+        CREATE TABLE IF NOT EXISTS message_usage(
+          message_id TEXT PRIMARY KEY NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+          input_tokens INTEGER,
+          output_tokens INTEGER,
+          cached_tokens INTEGER,
+          reasoning_tokens INTEGER,
+          context_window INTEGER,
+          cost_usd REAL
+        );
         CREATE INDEX IF NOT EXISTS messages_by_conversation
           ON messages(conversation_id, position);
         CREATE INDEX IF NOT EXISTS conversations_by_recency
@@ -214,6 +231,8 @@ final class ChatHistoryStore {
         let documents = documents(forConversation: id, in: database)
         let searches = searches(forConversation: id, in: database)
         let toolUses = toolUses(forConversation: id, in: database)
+        let reasoning = reasoning(forConversation: id, in: database)
+        let usage = usage(forConversation: id, in: database)
         var messages: [ChatMessage] = []
         while sqlite3_step(messagesStatement) == SQLITE_ROW {
             guard
@@ -230,7 +249,8 @@ final class ChatHistoryStore {
                         timeIntervalSince1970: sqlite3_column_double(messagesStatement, 4)),
                     images: images[messageID] ?? [], documents: documents[messageID] ?? [],
                     searches: searches[messageID] ?? [],
-                    toolUses: toolUses[messageID] ?? []))
+                    toolUses: toolUses[messageID] ?? [], reasoning: reasoning[messageID] ?? [],
+                    usage: usage[messageID]))
         }
         return ChatSession(
             id: id, createdAt: createdAt, updatedAt: updatedAt, messages: messages,
@@ -470,6 +490,7 @@ final class ChatHistoryStore {
             saveImages(of: $0, in: database) && saveDocuments(of: $0, in: database)
                 && saveSearches(of: $0, in: database)
                 && saveToolUses(of: $0, in: database)
+                && saveReasoning(of: $0, in: database) && saveUsage(of: $0, in: database)
         }
     }
 
@@ -578,6 +599,100 @@ final class ChatHistoryStore {
                     sequence: Int(sqlite3_column_int64(statement, 6))))
         }
         return uses
+    }
+
+    private func saveReasoning(of message: ChatMessage, in database: OpaquePointer) -> Bool {
+        guard !message.reasoning.isEmpty else { return true }
+        let sql = """
+            INSERT INTO message_thinking(message_id, position, text, text_offset, duration)
+            VALUES(?, ?, ?, ?, ?);
+            """
+        guard let statement = prepare(sql, in: database) else { return false }
+        defer { sqlite3_finalize(statement) }
+        for block in message.reasoning {
+            bind(message.id.uuidString, to: statement, at: 1)
+            sqlite3_bind_int64(statement, 2, Int64(block.sequence))
+            bind(block.text, to: statement, at: 3)
+            sqlite3_bind_int64(statement, 4, Int64(block.textOffset))
+            if let duration = block.duration { sqlite3_bind_double(statement, 5, duration) }
+            guard sqlite3_step(statement) == SQLITE_DONE else { return false }
+            sqlite3_reset(statement)
+            sqlite3_clear_bindings(statement)
+        }
+        return true
+    }
+
+    private func reasoning(
+        forConversation id: UUID, in database: OpaquePointer
+    ) -> [UUID: [ChatReasoning]] {
+        let sql = """
+            SELECT r.message_id, r.text, r.text_offset, r.position, r.duration
+            FROM message_thinking r
+            JOIN messages m ON m.id = r.message_id
+            WHERE m.conversation_id = ? ORDER BY r.message_id, r.position;
+            """
+        guard let statement = prepare(sql, in: database) else { return [:] }
+        defer { sqlite3_finalize(statement) }
+        bind(id.uuidString, to: statement, at: 1)
+        var reasoning: [UUID: [ChatReasoning]] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard let messageID = UUID(uuidString: text(statement, 0)) else { continue }
+            reasoning[messageID, default: []].append(
+                ChatReasoning(
+                    text: text(statement, 1),
+                    textOffset: Int(sqlite3_column_int64(statement, 2)),
+                    sequence: Int(sqlite3_column_int64(statement, 3)),
+                    duration: sqlite3_column_type(statement, 4) == SQLITE_NULL
+                        ? nil : sqlite3_column_double(statement, 4)))
+        }
+        return reasoning
+    }
+
+    private func saveUsage(of message: ChatMessage, in database: OpaquePointer) -> Bool {
+        guard let usage = message.usage else { return true }
+        let sql = """
+            INSERT INTO message_usage(message_id, input_tokens, output_tokens, cached_tokens,
+              reasoning_tokens, context_window, cost_usd)
+            VALUES(?, ?, ?, ?, ?, ?, ?);
+            """
+        guard let statement = prepare(sql, in: database) else { return false }
+        defer { sqlite3_finalize(statement) }
+        bind(message.id.uuidString, to: statement, at: 1)
+        let counts = [
+            usage.inputTokens, usage.outputTokens, usage.cachedInputTokens, usage.reasoningTokens,
+            usage.contextWindow
+        ]
+        for (offset, count) in counts.enumerated() {
+            if let count { sqlite3_bind_int64(statement, Int32(offset + 2), Int64(count)) }
+        }
+        if let cost = usage.costUSD { sqlite3_bind_double(statement, 7, cost) }
+        return sqlite3_step(statement) == SQLITE_DONE
+    }
+
+    private func usage(forConversation id: UUID, in database: OpaquePointer) -> [UUID: AIUsage] {
+        let sql = """
+            SELECT u.message_id, u.input_tokens, u.output_tokens, u.cached_tokens,
+              u.reasoning_tokens, u.context_window, u.cost_usd
+            FROM message_usage u JOIN messages m ON m.id = u.message_id
+            WHERE m.conversation_id = ?;
+            """
+        guard let statement = prepare(sql, in: database) else { return [:] }
+        defer { sqlite3_finalize(statement) }
+        bind(id.uuidString, to: statement, at: 1)
+        func count(_ column: Int32) -> Int? {
+            sqlite3_column_type(statement, column) == SQLITE_NULL
+                ? nil : Int(sqlite3_column_int64(statement, column))
+        }
+        var usage: [UUID: AIUsage] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard let messageID = UUID(uuidString: text(statement, 0)) else { continue }
+            usage[messageID] = AIUsage(
+                inputTokens: count(1), outputTokens: count(2), cachedInputTokens: count(3),
+                reasoningTokens: count(4), contextWindow: count(5),
+                costUSD: sqlite3_column_type(statement, 6) == SQLITE_NULL
+                    ? nil : sqlite3_column_double(statement, 6))
+        }
+        return usage
     }
 
     private func saveImages(of message: ChatMessage, in database: OpaquePointer) -> Bool {

@@ -147,7 +147,7 @@ struct AIChatView: View {
                     status: chat.liveStatus,
                     showReasoning: showReasoning,
                     usage: chat.usage,
-                    thinking: chat.isReasoning)
+                    thinking: chat.isThinking)
             }
         }
         .onAppear {

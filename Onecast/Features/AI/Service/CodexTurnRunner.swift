@@ -32,6 +32,8 @@ final class CodexTurnRunner {
     private var activeTurnID: String?
     /// A Stop that beat the turn's ID arms its thread; the first ID to name it spends the Stop.
     private var pendingInterruptThreadID: String?
+    /// The summary part the last delta belonged to, so the next part starts a paragraph.
+    private var summaryPart: String?
 
     init(client: CodexAppServerClient) {
         self.client = client
@@ -76,11 +78,18 @@ final class CodexTurnRunner {
         case "item/agentMessage/delta":
             guard let delta = params["delta"]?.stringValue, !delta.isEmpty else { return }
             activeContinuation?.yield(.text(delta))
+        // The summary, not raw reasoning: the raw stream is off by default and would repeat it.
+        case "item/reasoning/summaryTextDelta":
+            guard let delta = params["delta"]?.stringValue, !delta.isEmpty else { return }
+            let part = "\(params["itemId"]?.stringValue ?? ""):\(params["summaryIndex"]?.intValue ?? 0)"
+            if let summaryPart, summaryPart != part { activeContinuation?.yield(.reasoning("\n\n")) }
+            summaryPart = part
+            activeContinuation?.yield(.reasoning(delta))
         case "item/started":
             guard let item = params["item"]?.objectValue else { return }
             switch item["type"]?.stringValue {
             case "webSearch": activeContinuation?.yield(.searching(item["query"]?.stringValue))
-            case "reasoning": activeContinuation?.yield(.thinking(""))
+            case "reasoning": activeContinuation?.yield(.thinking)
             default: break
             }
         case "item/completed":
@@ -322,6 +331,7 @@ final class CodexTurnRunner {
         activeToken = nil
         activeThreadID = nil
         activeTurnID = nil
+        summaryPart = nil
         if wasLive { onTurnEnded?() }
     }
 }

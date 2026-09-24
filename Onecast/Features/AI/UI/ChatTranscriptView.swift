@@ -7,9 +7,10 @@ struct ChatTranscriptView: View {
     @Environment(\.chatFindHighlight) private var findHighlight
     let messages: [ChatMessage]
     let status: String?
+    /// The reader's "Stream reasoning" choice: a live stretch of thinking opens as it streams.
     let showReasoning: Bool
     let usage: AIUsage?
-    /// True while the streaming reply is in a reasoning phase — re-shown each time it thinks again.
+    /// The route says the streaming reply is thinking; drawn only where no block is streaming it.
     let thinking: Bool
     /// Cleared when the reader scrolls up, so a streaming reply stops dragging them back down.
     @State private var followsTail = true
@@ -39,7 +40,7 @@ struct ChatTranscriptView: View {
                         .id(message.id)
                     }
                     if let total = usage?.totalTokens {
-                        Text("\(total.formatted()) tokens")
+                        Text(Self.usageLine(total: total, cost: usage?.costUSD))
                             .font(metrics.typography.rowTrailing)
                             .foregroundStyle(Theme.Colors.textTertiary)
                             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -74,9 +75,9 @@ struct ChatTranscriptView: View {
             .onChange(of: messages.count) { follow(proxy, always: true) }
             .onChange(of: messages) { follow(proxy, always: false) }
             .onChange(of: usage) { follow(proxy, always: false) }
-            // A reply scrolls its own match into view; what the reader typed is scrolled to here.
+            // A reply's text scrolls its own match into view; typed text and thinking scroll here.
             .onChange(of: findHighlight?.current) { _, current in
-                guard let current, current.part == ChatFindOccurrence.userPart else { return }
+                guard let current, scrollsToMessage(current) else { return }
                 followsTail = false
                 withAnimation { proxy.scrollTo(current.messageID, anchor: .center) }
             }
@@ -97,6 +98,25 @@ struct ChatTranscriptView: View {
     private func follow(_ proxy: ScrollViewProxy, always: Bool) {
         guard always || followsTail else { return }
         proxy.scrollTo("ai-transcript-tail", anchor: .bottom)
+    }
+
+    private static func usageLine(total: Int, cost: Double?) -> String {
+        guard let cost else { return "\(total.formatted()) tokens" }
+        let price = cost.formatted(.currency(code: "USD").precision(.significantDigits(2)))
+        return "\(total.formatted()) tokens · \(price)"
+    }
+
+    /// What the reader typed and a stretch of thinking are plain text, which cannot scroll itself.
+    private func scrollsToMessage(_ occurrence: ChatFindOccurrence) -> Bool {
+        if occurrence.part == ChatFindOccurrence.userPart { return true }
+        guard let message = messages.first(where: { $0.id == occurrence.messageID }) else {
+            return false
+        }
+        let segments = message.segments
+        guard segments.indices.contains(occurrence.part),
+            case .reasoning = segments[occurrence.part]
+        else { return false }
+        return true
     }
 }
 
@@ -127,7 +147,7 @@ private struct ChatMessageView: View {
     let message: ChatMessage
     let showReasoning: Bool
     let status: String?
-    /// Live while the model is thinking; false for any settled or non-last message.
+    /// The route says this reply is thinking; false for any settled or non-last message.
     let thinking: Bool
     /// Only the last reply offers its choices and a regenerate: earlier questions are settled.
     let isLast: Bool
@@ -199,13 +219,12 @@ private struct ChatMessageView: View {
     }
 
     @ViewBuilder private var content: some View {
-        let showsReasoning = showReasoning && !message.reasoning.isEmpty
         if message.text.isEmpty, message.searches.isEmpty, message.toolUses.isEmpty,
-            !showsReasoning, message.state == .streaming
+            message.reasoning.isEmpty, message.state == .streaming
         {
             HStack(spacing: metrics.spacing.sm) {
                 ProgressView().controlSize(.small)
-                Text(status ?? "Thinking…").foregroundStyle(.secondary)
+                if let status { Text(status).foregroundStyle(.secondary) }
             }
             .padding(metrics.spacing.md)
         } else {
@@ -240,16 +259,15 @@ private struct ChatMessageView: View {
                     }
                 }
             }
-            if showReasoning, !message.reasoning.isEmpty {
-                ChatReasoningView(reasoning: message.reasoning, thinking: thinking)
-            }
-            if !message.text.isEmpty || !message.searches.isEmpty || !message.toolUses.isEmpty {
+            if !message.text.isEmpty || !message.searches.isEmpty || !message.toolUses.isEmpty
+                || !message.reasoning.isEmpty
+            {
                 rendered
             }
             if !references.isEmpty {
                 ChatSourceChips(references: references)
             }
-            if thinking, !showReasoning || message.reasoning.isEmpty {
+            if thinking, message.reasoning.last.map({ $0.duration != nil }) ?? true {
                 thinkingIndicator
             }
             if message.state == .interrupted {
@@ -258,7 +276,7 @@ private struct ChatMessageView: View {
         }
     }
 
-    /// The live reasoning cue for routes that stream no reasoning text to fold into a section.
+    /// The route is thinking without sharing it, or has not shared this stretch yet.
     private var thinkingIndicator: some View {
         HStack(spacing: metrics.spacing.sm) {
             ProgressView().controlSize(.small)
@@ -292,22 +310,30 @@ private struct ChatMessageView: View {
                         ChatSearchRow(search: search)
                     case .tools(let uses):
                         ChatToolRun(uses: uses)
+                    case .reasoning(let block):
+                        ChatReasoningBlock(
+                            block: block,
+                            isLive: message.state == .streaming && block.duration == nil,
+                            streamsOpen: showReasoning,
+                            text: highlighted(block.text, part: part),
+                            hasCurrentMatch: findHighlight?.current(in: message.id, part: part)
+                                != nil)
                     }
                 }
             }
         } else {
-            Text(highlightedUserText)
+            Text(highlighted(message.text, part: ChatFindOccurrence.userPart))
         }
     }
 
     /// The same match rule a reply's text view paints with, so a count is what the reader sees.
-    private var highlightedUserText: AttributedString {
-        var text = AttributedString(message.text)
+    private func highlighted(_ plain: String, part: Int) -> AttributedString {
+        var text = AttributedString(plain)
         guard let findHighlight else { return text }
-        let current = findHighlight.current(in: message.id, part: ChatFindOccurrence.userPart)
-        let ranges = ChatFindState.ranges(of: findHighlight.needle, in: message.text)
+        let current = findHighlight.current(in: message.id, part: part)
+        let ranges = ChatFindState.ranges(of: findHighlight.needle, in: plain)
         for (index, range) in ranges.enumerated() {
-            guard let stringRange = Range(range, in: message.text),
+            guard let stringRange = Range(range, in: plain),
                 let attributedRange = Range<AttributedString.Index>(stringRange, in: text)
             else { continue }
             text[attributedRange].backgroundColor =
@@ -318,42 +344,66 @@ private struct ChatMessageView: View {
     }
 }
 
-/// The model's live reasoning: streamed open while it thinks, folded away once the answer begins.
-private struct ChatReasoningView: View {
+/// One stretch of thinking, folded once it ends; the reader's own toggle outlasts either default.
+private struct ChatReasoningBlock: View {
     @Environment(\.metrics) private var metrics
-    let reasoning: String
-    let thinking: Bool
-    @State private var expanded = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let block: ChatReasoning
+    let isLive: Bool
+    let streamsOpen: Bool
+    let text: AttributedString
+    /// Find stepped into this block; a folded match would be counted and then invisible.
+    let hasCurrentMatch: Bool
+    @State private var toggled: Bool?
+
+    private var isOpen: Bool { hasCurrentMatch || (toggled ?? (isLive && streamsOpen)) }
+
+    private var title: String {
+        if isLive { return "Thinking…" }
+        guard let duration = block.duration else { return "Thoughts" }
+        return "Thought for \(max(1, Int(duration.rounded())))s"
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: metrics.spacing.xs) {
+        VStack(alignment: .leading, spacing: metrics.spacing.sm) {
             Button {
-                withAnimation(.easeOut(duration: Theme.Duration.hover)) { expanded.toggle() }
+                toggled = !isOpen
             } label: {
                 HStack(spacing: metrics.spacing.xs) {
-                    if thinking {
-                        ProgressView().controlSize(.small)
+                    if isLive {
+                        ProgressView().controlSize(.mini)
                     } else {
-                        Image(systemName: expanded ? "chevron.down" : "chevron.right")
+                        Image(systemName: "brain").symbolRenderingMode(.hierarchical)
                     }
-                    Text(thinking ? "Thinking…" : "Reasoning")
+                    Text(title)
+                    Image(systemName: "chevron.right")
+                        .font(metrics.typography.keyCap)
+                        .rotationEffect(.degrees(isOpen ? 90 : 0))
                 }
                 .font(metrics.typography.rowTrailing)
                 .foregroundStyle(Theme.Colors.textTertiary)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if expanded {
-                Text(reasoning)
+            .accessibilityLabel(title)
+            .accessibilityValue(isOpen ? "Expanded" : "Collapsed")
+            if isOpen {
+                Text(text)
                     .font(metrics.typography.rowTrailing)
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, metrics.spacing.md)
+                    .overlay(alignment: .leading) {
+                        Rectangle()
+                            .fill(Theme.Colors.border)
+                            .frame(width: metrics.size.markdownQuoteBar)
+                    }
+                    .transition(.opacity)
             }
         }
-        // Track the live reasoning phase: unfold while it thinks, fold once the answer resumes.
-        .onChange(of: thinking) { _, nowThinking in
-            withAnimation(.easeOut(duration: Theme.Duration.hover)) { expanded = nowThinking }
-        }
+        .animation(reduceMotion ? nil : .easeOut(duration: Theme.Duration.chatFooter), value: isOpen)
     }
 }
 

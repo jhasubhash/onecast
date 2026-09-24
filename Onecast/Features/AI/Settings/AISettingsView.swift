@@ -153,7 +153,7 @@ struct AISettingsView: View {
             }
             Toggle(isOn: $settings.showReasoning) {
                 SettingsRowTitle(.aiChat, "Stream reasoning")
-                Text("Shows the model's thinking as it streams, instead of a lone spinner.")
+                Text("Opens the model's thinking as it streams; each stretch folds once it ends.")
             }
             Toggle(isOn: $settings.computerUseEnabled) {
                 SettingsRowTitle(.aiChat, "Computer use")

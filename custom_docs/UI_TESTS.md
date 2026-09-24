@@ -322,6 +322,17 @@ stranded typing and ⎋ in read-only text.
 would give first responder to the sidebar's search, so the split view focuses the composer itself.
 **Check.** ⌘J from the bar: the sidebar lists the day's chats, and typing at once fills the composer.
 
+### Thinking shown for a slow network, and lost on reopen — 2026-09
+
+**Symptom.** "Thinking…" and an open Reasoning fold appeared whenever a reply paused, then flickered
+shut; all thinking sat above the whole reply, and none of it came back when the chat was reopened.
+**Cause.** A stall timer read 2 quiet seconds as thinking, the fold followed that flag, and reasoning
+was one unsaved string per message.
+**Fix.** Only a route's own `.thinking`/`.reasoning` events count; thinking is timed blocks at the
+point it happened, stored in `message_thinking`.
+**Check.** On a reasoning route, a live block streams open, then folds to "Thought for Ns" when the
+answer starts; thinking mid-answer gets its own block; the chat reopens after a relaunch with both.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

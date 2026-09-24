@@ -17,8 +17,6 @@ struct ChatMessage: Identifiable, Equatable, Sendable {
     let id: UUID
     let role: Role
     var text: String
-    /// The model's streamed reasoning; live during a turn, not persisted with the saved conversation.
-    var reasoning: String
     var state: State
     let sentAt: Date
     let images: [AIImage]
@@ -28,12 +26,16 @@ struct ChatMessage: Identifiable, Equatable, Sendable {
     var searches: [ChatSearch]
     /// Tools the reply called, pinned the same way; the calls themselves never enter the context.
     var toolUses: [ChatToolUse]
+    /// What the model shared of its thinking, a block per stretch of it, each where it happened.
+    var reasoning: [ChatReasoning]
+    /// What the route reported for this reply; the context gauge reads the latest one.
+    var usage: AIUsage?
 
     init(
         id: UUID = UUID(), role: Role, text: String, state: State = .complete,
         sentAt: Date = Date(), images: [AIImage] = [], documents: [AIDocument] = [],
         searches: [ChatSearch] = [],
-        toolUses: [ChatToolUse] = [], reasoning: String = ""
+        toolUses: [ChatToolUse] = [], reasoning: [ChatReasoning] = [], usage: AIUsage? = nil
     ) {
         self.id = id
         self.role = role
@@ -45,15 +47,19 @@ struct ChatMessage: Identifiable, Equatable, Sendable {
         self.searches = searches
         self.toolUses = toolUses
         self.reasoning = reasoning
+        self.usage = usage
     }
 
-    /// The next search or call's place among the reply's: with no text between, offsets tie.
-    var nextSequence: Int { searches.count + toolUses.count }
+    /// The next search, call or stretch of thinking's place: with no text between, offsets tie.
+    var nextSequence: Int { searches.count + toolUses.count + reasoning.count }
 
-    /// The reply split around what it did: text, search or tool, text… rendered where it happened.
+    /// The reply split around what it did: thinking, search or tool, text… each where it happened.
     var segments: [ChatSegment] {
         let interruptions =
-            (searches.map {
+            (reasoning.map {
+                (offset: $0.textOffset, sequence: $0.sequence, segment: ChatSegment.reasoning($0))
+            }
+            + searches.map {
                 (offset: $0.textOffset, sequence: $0.sequence, segment: ChatSegment.search($0))
             }
             + toolUses.map {
@@ -123,8 +129,19 @@ extension Array where Element == ChatToolUse {
     }
 }
 
+/// One stretch of thinking: a reply may think, call a tool, think again, then answer.
+struct ChatReasoning: Equatable, Hashable, Sendable {
+    var text: String
+    /// Characters of reply text that had arrived when this stretch began.
+    let textOffset: Int
+    let sequence: Int
+    /// Until the reply moved on (text, a search, a call) or ended; nil while it is still thinking.
+    var duration: TimeInterval?
+}
+
 enum ChatSegment: Equatable, Hashable {
     case text(String)
     case search(ChatSearch)
     case tools([ChatToolUse])
+    case reasoning(ChatReasoning)
 }
