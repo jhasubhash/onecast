@@ -89,7 +89,7 @@ final class ClipboardCoordinator {
     func paste(_ item: ClipboardItem) {
         let previous = windowController.previousApp
         paletteCoordinator.hidePalette(restoreFocus: false)
-        // A write promotes the item, so follow it and keep the moved row highlighted.
+        // A paste promotes the item, so follow it and keep the moved row highlighted.
         if Paster.paste(item, store: clipboardStore, previousApp: previous) {
             selectClip(item)
         } else {
@@ -107,9 +107,7 @@ final class ClipboardCoordinator {
     }
 
     func pasteKeepingWindowOpen(_ item: ClipboardItem) {
-        if windowController.pasteKeepingWindowOpen(item, store: clipboardStore) {
-            selectClip(item)
-        } else {
+        if !windowController.pasteKeepingWindowOpen(item, store: clipboardStore) {
             reportUnavailable(item)
         }
     }
