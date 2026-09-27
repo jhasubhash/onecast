@@ -12,24 +12,25 @@ struct PermissionsSettingsView: View {
         Form {
             Section {
                 LabeledContent {
-                    Label(
-                        accessibilityTrusted ? "Granted" : "Not granted",
-                        systemImage: accessibilityTrusted
-                            ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
-                    )
-                    .foregroundStyle(accessibilityTrusted ? Color.green : Color.orange)
-                } label: {
-                    SettingsRowTitle(.permissionsAccessibility, "Accessibility")
-                    Text("Lets Onecast paste a clipboard item into the app you were using.")
-                }
-
-                LabeledContent {
-                    Button(accessibilityTrusted ? "Open…" : "Grant Access…") {
-                        Permissions.openAccessibilitySettings()
+                    HStack(spacing: Theme.Spacing.lg) {
+                        statusLabel(accessibilityStatus)
+                        Button(accessibilityTrusted ? "Open…" : "Grant Access…") {
+                            Permissions.openAccessibilitySettings()
+                        }
+                        .help("Opens Privacy & Security › Accessibility.")
                     }
                 } label: {
-                    Text(accessibilityTrusted ? "Manage in System Settings" : "Grant access")
-                    Text("Opens Privacy & Security › Accessibility.")
+                    HStack(spacing: Theme.Spacing.lg) {
+                        PermissionSettingsIcon(
+                            path:
+                                "/System/Library/ExtensionKit/Extensions/AccessibilitySettingsExtension.appex"
+                        )
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                            SettingsRowTitle(.permissionsAccessibility, "Accessibility")
+                            Text("Pastes into the app you were using.")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             } header: {
                 SettingsSectionHeader(.permissionsAccessibility)
@@ -41,28 +42,26 @@ struct PermissionsSettingsView: View {
 
             Section {
                 LabeledContent {
-                    Label(calendarStatus.title, systemImage: calendarStatus.symbol)
-                        .foregroundStyle(calendarStatus.tint)
-                } label: {
-                    SettingsRowTitle(.permissionsCalendars, "Calendars")
-                    Text("Lets Onecast find the join link for the meeting you are about to be in.")
-                }
-
-                LabeledContent {
-                    Button(calendarNeedsPrompt ? "Grant Access…" : "Open…") {
-                        // Settings lists no app TCC was never asked about, so asking is the way in.
-                        if calendarNeedsPrompt {
-                            core.calendarCoordinator.setCalendarEnabled(true)
-                        } else {
-                            Permissions.openCalendarSettings()
+                    HStack(spacing: Theme.Spacing.lg) {
+                        statusLabel(calendarStatus)
+                        Button(calendarNeedsPrompt ? "Grant Access…" : "Open…") {
+                            // Settings lists no app TCC was never asked about, so asking is the way in.
+                            if calendarNeedsPrompt {
+                                core.calendarCoordinator.setCalendarEnabled(true)
+                            } else {
+                                Permissions.openCalendarSettings()
+                            }
                         }
                     }
                 } label: {
-                    Text(calendarNeedsPrompt ? "Grant access" : "Manage in System Settings")
-                    Text(
-                        calendarNeedsPrompt
-                            ? "Turns the calendar on, then asks macOS for access."
-                            : "Opens Privacy & Security › Calendars.")
+                    HStack(spacing: Theme.Spacing.lg) {
+                        PermissionSettingsIcon(path: "/System/Applications/Calendar.app")
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                            SettingsRowTitle(.permissionsCalendars, "Calendars")
+                            Text("Finds the join link for your next meeting.")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             } header: {
                 SettingsSectionHeader(.permissionsCalendars)
@@ -70,31 +69,28 @@ struct PermissionsSettingsView: View {
 
             Section {
                 LabeledContent {
-                    let status = Self.status(of: remindersAccess == .granted, asked: remindersAccess != .notDetermined)
-                    Label(status.title, systemImage: status.symbol)
-                        .foregroundStyle(status.tint)
-                } label: {
-                    SettingsRowTitle(.permissionsReminders, "Reminders")
-                    Text("Lets Onecast add a reminder to Apple Reminders when you ask it to.")
-                }
-
-                LabeledContent {
-                    Button(remindersAccess == .notDetermined ? "Grant Access…" : "Open…") {
-                        if remindersAccess == .notDetermined {
-                            Task {
-                                _ = await Permissions.requestRemindersAccess()
-                                refresh()
+                    HStack(spacing: Theme.Spacing.lg) {
+                        statusLabel(remindersStatus)
+                        Button(remindersAccess == .notDetermined ? "Grant Access…" : "Open…") {
+                            if remindersAccess == .notDetermined {
+                                Task {
+                                    _ = await Permissions.requestRemindersAccess()
+                                    refresh()
+                                }
+                            } else {
+                                Permissions.openRemindersSettings()
                             }
-                        } else {
-                            Permissions.openRemindersSettings()
                         }
                     }
                 } label: {
-                    Text(remindersAccess == .notDetermined ? "Grant access" : "Manage in System Settings")
-                    Text(
-                        remindersAccess == .notDetermined
-                            ? "Asks macOS for access to Apple Reminders."
-                            : "Opens Privacy & Security › Reminders.")
+                    HStack(spacing: Theme.Spacing.lg) {
+                        PermissionSettingsIcon(path: "/System/Applications/Reminders.app")
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                            SettingsRowTitle(.permissionsReminders, "Reminders")
+                            Text("Adds the reminders you send to Apple Reminders.")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             } header: {
                 SettingsSectionHeader(.permissionsReminders)
@@ -108,8 +104,16 @@ struct PermissionsSettingsView: View {
 
     private var calendarNeedsPrompt: Bool { calendarAccess == .notDetermined }
 
+    private var accessibilityStatus: (title: String, symbol: String, tint: Color) {
+        Self.status(of: accessibilityTrusted, asked: true)
+    }
+
     private var calendarStatus: (title: String, symbol: String, tint: Color) {
         Self.status(of: calendarAccess == .granted, asked: calendarAccess != .notDetermined)
+    }
+
+    private var remindersStatus: (title: String, symbol: String, tint: Color) {
+        Self.status(of: remindersAccess == .granted, asked: remindersAccess != .notDetermined)
     }
 
     private static func status(of granted: Bool, asked: Bool) -> (title: String, symbol: String, tint: Color) {
@@ -119,6 +123,15 @@ struct PermissionsSettingsView: View {
             : ("Not asked yet", "questionmark.circle.fill", .secondary)
     }
 
+    private func statusLabel(_ status: (title: String, symbol: String, tint: Color)) -> some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            Image(systemName: status.symbol)
+                .accessibilityHidden(true)
+            Text(status.title)
+        }
+        .foregroundStyle(status.tint)
+    }
+
     private func refresh() {
         let trusted = Permissions.isAccessibilityTrusted()
         if trusted != accessibilityTrusted { accessibilityTrusted = trusted }
@@ -126,5 +139,22 @@ struct PermissionsSettingsView: View {
         if access != calendarAccess { calendarAccess = access }
         let reminders = Permissions.remindersAccess()
         if reminders != remindersAccess { remindersAccess = reminders }
+    }
+}
+
+private struct PermissionSettingsIcon: View {
+    let path: String
+
+    var body: some View {
+        Image(nsImage: IconCache.icon(forFile: path))
+            .resizable()
+            .renderingMode(.original)
+            .interpolation(.high)
+            .id(IconCache.style.generation)
+            .frame(
+                width: SettingsListMetrics.iconSize,
+                height: SettingsListMetrics.iconSize
+            )
+            .accessibilityHidden(true)
     }
 }

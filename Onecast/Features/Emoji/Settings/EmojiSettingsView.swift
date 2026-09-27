@@ -15,15 +15,24 @@ struct EmojiSettingsView: View {
             }
 
             Section {
-                // A hand per tone, quicker to scan than a dropdown of tone names.
-                Picker(selection: $settings.emojiSkinTone) {
-                    ForEach(EmojiSkinTone.allCases) { tone in
-                        Text(tone.sample).tag(tone)
+                SettingsRow(title: "Emoji Skin Tone", anchor: .emojiAppearance) {
+                    HStack(spacing: Theme.Spacing.xs) {
+                        ForEach(EmojiSkinTone.allCases) { tone in
+                            let selected = settings.emojiSkinTone == tone
+                            Button {
+                                settings.emojiSkinTone = tone
+                            } label: {
+                                Text(tone.sample)
+                                    .font(.system(size: Theme.Size.emojiSkinToneGlyph))
+                                    .settingsOptionSegment(isSelected: selected)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(tone.title)
+                            .accessibilityAddTraits(selected ? [.isSelected] : [])
+                            .help(tone.title)
+                        }
                     }
-                } label: {
-                    SettingsRowTitle(.emojiAppearance, "Emoji Skin Tone")
                 }
-                .pickerStyle(.segmented)
             } footer: {
                 Text("Applied when an emoji supports skin tones; pastes use it too.")
                     .font(.caption)

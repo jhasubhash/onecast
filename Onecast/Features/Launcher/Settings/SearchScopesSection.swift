@@ -12,7 +12,12 @@ struct SearchScopesSection: View {
     var body: some View {
         Section {
             ForEach(settings.searchScopes, id: \.self) { scope in
-                ScopeRow(scope: scope, isMissing: missing.contains(scope)) {
+                SettingsScopeRow(
+                    scope: scope,
+                    path: SearchScopes.expand(
+                        scope, homeDirectory: FileManager.default.homeDirectoryForCurrentUser),
+                    isMissing: missing.contains(scope)
+                ) {
                     settings.searchScopes.removeAll { $0 == scope }
                 }
             }
@@ -60,38 +65,5 @@ struct SearchScopesSection: View {
         settings.searchScopes = SearchScopes.normalize(
             settings.searchScopes + panel.urls.map(\.path),
             homeDirectory: FileManager.default.homeDirectoryForCurrentUser)
-    }
-}
-
-private struct ScopeRow: View {
-    let scope: String
-    let isMissing: Bool
-    let onRemove: () -> Void
-
-    var body: some View {
-        LabeledContent {
-            HStack(spacing: Theme.Spacing.sm) {
-                if isMissing {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .help("This location no longer exists.")
-                }
-                Button(action: onRemove) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.tertiary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Remove \(scope)")
-            }
-        } label: {
-            Label {
-                Text(scope)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .foregroundStyle(isMissing ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
-            } icon: {
-                Image(systemName: (scope as NSString).pathExtension == "app" ? "app" : "folder")
-            }
-        }
     }
 }
