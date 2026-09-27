@@ -154,6 +154,7 @@ run clipboard-test         Onecast/Features/Clipboard/Model/ClipboardStore.swift
 Q=Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift
 run clipboard-search-test  Onecast/Features/Clipboard/Model/*.swift $Q
 run clipboard-text-test    Onecast/Features/Clipboard/Model/*.swift $Q \
+                           Onecast/Platform/ProcessExit.swift \
                            Onecast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
                            Onecast/Features/Clipboard/Service/ClipboardTextIndexer.swift \
                            Onecast/Features/Clipboard/Service/ClipboardTextWorker.swift
@@ -294,6 +295,7 @@ run entry-icon-test        Onecast/Platform/Appearance.swift \
                            Onecast/Platform/Images/IconCache.swift \
                            Onecast/Platform/Images/FileIconStamp.swift
 run ext-icon-test          Onecast/Platform/Appearance.swift \
+                           Onecast/Platform/ProcessExit.swift \
                            Onecast/Platform/Images/IconCache.swift \
                            Onecast/Platform/Images/FileIconStamp.swift \
                            Onecast/Platform/Compression/Zlib.swift \
@@ -337,6 +339,7 @@ run window-layout-test     Onecast/Features/WindowManagement/Model/WindowCommand
                            Onecast/Features/WindowManagement/Model/CustomWindowSize.swift \
                            Onecast/Features/WindowManagement/Model/CustomWindowSizeStore.swift
 run custom-command-test    Onecast/Platform/PseudoTerminal.swift \
+                           Onecast/Platform/ProcessExit.swift \
                            Onecast/Features/CustomCommands/Model/CustomCommand.swift \
                            Onecast/Features/CustomCommands/Model/RaycastScriptImport.swift \
                            Onecast/Features/CustomCommands/Service/ShellCommandRunner.swift \
@@ -415,6 +418,7 @@ run ext-accessory-test     $E/Model/RenderNode.swift \
                            $E/Model/ExtensionSearchAccessory.swift \
                            $E/Service/ExtensionStorage.swift
 run slow ext-test          -parse-as-library \
+                           Onecast/Platform/ProcessExit.swift \
                            Tests/ext-menu-bar-test.swift \
                            Tests/ext-fetch-test.swift \
                            $E/Model/ExtensionLaunchError.swift \
@@ -523,6 +527,7 @@ run apple-intelligence-test Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Service/AppleIntelligenceProvider.swift \
                            Onecast/Features/AI/Service/AppleIntelligenceHostTool.swift
 run mcp-oauth-test         Onecast/Platform/ExecutableLocator.swift \
+                           Onecast/Platform/ProcessExit.swift \
                            Onecast/Platform/KeychainSecretStore.swift \
                            Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Model/AIConnection.swift \
@@ -534,6 +539,7 @@ run mcp-oauth-test         Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Features/MCP/Model/*.swift \
                            Onecast/Features/MCP/Service/*.swift
 run slow mcp-stdio-test    Onecast/Platform/ExecutableLocator.swift \
+                           Onecast/Platform/ProcessExit.swift \
                            Onecast/Platform/KeychainSecretStore.swift \
                            Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Model/AIConnection.swift \
@@ -545,6 +551,7 @@ run slow mcp-stdio-test    Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Features/MCP/Model/*.swift \
                            Onecast/Features/MCP/Service/*.swift
 run slow codex-turn-test   Onecast/Platform/AppPaths.swift \
+                           Onecast/Platform/ProcessExit.swift \
                            Onecast/Features/AI/Model/*.swift \
                            Onecast/Features/AI/Service/AIProvider.swift \
                            Onecast/Features/AI/Service/ChatGPTSubscriptionManager.swift \
@@ -552,6 +559,7 @@ run slow codex-turn-test   Onecast/Platform/AppPaths.swift \
                            Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Features/AI/Service/CodexTurnRunner.swift
 run installed-ai-test     Onecast/Features/AI/Model/*.swift \
+                          Onecast/Platform/ProcessExit.swift \
                           Onecast/Features/AI/Service/AIProvider.swift \
                           Onecast/Platform/AppPaths.swift \
                           Onecast/Platform/ExecutableLocator.swift \

@@ -207,7 +207,7 @@ enum InstalledAIProbe {
         let handle = ProcessHandle()
         return await withTaskCancellationHandler(
             operation: {
-                // Detached because the read loop and `waitUntilExit` block: never a pool thread.
+                // Detached because the read loop and the exit wait block: never a pool thread.
                 await Task.detached {
                     try? FileManager.default.createDirectory(
                         at: workspace, withIntermediateDirectories: true)
@@ -219,7 +219,9 @@ enum InstalledAIProbe {
                     process.standardInput = FileHandle.nullDevice
                     process.standardOutput = output
                     process.standardError = FileHandle.nullDevice
-                    do { try process.run() } catch { return Result(status: -1, output: "") }
+                    guard let exit = try? process.runObservingExit() else {
+                        return Result(status: -1, output: "")
+                    }
                     handle.set(process)
                     let watchdog = Task {
                         try? await Task.sleep(for: .seconds(10))
@@ -236,7 +238,7 @@ enum InstalledAIProbe {
                     if data.count == Self.maximumOutputBytes, process.isRunning {
                         process.terminate()
                     }
-                    process.waitUntilExit()
+                    exit.wait()
                     watchdog.cancel()
                     return Result(
                         status: process.terminationStatus,

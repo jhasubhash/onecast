@@ -146,13 +146,14 @@ enum PluginBuilder {
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
+        let exit: ProcessExit
         do {
-            try process.run()
+            exit = try process.runObservingExit()
         } catch {
             return (-1, error.localizedDescription)
         }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
+        exit.wait()
         return (process.terminationStatus, String(bytes: data, encoding: .utf8) ?? "")
     }
 

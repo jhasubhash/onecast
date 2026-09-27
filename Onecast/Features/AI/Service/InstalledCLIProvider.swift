@@ -413,8 +413,7 @@ private final class InstalledCLITurnRunner {
             process.standardInput = FileHandle.nullDevice
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
-            try? process.run()
-            process.waitUntilExit()
+            try? process.runObservingExit().wait()
         }
     }
 
