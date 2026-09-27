@@ -14,6 +14,8 @@ enum PaletteShortcut: Equatable {
     case copyName
     /// ⌃⌘C.
     case copyPath
+    /// ⇧⌘↵, matched by the Return handler rather than `resolve`.
+    case copyCalculation
     /// ⇧⌘V.
     case pasteFile
     /// ⌘Y.
@@ -58,15 +60,15 @@ enum PaletteShortcut: Equatable {
         case .copyFile, .copyName, .copyPath, .pasteFile, .quickLook, .toggleFavorite,
             .hideFromSearch, .quit, .restart:
             true
-        case .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot:
+        case .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot, .copyCalculation:
             false
         }
     }
 
     var closesMenu: Bool {
         switch self {
-        case .delete, .deleteAll, .copyFile, .copyName, .copyPath, .quickLook, .toggleFavorite,
-            .hideFromSearch:
+        case .delete, .deleteAll, .copyFile, .copyName, .copyPath, .copyCalculation, .quickLook,
+            .toggleFavorite, .hideFromSearch:
             true
         case .commandDelete, .pasteFile, .quit, .restart, .pin, .favoriteSlot:
             false
