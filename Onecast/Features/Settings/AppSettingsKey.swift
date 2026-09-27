@@ -30,6 +30,7 @@ enum AppSettingsKey: String, CaseIterable {
     case aiBarPosition = "aiBarPosition"
     case aiBarSize = "aiBarSize"
     case aiBarStaysOpen = "aiBarStaysOpen"
+    case paletteExpandedCenterDisplays = "paletteExpandedCenterDisplays"
     case fileSearchEnabled = "fileSearchEnabled"
     case fileSearchScopes = "fileSearchScopes"
     case fileSearchIgnorePatterns = "fileSearchIgnorePatterns"

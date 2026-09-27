@@ -97,6 +97,8 @@ enum SettingsBackupCoverage {
             "Machine-local geometry: a size dragged to fit this Mac's displays, kept with its position.",
         AppSettingsKey.aiBarStaysOpen.rawValue:
             "A per-Mac UI behaviour for the AI bar, kept out of backups like its position.",
+        AppSettingsKey.paletteExpandedCenterDisplays.rawValue:
+            "Machine-local geometry: every entry names a display this Mac has, and no other one.",
         AppSettingsKey.autoSwitchInputSource.rawValue:
             "Names a keyboard input source installed on this Mac; another Mac may not have it.",
         AppSettingsKey.meetingBrowser.rawValue:
