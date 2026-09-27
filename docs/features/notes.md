@@ -132,9 +132,11 @@ characters, and undo/redo. The only `NoteTextView` customization supplies a docu
 Changing the note identity or editor epoch replaces the literal string and clears the previous
 document's undo history; ordinary edits keep native undo grouping.
 
-An empty note shows a `Start writing…` placeholder aligned to the 16-point text container inset, and a
-footer under the editor reports the character count straight off `NSTextStorage.length`. Both belong to
-the editor surface, so neither appears when no note is active.
+⌘F opens the text view's inline find bar (`usesFindBar`); Escape closes it before it hides the window.
+An empty note shows a `Start writing…` placeholder that `NoteTextView` draws at its own text
+container origin, so the find bar pushing the text down carries the placeholder with it, and a footer
+under the editor reports the character count straight off `NSTextStorage.length`. Both belong to the
+editor surface, so neither appears when no note is active.
 
 ## Autosave
 

@@ -455,6 +455,8 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Marked-text input, emoji, combining marks, Copy, Cut, Paste, Select All, Undo, Redo, and Find preserve
   exact source
 - An empty note shows `Start writing…`; the footer count is right after typing, pasting and undoing
+- ⌘F opens the find bar inside the note, the placeholder moves down with the text, and Escape closes
+  the bar first, then the window
 - Traffic lights sit top-left, the title is centred **on the window**, and the capsule is top-right, all
   on one line; the yellow light is disabled and green zooms
 - Each capsule button shows a hover capsule and a native tooltip, and fires its action

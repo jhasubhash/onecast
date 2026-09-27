@@ -54,22 +54,7 @@ struct NotesView: View {
                 onCharacterCountChange: notes.updateCharacterCount,
                 onReady: notes.editorReady
             )
-            .overlay(alignment: .topLeading) { placeholder }
             footer
-        }
-    }
-
-    @ViewBuilder
-    private var placeholder: some View {
-        if notes.isActiveNoteEmpty {
-            Text("Start writing…")
-                .font(.body)
-                .foregroundStyle(Theme.Colors.textTertiary)
-                // Matches the text container inset exactly, so the caret sits on the placeholder.
-                .padding(.horizontal, Theme.Size.noteEditorInset)
-                .padding(.vertical, Theme.Size.noteEditorTopInset)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
         }
     }
 

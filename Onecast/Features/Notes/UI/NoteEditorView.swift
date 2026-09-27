@@ -53,12 +53,14 @@ struct NoteEditorView: NSViewRepresentable {
 
         func install(_ input: NoteEditorInput, resetUndo: Bool) {
             guard let textView else { return }
+            let wasEmpty = textView.textStorage?.length == 0
             self.input = input
             let selectionLocation = min(
                 textView.selectedRange().location,
                 (input.source as NSString).length)
             isInstalling = true
             NoteEditorView.install(input.source, in: textView)
+            if wasEmpty != input.source.isEmpty { textView.needsDisplay = true }
             textView.setSelectedRange(NSRange(location: selectionLocation, length: 0))
             isInstalling = false
             if resetUndo { editorUndoManager.removeAllActions() }
@@ -79,6 +81,7 @@ struct NoteEditorView: NSViewRepresentable {
             guard !isInstalling, let textView else { return }
             let source = textView.string
             guard source != input.source else { return }
+            if input.source.isEmpty != source.isEmpty { textView.needsDisplay = true }
             input = NoteEditorInput(id: input.id, source: source, epoch: input.epoch)
             parent.onSourceChange(source)
             reportCharacterCount()
@@ -119,7 +122,7 @@ struct NoteEditorView: NSViewRepresentable {
         textView.isAutomaticSpellingCorrectionEnabled = false
         textView.isContinuousSpellCheckingEnabled = false
         textView.smartInsertDeleteEnabled = false
-        textView.usesFindPanel = true
+        textView.usesFindBar = true
         textView.allowsUndo = true
         textView.typingAttributes = baseAttributes
     }
