@@ -29,6 +29,13 @@ struct BackupSettingsView: View {
         runningApps.runningBundleIDs.contains(where: BackupActions.isRaycastBundleID)
     }
 
+    /// Turning it on may ask first, so the switch follows the setting rather than the click.
+    private var settingsFileSync: Binding<Bool> {
+        Binding(
+            get: { core.settings.settingsFileEnabled },
+            set: { enabled in Task { await BackupActions.setSettingsFileEnabled(enabled, core: core) } })
+    }
+
     private var raycastFileSubtitle: String {
         guard let name = raycastFile?.lastPathComponent else {
             return "Choose a .rayconfig file exported from Raycast v2.0 or newer."
@@ -117,6 +124,23 @@ struct BackupSettingsView: View {
                 if let status { statusRow(status) }
             } header: {
                 SettingsSectionHeader(.backupImportFromRaycast)
+            }
+
+            Section {
+                Toggle(isOn: settingsFileSync) {
+                    SettingsRowTitle(.backupSettingsFile, "Sync settings file")
+                    Text(BackupActions.settingsFilePath)
+                }
+                if core.settings.settingsFileEnabled {
+                    LabeledContent {
+                        Button("Show in Finder", action: BackupActions.revealSettingsFile)
+                    } label: {
+                        Text("Settings changed here are written to the file, and edits to it apply here.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                SettingsSectionHeader(.backupSettingsFile)
             }
         }
         .formStyle(.grouped)

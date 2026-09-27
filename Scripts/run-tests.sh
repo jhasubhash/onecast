@@ -273,6 +273,7 @@ run hotkey-test            Onecast/Features/HotKeys/Model/DoubleTapModifier.swif
                            Onecast/Features/HotKeys/Model/DoubleTapDetector.swift \
                            Onecast/Features/HotKeys/Model/GlobeTapDetector.swift \
                            Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Onecast/Features/HotKeys/Model/HotKeySpelling.swift \
                            Onecast/Features/HotKeys/Model/HyperKey.swift \
                            Onecast/Platform/ASCIIKeyboardLayout.swift \
                            Onecast/Features/HotKeys/Service/KeyShortcut.swift \
@@ -338,6 +339,17 @@ run window-layout-test     Onecast/Features/WindowManagement/Model/WindowCommand
                            Onecast/Features/WindowManagement/Model/WindowLayoutStore.swift \
                            Onecast/Features/WindowManagement/Model/CustomWindowSize.swift \
                            Onecast/Features/WindowManagement/Model/CustomWindowSizeStore.swift
+run window-file-test       Onecast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Onecast/Features/WindowManagement/Model/WindowCycle.swift \
+                           Onecast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
+                           Onecast/Features/WindowManagement/Model/WindowLayoutAnchor.swift \
+                           Onecast/Features/WindowManagement/Model/WindowLayoutDisplay.swift \
+                           Onecast/Features/WindowManagement/Model/WindowLayout.swift \
+                           Onecast/Features/WindowManagement/Model/WindowLayoutGeometry.swift \
+                           Onecast/Features/WindowManagement/Model/CustomWindowSize.swift \
+                           Onecast/Features/WindowManagement/Model/WindowManagementFileFormat.swift \
+                           Onecast/Features/Settings/Model/SettingsFileJSON.swift \
+                           Onecast/Features/Settings/Model/SettingsFileIdentity.swift
 run custom-command-test    Onecast/Platform/PseudoTerminal.swift \
                            Onecast/Platform/ProcessExit.swift \
                            Onecast/Features/CustomCommands/Model/CustomCommand.swift \
@@ -379,6 +391,10 @@ run slow -O raycast-test   Onecast/Features/Backup/Model/RaycastImportError.swif
                            Onecast/Platform/Compression/Zlib.swift
 run settings-backup-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/Backup/Model/SettingsBackupCoverage.swift
+run settings-file-test     Onecast/Features/Settings/Model/*.swift \
+                           Onecast/Features/Settings/Service/SettingsFileMonitor.swift \
+                           Onecast/Features/Settings/Service/SettingsFileRepository.swift \
+                           Onecast/Platform/AppPaths.swift
 run backup-archive-test    Onecast/Platform/AppPaths.swift \
                            Onecast/Features/Backup/Model/BackupArchive.swift \
                            Onecast/Features/Backup/Model/BackupBundle.swift \

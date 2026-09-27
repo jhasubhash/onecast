@@ -24,9 +24,6 @@ struct PluginsSettingsView: View {
                     Text("List installed plugins in launcher search.")
                 }
                 .disabled(!settings.pluginsEnabled)
-                .onChange(of: settings.pluginsShowInLauncher) {
-                    core.pluginCoordinator.applyPluginsLauncherPresence()
-                }
             }
 
             Section("Installed") {

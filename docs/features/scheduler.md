@@ -180,6 +180,8 @@ doubles as consent to run a script or action unattended, so — like `snippetsEn
 `calendarEnabled` and `cameraPreview` — an imported backup must never be able to arm the machine to
 fire on a timer by itself. `schedulerReminderApps` is excluded too: it is consent to write to another
 app's data. The Reminders grant also shows in **Settings → Permissions**, beside Calendars.
+The opt-in [settings file](settings-file.md) follows the same split: `scheduler.showInLauncher` and
+`scheduler.playsSound` are keys, while the switch and the reminder apps have none.
 
 ## Notifications module
 

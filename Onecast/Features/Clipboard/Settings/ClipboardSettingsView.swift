@@ -30,9 +30,6 @@ struct ClipboardSettingsView: View {
                     SettingsRowTitle(.clipboardHistory, "Keep history for")
                     Text("Entries older than this are deleted automatically.")
                 }
-                .onChange(of: settings.clipboardRetention) {
-                    core.clipboardCoordinator.applyRetention(settings.clipboardRetention)
-                }
                 Toggle(isOn: $settings.clipboardTextSearchEnabled) {
                     SettingsRowTitle(.clipboardHistory, "Search text in images and PDFs")
                     Text("Recognize text on this Mac while idle and include it in clipboard searches.")

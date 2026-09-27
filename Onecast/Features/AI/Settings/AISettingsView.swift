@@ -57,7 +57,6 @@ struct AISettingsView: View {
             core.applyInstalledAILifecycle()
         }
         // Switched on with the pane already open, provider status would otherwise stay empty.
-        .onChange(of: appSettings.aiEnabled) { core.applyInstalledAILifecycle() }
         .onChange(of: settings.enabledInstalledProviders) {
             core.applyInstalledAILifecycle()
             syncSelection()
@@ -200,7 +199,6 @@ struct AISettingsView: View {
                 SettingsRowTitle(.aiConversations, "Keep conversations")
                 Text("Older conversations are deleted permanently.")
             }
-            .onChange(of: settings.retention) { core.aiChatCoordinator.applyRetention() }
         } header: {
             SettingsSectionHeader(.aiConversations)
         } footer: {
