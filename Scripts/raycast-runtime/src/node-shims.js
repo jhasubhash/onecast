@@ -870,6 +870,7 @@ const cryptoModule = {
     queueMicrotask(() => callback(null, key));
   },
   timingSafeEqual: (a, b) => Buffer.from(a).equals(Buffer.from(b)),
+  getHashes: () => ["md5", "sha1", "sha256", "sha384", "sha512"],
   getRandomValues: (target) => cryptoModule.randomFillSync(target),
   webcrypto: null,
   constants: {},
@@ -1639,6 +1640,60 @@ class AsyncResource {
   }
 }
 
+// ─── diagnostics_channel ────────────────────────────────────────────
+
+/// undici opens a channel per instrumentation point at module scope, so `channel` cannot refuse.
+class Channel {
+  constructor(name) {
+    this.name = name;
+    this._subscribers = [];
+  }
+  get hasSubscribers() {
+    return this._subscribers.length > 0;
+  }
+  subscribe(onMessage) {
+    this._subscribers.push(onMessage);
+  }
+  unsubscribe(onMessage) {
+    const index = this._subscribers.indexOf(onMessage);
+    if (index === -1) return false;
+    this._subscribers.splice(index, 1);
+    return true;
+  }
+  publish(message) {
+    for (const onMessage of [...this._subscribers]) {
+      try {
+        onMessage(message, this.name);
+      } catch (error) {
+        reportUncaught(error);
+      }
+    }
+  }
+  bindStore() {}
+  unbindStore() {
+    return false;
+  }
+  runStores(message, fn, thisArg, ...args) {
+    this.publish(message);
+    return Reflect.apply(fn, thisArg, args);
+  }
+}
+
+const channels = new Map();
+
+function channel(name) {
+  if (!channels.has(name)) channels.set(name, new Channel(name));
+  return channels.get(name);
+}
+
+const diagnosticsChannel = unsupportedModule("diagnostics_channel", {
+  Channel,
+  channel,
+  hasSubscribers: (name) => channels.get(name)?.hasSubscribers ?? false,
+  subscribe: (name, onMessage) => channel(name).subscribe(onMessage),
+  unsubscribe: (name, onMessage) => channels.get(name)?.unsubscribe(onMessage) ?? false,
+});
+
 // ─── Registry ───────────────────────────────────────────────────────
 
 export const nodeModules = {
@@ -1670,7 +1725,13 @@ export const nodeModules = {
   stream: streamModule,
   "stream/web": webStreamModule,
   "stream/promises": { pipeline: (...stages) => pipelinePromise(stages), finished: finishedPromise },
-  worker_threads: unsupportedModule("worker_threads", { isMainThread: true }),
+  // No-ops rather than refusals: undici's `markAsUncloneable || (() => {})` never falls back.
+  worker_threads: unsupportedModule("worker_threads", {
+    isMainThread: true,
+    markAsUncloneable: () => {},
+    markAsUntransferable: () => {},
+    isMarkedAsUntransferable: () => false,
+  }),
   readline: unsupportedModule("readline"),
   tty: { isatty: () => false },
   vm: unsupportedModule("vm"),
@@ -1680,6 +1741,7 @@ export const nodeModules = {
   inspector: {},
   v8: {},
   async_hooks: { AsyncLocalStorage, AsyncResource },
+  diagnostics_channel: diagnosticsChannel,
 };
 
 function requireStub(name) {
@@ -1690,7 +1752,7 @@ function requireStub(name) {
 // long tail (dgram, http2, domain, repl, …) from dependencies that only touch them on paths an
 // extension never reaches, so a require-time throw would fail extensions that actually work.
 const REMAINING_BUILTINS = [
-  "assert/strict", "console", "dgram", "diagnostics_channel", "dns/promises", "domain", "http2",
+  "assert/strict", "console", "dgram", "dns/promises", "domain", "http2",
   "inspector/promises", "path/posix", "path/win32", "readline/promises", "repl",
   "stream/consumers", "sys", "trace_events", "util/types", "wasi", "sea", "sqlite", "test",
   "test/reporters",
