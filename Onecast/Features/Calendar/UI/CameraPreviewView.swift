@@ -14,6 +14,7 @@ struct CameraPreviewView: View {
                 .frame(
                     width: Theme.Size.cameraPreview.width,
                     height: Theme.Size.cameraPreview.height)
+                .windowDraggable(true)
             footer
         }
         .frame(width: Theme.Size.cameraPreview.width)

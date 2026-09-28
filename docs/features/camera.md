@@ -40,7 +40,7 @@ controller and footer are all that stay in [calendar.md](calendar.md).
 | `UI/CameraCoordinator.swift` | the standalone panel's lifecycle, mirror state, the clipboard write |
 | `UI/CameraView.swift` | the standalone surface: stage over a footer of controls |
 | `UI/CameraStage.swift` | the shared stage — the hosted preview layer, or why there is no video |
-| `UI/CameraPanel.swift` | the shared borderless panel: ↵ and Esc, and cursor-screen centring |
+| `UI/CameraPanel.swift` | the shared borderless panel: ↵ and Esc, cursor-screen centring, a saved spot |
 | `UI/CameraButton.swift` | the shared capsule button both footers use |
 
 `Purpose` is the session's one knob. `.preview` is the cheap one Calendar takes — a `.medium` preset
@@ -50,7 +50,10 @@ the whole cost of being able to take a photo, and it is paid only by the command
 `CameraCoordinator` is `@Observable` and the view reads it directly, so toggling Mirror re-renders
 through Observation rather than through a hand-reassigned `rootView`. `mirrored` lives on the
 coordinator rather than in `AppSettings`: it is remembered for the launch, and a display preference
-that grants nothing is not worth a settings key or a line in a backup.
+that grants nothing is not worth a settings key or a line in a backup. Where a drag leaves the panel
+is kept, though, per display in `AppSettings.cameraPositions`: `CameraView` reports the drop, the
+next open on that display is clamped back onto it, and any other display centres as before. Like the
+palette's position it is machine-local geometry, so backups and the settings file leave it out.
 
 Switching cameras swaps the input inside one `beginConfiguration`/`commitConfiguration` while the
 session keeps running, so the stage never blanks. The next open starts on the camera switched to,

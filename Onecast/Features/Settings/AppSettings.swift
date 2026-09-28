@@ -306,6 +306,19 @@ final class AppSettings {
         aiBarPositions[display] = [offset.x, offset.y]
     }
 
+    /// Where a drag left Open Camera's panel, per display and relative to it.
+    var cameraPositions: [String: [Double]] {
+        didSet { defaults.set(cameraPositions, forKey: Key.cameraPosition.rawValue) }
+    }
+
+    func cameraPosition(on display: String) -> CGPoint? {
+        cameraPositions[display].flatMap { $0.count == 2 ? CGPoint(x: $0[0], y: $0[1]) : nil }
+    }
+
+    func setCameraPosition(_ offset: CGPoint, on display: String) {
+        cameraPositions[display] = [offset.x, offset.y]
+    }
+
     /// Keep the floating AI Chat bar open when focus moves to another app, instead of hiding on blur.
     var aiBarStaysOpen: Bool {
         didSet { defaults.set(aiBarStaysOpen, forKey: Key.aiBarStaysOpen.rawValue) }
@@ -722,6 +735,9 @@ final class AppSettings {
             as? [String: [Double]] ?? [:]
         aiBarPositions =
             defaults.dictionary(forKey: Key.aiBarPosition.rawValue)
+            as? [String: [Double]] ?? [:]
+        cameraPositions =
+            defaults.dictionary(forKey: Key.cameraPosition.rawValue)
             as? [String: [Double]] ?? [:]
         aiBarStaysOpen = defaults.bool(forKey: Key.aiBarStaysOpen.rawValue)
         aiBarSize = (defaults.array(forKey: Key.aiBarSize.rawValue) as? [Double]).flatMap {

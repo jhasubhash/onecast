@@ -61,6 +61,24 @@ final class CameraPanel: NSPanel {
 
     private static let centerLift: CGFloat = 0.08
 
+    /// The top-left corner's distance from the screen's own, so another resolution keeps the spot.
+    func offset(on screen: NSScreen) -> CGPoint {
+        let visible = screen.visibleFrame
+        return CGPoint(x: frame.minX - visible.minX, y: visible.maxY - frame.maxY)
+    }
+
+    /// Clamped whole onto the screen: a spot left on a larger display must never strand the panel.
+    func place(at offset: CGPoint, on screen: NSScreen) {
+        let visible = screen.visibleFrame
+        let size = frame.size
+        let x = visible.minX + offset.x
+        let y = visible.maxY - offset.y - size.height
+        setFrameOrigin(
+            NSPoint(
+                x: min(max(x, visible.minX), visible.maxX - size.width),
+                y: min(max(y, visible.minY), visible.maxY - size.height)))
+    }
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 }

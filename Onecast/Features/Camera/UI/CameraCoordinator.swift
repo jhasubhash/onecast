@@ -74,12 +74,24 @@ final class CameraCoordinator: NSObject, NSWindowDelegate {
             if key == .primary { takePhoto() } else { close() }
         }
         self.panel = panel
-        panel.centerOnCursorScreen()
+        if let screen = NSScreen.underCursor,
+            let offset = core.settings.cameraPosition(on: screen.displayKey)
+        {
+            panel.place(at: offset, on: screen)
+        } else {
+            panel.centerOnCursorScreen()
+        }
         // Non-activating like the palette: key focus without pulling the user out of their app.
         panel.fadeIn(duration: Theme.Duration.enter) {
             panel.makeKeyAndOrderFront(nil)
             panel.orderFrontRegardless()
         }
+    }
+
+    /// Called when a drag drops the panel, keyed to the display it mostly sits on.
+    func rememberPosition() {
+        guard let panel, let screen = panel.screen else { return }
+        core.settings.setCameraPosition(panel.offset(on: screen), on: screen.displayKey)
     }
 
     // MARK: - NSWindowDelegate

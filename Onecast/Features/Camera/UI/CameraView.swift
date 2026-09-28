@@ -10,6 +10,7 @@ struct CameraView: View {
                 .frame(
                     width: Theme.Size.cameraStage.width,
                     height: Theme.Size.cameraStage.height)
+                .windowDraggable(true, onEnded: coordinator.rememberPosition)
             footer
         }
         .frame(width: Theme.Size.cameraStage.width)

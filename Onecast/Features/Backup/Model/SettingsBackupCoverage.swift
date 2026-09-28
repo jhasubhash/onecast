@@ -93,6 +93,8 @@ enum SettingsBackupCoverage {
             "Machine-local geometry: every entry names a display this Mac has, and no other one.",
         AppSettingsKey.aiBarPosition.rawValue:
             "Machine-local geometry: the AI bar's placement names a display this Mac has, no other.",
+        AppSettingsKey.cameraPosition.rawValue:
+            "Machine-local geometry: every entry names a display this Mac has, and no other one.",
         AppSettingsKey.aiBarSize.rawValue:
             "Machine-local geometry: a size dragged to fit this Mac's displays, kept with its position.",
         AppSettingsKey.aiBarStaysOpen.rawValue:

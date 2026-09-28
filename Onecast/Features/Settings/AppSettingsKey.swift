@@ -29,6 +29,7 @@ enum AppSettingsKey: String, CaseIterable {
     case paletteDraggable = "paletteDraggable"
     case palettePosition = "palettePosition"
     case aiBarPosition = "aiBarPosition"
+    case cameraPosition = "cameraPosition"
     case aiBarSize = "aiBarSize"
     case aiBarStaysOpen = "aiBarStaysOpen"
     case paletteExpandedCenterDisplays = "paletteExpandedCenterDisplays"
