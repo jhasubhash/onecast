@@ -6,6 +6,19 @@ final class NoteTextView: NSTextView, InjectableTextView {
 
     override var undoManager: UndoManager? { editorUndoManager }
 
+    /// A Quick Action's result lands only while the note and its selection are as they were read.
+    func replaceUnchangedSelection(with text: String, source: String, range: NSRange) -> Bool {
+        guard isEditable, range.length > 0, string == source, selectedRange() == range,
+            let textStorage, shouldChangeText(in: range, replacementString: text)
+        else { return false }
+        breakUndoCoalescing()
+        textStorage.replaceCharacters(in: range, with: text)
+        didChangeText()
+        setSelectedRange(NSRange(location: range.location + (text as NSString).length, length: 0))
+        breakUndoCoalescing()
+        return true
+    }
+
     func find(_ action: NSTextFinder.Action) {
         let item = NSMenuItem()
         item.tag = action.rawValue
