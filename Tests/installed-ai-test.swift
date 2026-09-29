@@ -23,6 +23,7 @@ struct InstalledAITests {
         defer { fixture.tearDown() }
         openCodeCatalogCarriesModelVariants()
         versionKeepsPrereleaseAndBuild()
+        copilotACPCatalogListsTheAccountsModels()
         shellAccessGatesToShellCapableRoutes()
         await openCodeRunsWithoutToolsAndDeletesItsSession(fixture)
         await claudeRunsWithoutToolsOrHistory(fixture)
@@ -55,6 +56,33 @@ struct InstalledAITests {
             models.first?.efforts.map(\.id) == ["low", "high"],
             "OpenCode discovery keeps each model's supported reasoning variants")
         expect(models.last?.efforts.isEmpty == true, "models without variants show no effort picker")
+    }
+
+    private static func copilotACPCatalogListsTheAccountsModels() {
+        let session = """
+            {"jsonrpc":"2.0","id":2,"result":{"sessionId":"s","models":{"currentModelId":"b",\
+            "availableModels":[{"modelId":"auto","name":"Auto"},{"modelId":"b","name":"Model B"},\
+            {"modelId":"b","name":"Again"},{"modelId":"c","name":""}]}}}
+            """
+        let output = """
+            {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1}}
+            {"jsonrpc":"2.0","method":"session/update","params":{}}
+            \(session)
+            """
+        let catalog = InstalledAIModel.copilotACPCatalog(output)
+        expect(
+            catalog?.map(\.id) == ["auto", "b", "c"],
+            "the session's answer lists each model once, past other replies and notifications")
+        expect(
+            catalog?.map(\.name) == ["Auto", "Model B", "c"],
+            "a model keeps Copilot's display name, or its id when it has none")
+        expect(
+            InstalledAIModel.copilotACPCatalog(String(session.dropLast(4))) == nil,
+            "half an answer is no answer, so the probe keeps reading")
+        expect(
+            InstalledAIModel.copilotACPCatalog(
+                #"{"jsonrpc":"2.0","id":2,"result":{"models":{"availableModels":[]}}}"#) == nil,
+            "an empty list leaves the fallback in place")
     }
 
     private static func versionKeepsPrereleaseAndBuild() {

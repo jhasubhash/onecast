@@ -165,6 +165,50 @@ struct InstalledAIModel: Equatable, Identifiable, Sendable {
         }
     }
 
+    /// ACP's `initialize`, then `session/new`, whose answer lists every model the account offers.
+    static func copilotACPRequest(workspace: URL) -> Data {
+        let lines: [[String: Any]] = [
+            [
+                "jsonrpc": "2.0", "id": 1, "method": "initialize",
+                "params": ["protocolVersion": 1, "clientCapabilities": [String: Any]()]
+            ],
+            [
+                "jsonrpc": "2.0", "id": copilotACPSessionID, "method": "session/new",
+                "params": ["cwd": workspace.path, "mcpServers": [Any]()]
+            ]
+        ]
+        return lines.reduce(into: Data()) { data, line in
+            guard let json = try? JSONSerialization.data(withJSONObject: line) else { return }
+            data.append(json)
+            data.append(UInt8(ascii: "\n"))
+        }
+    }
+
+    /// Nil until a whole line answers `session/new` with models, so a caller keeps its fallback.
+    static func copilotACPCatalog(_ output: String) -> [InstalledAIModel]? {
+        for line in output.split(separator: "\n", omittingEmptySubsequences: true) {
+            guard
+                let object = try? JSONSerialization.jsonObject(with: Data(line.utf8))
+                    as? [String: Any],
+                object["id"] as? Int == copilotACPSessionID,
+                let result = object["result"] as? [String: Any],
+                let models = (result["models"] as? [String: Any])?["availableModels"]
+                    as? [[String: Any]]
+            else { continue }
+            var seen = Set<String>()
+            let catalog = models.compactMap { model -> InstalledAIModel? in
+                guard let id = model["modelId"] as? String, !id.isEmpty, seen.insert(id).inserted
+                else { return nil }
+                let name = (model["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? id
+                return InstalledAIModel(id: id, name: name, efforts: cliEfforts)
+            }
+            return catalog.isEmpty ? nil : catalog
+        }
+        return nil
+    }
+
+    private static let copilotACPSessionID = 2
+
     /// `~/.copilot/config.json` is JSONC — leading `//` comments — so parse from the first `{`.
     static func parseCopilotConfig(_ data: Data?) -> [String: Any]? {
         guard let data, let brace = data.firstIndex(of: UInt8(ascii: "{")) else { return nil }

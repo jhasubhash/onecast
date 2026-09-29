@@ -182,7 +182,16 @@ final class InstalledAIManager {
                 else { return false }
                 return !users.isEmpty
             }()
-            let models = InstalledAIModel.copilotCatalog(configJSON: configData)
+            // The recent-models list stands in when the ACP server cannot be asked.
+            var models = InstalledAIModel.copilotCatalog(configJSON: configData)
+            if signedIn {
+                let answer = await InstalledAIProbe.request(
+                    executable: executable, arguments: ["--acp"], workspace: workspace,
+                    environment: environment,
+                    input: InstalledAIModel.copilotACPRequest(workspace: workspace),
+                    until: { InstalledAIModel.copilotACPCatalog($0) != nil })
+                models = InstalledAIModel.copilotACPCatalog(answer) ?? models
+            }
             return (
                 kind,
                 InstalledAIStatus(
@@ -271,6 +280,57 @@ enum InstalledAIProbe {
                     return Result(
                         status: process.terminationStatus,
                         output: String(bytes: data, encoding: .utf8) ?? "")
+                }.value
+            },
+            onCancel: {
+                handle.cancel()
+            })
+    }
+
+    /// Holds stdin open until the answer arrives, since an ACP server exits once its input closes.
+    nonisolated static func request(
+        executable: URL, arguments: [String], workspace: URL, environment: [String: String]?,
+        input: Data, until answered: @escaping @Sendable (String) -> Bool,
+        timeout: Duration = .seconds(20)
+    ) async -> String {
+        let handle = ProcessHandle()
+        return await withTaskCancellationHandler(
+            operation: {
+                await Task.detached {
+                    try? FileManager.default.createDirectory(
+                        at: workspace, withIntermediateDirectories: true)
+                    let process = Process()
+                    let stdin = Pipe()
+                    let output = Pipe()
+                    process.executableURL = executable
+                    process.arguments = arguments
+                    process.currentDirectoryURL = workspace
+                    if let environment { process.environment = environment }
+                    process.standardInput = stdin
+                    process.standardOutput = output
+                    process.standardError = FileHandle.nullDevice
+                    guard let exit = try? process.runObservingExit() else { return "" }
+                    handle.set(process)
+                    // A child that exits before reading must fail the write, not SIGPIPE Onecast.
+                    _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+                    try? stdin.fileHandleForWriting.write(contentsOf: input)
+                    let watchdog = Task {
+                        try? await Task.sleep(for: timeout)
+                        if process.isRunning { process.terminate() }
+                    }
+                    var data = Data()
+                    // `availableData`, not `read(upToCount:)`, which would wait for the watchdog.
+                    while data.count < Self.maximumOutputBytes {
+                        let chunk = output.fileHandleForReading.availableData
+                        guard !chunk.isEmpty else { break }
+                        data.append(chunk)
+                        if answered(String(bytes: data, encoding: .utf8) ?? "") { break }
+                    }
+                    try? stdin.fileHandleForWriting.close()
+                    if process.isRunning { process.terminate() }
+                    exit.wait()
+                    watchdog.cancel()
+                    return String(bytes: data, encoding: .utf8) ?? ""
                 }.value
             },
             onCancel: {
