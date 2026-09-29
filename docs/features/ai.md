@@ -513,15 +513,21 @@ model variant through `--variant`; it captures the returned session identifier, 
 `opencode session delete` after the process exits. Cancellation terminates the child process; only
 one installed-CLI turn can own a runner at a time.
 
-### Configure: models and launch
+### The Providers panel
 
-Each installed tool's row in the Providers sheet has a Configure button, shown even while the tool is
-off so a bad path can be fixed first. `AIProviderConfigureSheet` has two pages. **Models** ticks which
-of the tool's models the pickers list, with Show All and Hide All; it is a `List`, which builds only
-the rows on screen, because OpenCode alone offers hundreds. API connections have no Models page:
-their model list is already the hand-picked one from the connection editor. **Advanced** sets a
+`AIProvidersPanel` follows Mail's Accounts: Apple Intelligence, the installed tools and the API
+connections sit in a list, each with its mark and a one-line state, and the selected one's detail
+sits beside it. The detail header carries the route's switch; `+` and `−` under the list add and
+remove API connections. An installed tool's detail has three pages behind a `SteadySegmentedPicker`,
+and the chosen page is kept from one tool to the next. **Overview** is its status, the signed-in
+account (Codex's from the app-server, Claude's from `claude auth status`, the address hidden until
+clicked), Codex's usage windows and the command that ran. **Models** (`AIProviderModelsPage`) ticks
+which models the pickers list, with Show All and Hide All; it is a `List`, which builds only the rows
+on screen, because OpenCode alone offers hundreds. **Advanced** (`AIProviderAdvancedPage`) sets a
 command path, which replaces `ExecutableLocator`'s lookup, and `NAME=value` variables set each time
-the tool starts, in the Assistant editor's format.
+the tool starts, in the Assistant editor's format; it saves when it is left, and it stays reachable
+while the tool is off so a bad path can be fixed first. Apple Intelligence and API connections have
+Overview alone: a connection's models are already the hand-picked ones from its editor.
 
 `AISettingsStore` keeps the path and the variable names in `aiInstalledOverrides` and their values in
 the login Keychain (`InstalledAIEnvironmentStore.keychain`, one item per tool). A Keychain read that
@@ -651,10 +657,11 @@ width and clipped the search field well short of the button.
 
 Settings → AI is a normal grouped `Form` inside Onecast's existing Settings window. Its top AI
 section owns the feature switch and the **Providers → Manage…** action, and **Default model** below
-it picks the app-wide route and its reasoning effort. Provider management opens as a sheet, where
-**Installed AI** reports Codex, Claude and OpenCode separately as checking, ready, sign-in required,
-missing or failed. It never contains a credential field: installation and sign-in happen in each
-command's own flow. **API Connections** remains the explicit Keychain-backed path in that sheet. The
+it picks the app-wide route and its reasoning effort. Provider management opens the
+[Providers panel](#the-providers-panel), which reports each installed tool as checking, ready,
+sign-in required, missing or failed. It never asks for an installed tool's credential: installation
+and sign-in happen in each command's own flow. API connections remain the explicit Keychain-backed
+path in that panel. The
 chat header changes the same default without a trip to Settings, while Quick Actions keeps its own
 model selection.
 

@@ -24,6 +24,7 @@ struct InstalledAITests {
         openCodeCatalogCarriesModelVariants()
         versionKeepsPrereleaseAndBuild()
         copilotACPCatalogListsTheAccountsModels()
+        claudeStatusNamesItsAccount()
         shellAccessGatesToShellCapableRoutes()
         await openCodeRunsWithoutToolsAndDeletesItsSession(fixture)
         await claudeRunsWithoutToolsOrHistory(fixture)
@@ -85,12 +86,28 @@ struct InstalledAITests {
             "an empty list leaves the fallback in place")
     }
 
+    private static func claudeStatusNamesItsAccount() {
+        let status = #"{"loggedIn":true,"email":"a@b.c","subscriptionType":"max"}"#
+        expect(
+            InstalledAIAccount.claude(statusJSON: status)
+                == InstalledAIAccount(email: "a@b.c", plan: "max"),
+            "Claude's auth status names the account and plan it checked")
+        expect(
+            InstalledAIAccount(email: nil, plan: "Claude Max").planTitle == "Max"
+                && InstalledAIAccount(email: nil, plan: "enterprise").planTitle == "Enterprise",
+            "a plan reads the same however the CLI spells it, without the tool's own name")
+        expect(
+            InstalledAIAccount.claude(statusJSON: #"{"loggedIn":true,"email":""}"#) == nil,
+            "a status with no account in it shows no account row")
+    }
+
     private static func versionKeepsPrereleaseAndBuild() {
         let cases: [(String, String?)] = [
             ("opencode2 v0.0.0-beta-19271\n", "0.0.0-beta-19271"),
             ("2.0.14 (Claude Code)\n", "2.0.14"),
             ("codex-cli 0.46.0\n", "0.46.0"),
             ("tool 1.2.3-rc.1+build.5\n", "1.2.3-rc.1+build.5"),
+            ("GitHub Copilot CLI 1.0.83-5.\nRun 'copilot update'", "1.0.83-5"),
             ("no version here", nil),
         ]
         for (output, expected) in cases {

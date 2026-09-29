@@ -223,6 +223,33 @@ struct InstalledAIModel: Equatable, Identifiable, Sendable {
     }
 }
 
+/// Who a tool is signed in as, when it says; shown so the reader knows which account is billed.
+struct InstalledAIAccount: Equatable, Sendable {
+    let email: String?
+    let plan: String?
+
+    /// Claude says "max" in one answer and "Claude Max" in another; the row adds the tool's name.
+    var planTitle: String? {
+        guard var title = plan?.trimmingCharacters(in: .whitespaces), !title.isEmpty else {
+            return nil
+        }
+        if title.lowercased().hasPrefix("claude ") { title = String(title.dropFirst(7)) }
+        return title.prefix(1).uppercased() + title.dropFirst()
+    }
+
+    /// `claude auth status --json` names the account it checked, so no second command is run.
+    static func claude(statusJSON output: String) -> InstalledAIAccount? {
+        guard
+            let object = try? JSONSerialization.jsonObject(with: Data(output.utf8))
+                as? [String: Any]
+        else { return nil }
+        let email = (object["email"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let plan = (object["subscriptionType"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        guard email != nil || plan != nil else { return nil }
+        return InstalledAIAccount(email: email, plan: plan)
+    }
+}
+
 struct InstalledAIStatus: Equatable, Sendable {
     enum Phase: Equatable, Sendable {
         case idle
@@ -237,6 +264,7 @@ struct InstalledAIStatus: Equatable, Sendable {
     var version: String?
     var executable: URL?
     var models: [InstalledAIModel] = []
+    var account: InstalledAIAccount?
 
     var isReady: Bool { phase == .ready && executable != nil && !models.isEmpty }
 }

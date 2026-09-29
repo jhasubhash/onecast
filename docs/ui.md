@@ -161,6 +161,11 @@ Notes adds `noteWindow 520×420` (opening size on a first run only), `noteWindow
 `noteTitlebar 44`, `noteTitleInset 120`, `noteEditorInset 16`, `noteSearchHeight 34`,
 `noteFooterHeight 28`, `noteGlyph 16`, and `noteEmptyGlyph 28`.
 
+The AI Providers panel adds `aiProvidersPanel 840×520` (the height is its two columns', stated so
+that selecting a longer provider never resizes the panel), `aiProvidersList 262` and `aiUsageBar 110`.
+`segmentLabelInset 13` is what the system leaves either side of a segment's label once a segmented
+control has settled.
+
 `keyCap` sizes the palette's keycap chips; `recorderKeyCap` (both size and radius) is the intentionally-smaller Settings shortcut-recorder chip.
 
 ### Typography (`Theme.Typography`)
@@ -555,6 +560,10 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   is unaffected.
 - **`.settingsEnabled(_:)`, never a bare `.disabled(_:)`.** It dims as well as disables, so a
   switched-off row reads as unavailable rather than merely unresponsive.
+- **A segmented control that opens in a panel is a `SteadySegmentedPicker`.** The system control
+  opens tight around its labels and widens the first time its selection changes, under the pointer.
+  The wrapper pins each segment to its label plus `segmentLabelInset` and reports its size from those
+  widths. The MCP editor's connection switch and the AI Providers panel's pages use it.
 - **A secret is a `RevealableSecureField`, never a bare `SecureField`.** One eye, one place, so an API
   key, a header value and a passphrase all offer the same way to check a pasted value before saving.
   It re-hides on its own once the field is cleared, and its eye is disabled while it is empty.

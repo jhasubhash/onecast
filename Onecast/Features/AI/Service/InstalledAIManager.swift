@@ -158,7 +158,8 @@ final class InstalledAIManager {
                 InstalledAIStatus(
                     phase: auth.status == 0 && loggedIn ? .ready : .signInRequired,
                     version: version, executable: executable,
-                    models: loggedIn ? InstalledAIModel.claude : [])
+                    models: loggedIn ? InstalledAIModel.claude : [],
+                    account: loggedIn ? InstalledAIAccount.claude(statusJSON: auth.output) : nil)
             )
         case .openCode:
             let models = await InstalledAIProbe.run(
@@ -338,8 +339,10 @@ enum InstalledAIProbe {
             })
     }
 
+    /// A sentence's closing full stop is not part of the version it ends on.
     nonisolated static func version(in output: String) -> String? {
-        output.firstMatch(of: #/\d+\.\d+(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?/#).map { String($0.output) }
+        output.firstMatch(of: #/\d+\.\d+(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?/#)
+            .map { String($0.output).trimmingCharacters(in: CharacterSet(charactersIn: ".-")) }
     }
 
     nonisolated static func loggedIn(toClaude output: String) -> Bool {

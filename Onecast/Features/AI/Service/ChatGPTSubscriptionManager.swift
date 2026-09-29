@@ -17,6 +17,8 @@ final class ChatGPTSubscriptionManager {
     let turns: CodexTurnRunner
 
     private(set) var phase = ChatGPTSubscription.Phase.idle
+    /// Copied from the client at each check: the client is not observed, and Settings shows this.
+    private(set) var executable: URL?
     private(set) var account: ChatGPTSubscription.Account?
     private(set) var models: [ChatGPTSubscription.Model] = []
     private(set) var rateLimits: ChatGPTSubscription.RateLimits?
@@ -99,6 +101,7 @@ final class ChatGPTSubscriptionManager {
         phase = .starting
         do {
             try await client.start()
+            executable = client.executable
             guard try await restoreAccount() else {
                 phase = .signedOut
                 client.stop()

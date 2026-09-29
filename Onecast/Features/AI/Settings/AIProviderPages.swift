@@ -1,81 +1,28 @@
 import SwiftUI
 
-/// One installed tool's own settings: which of its models the pickers list, and how it is launched.
-struct AIProviderConfigureSheet: View {
+/// A provider's model list as checkboxes: which of its models the model pickers list.
+struct AIProviderModelsPage: View {
     struct Model: Identifiable {
         let id: String
         let name: String
     }
 
-    private enum Page: String, CaseIterable, Identifiable {
-        case models = "Models"
-        case advanced = "Advanced"
-        var id: Self { self }
-    }
-
-    let kind: InstalledAIKind
+    let source: AIModelSource
     let models: [Model]
-    /// Where the automatic lookup found the command, shown so a set path can be compared with it.
-    let foundCommand: URL?
-    let onClose: () -> Void
+    /// Why the list is empty, when it is: a tool that is off or not ready has nothing to list yet.
+    let emptyNote: String
 
     @Environment(AISettingsStore.self) private var settings
-    @State private var page = Page.models
     @State private var query = ""
-    @State private var commandPath = ""
-    @State private var environmentText = ""
-    @State private var environmentError: String?
-    /// A read that failed leaves the variables alone, so a save never writes blanks over them.
-    @State private var environmentReadable = true
-
-    private var source: AIModelSource { kind.source }
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-                Text(kind.title).font(.title2.weight(.bold))
-                Picker("Page", selection: $page) {
-                    ForEach(Page.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .fixedSize()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Theme.Spacing.xxl)
-            .padding(.top, Theme.Spacing.xxl)
-            .padding(.bottom, Theme.Spacing.md)
-
-            switch page {
-            case .models: modelsPage
-            case .advanced: advancedPage
-            }
-
-            Divider()
-            HStack(spacing: Theme.Spacing.lg) {
-                if let environmentError {
-                    Label(environmentError, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
-                        .lineLimit(2)
-                }
-                Spacer()
-                Button("Done", action: done).keyboardShortcut(.defaultAction)
-            }
-            .padding(Theme.Spacing.xl)
-        }
-        .frame(width: Theme.Size.editorSheetWidth, height: 600)
-        .onAppear(perform: load)
-    }
-
-    // MARK: - Models
-
-    private var modelsPage: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             if models.isEmpty {
-                Text("\(kind.title) has listed no models yet. Check it in AI Providers, then come back.")
+                Text(emptyNote)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, Theme.Spacing.xxl)
-                Spacer()
+                    .padding(.top, Theme.Spacing.xl)
+                Spacer(minLength: 0)
             } else {
                 HStack(spacing: Theme.Spacing.md) {
                     TextField("Filter models", text: $query, prompt: Text("Filter models"))
@@ -84,21 +31,24 @@ struct AIProviderConfigureSheet: View {
                     Button("Hide All") { settings.hideAllModels(in: source) }
                 }
                 .padding(.horizontal, Theme.Spacing.xxl)
+                .padding(.top, Theme.Spacing.xl)
                 Text("\(shownCount) of \(models.count) listed in model pickers")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, Theme.Spacing.xxl)
                 // A List builds only the rows on screen; OpenCode alone offers hundreds.
                 List(filteredModels) { model in
-                    modelRow(model)
+                    row(model)
                 }
                 .listStyle(.inset)
+                .scrollContentBackground(.hidden)
             }
         }
     }
 
-    private func modelRow(_ model: Model) -> some View {
-        let isDefault = settings.defaultModel?.source == source && settings.defaultModel?.model == model.id
+    private func row(_ model: Model) -> some View {
+        let isDefault =
+            settings.defaultModel?.source == source && settings.defaultModel?.model == model.id
         return Toggle(isOn: shownBinding(model.id)) {
             HStack(spacing: Theme.Spacing.sm) {
                 Text(model.name)
@@ -133,10 +83,23 @@ struct AIProviderConfigureSheet: View {
             get: { settings.isModelShown(model, in: source) },
             set: { settings.setModel(model, shown: $0, in: source, available: models.map(\.id)) })
     }
+}
 
-    // MARK: - Advanced
+/// An installed tool's launch: the command path and the variables it starts with.
+struct AIProviderAdvancedPage: View {
+    let kind: InstalledAIKind
+    /// Where the automatic lookup found the command, shown so a set path can be compared with it.
+    let foundCommand: URL?
 
-    private var advancedPage: some View {
+    @Environment(AppCore.self) private var core
+    @Environment(AISettingsStore.self) private var settings
+    @State private var commandPath = ""
+    @State private var environmentText = ""
+    /// A read that failed leaves the variables alone, so a save never writes blanks over them.
+    @State private var environmentReadable = true
+    @State private var loaded = false
+
+    var body: some View {
         Form {
             Section {
                 LabeledContent {
@@ -144,6 +107,7 @@ struct AIProviderConfigureSheet: View {
                         TextField("Command path", text: $commandPath, prompt: Text("Automatic"))
                             .labelsHidden()
                             .font(.system(.body, design: .monospaced))
+                            .onSubmit(save)
                         Button("Choose…", action: chooseCommand)
                     }
                 } label: {
@@ -189,6 +153,13 @@ struct AIProviderConfigureSheet: View {
                         }
                     }
                     .disabled(!environmentReadable)
+                if !environmentReadable {
+                    Label(
+                        "The variables could not be read from the Keychain, so they can't be edited.",
+                        systemImage: "exclamationmark.triangle"
+                    )
+                    .foregroundStyle(.orange)
+                }
                 ForEach(ignoredVariables, id: \.self) { note in
                     Text(note).font(.caption).foregroundStyle(.orange)
                 }
@@ -204,11 +175,14 @@ struct AIProviderConfigureSheet: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .onAppear(perform: load)
+        // Leaving the page, the provider or the panel is what saves it.
+        .onDisappear(perform: save)
     }
 
     private var commandNote: (text: String, isProblem: Bool)? {
-        let launch = InstalledAILaunch(commandPath: commandPath)
-        switch launch.command() {
+        switch InstalledAILaunch(commandPath: commandPath).command() {
         case .automatic:
             return foundCommand.map { ("Found at \($0.path)", false) }
         case .executable:
@@ -232,8 +206,7 @@ struct AIProviderConfigureSheet: View {
 
     private func chooseCommand() {
         let start =
-            InstalledAILaunch(commandPath: commandPath).command()
-            .executableDirectory
+            InstalledAILaunch(commandPath: commandPath).command().executableDirectory
             ?? foundCommand?.deletingLastPathComponent()
             ?? FileManager.default.homeDirectoryForCurrentUser
         guard
@@ -242,9 +215,8 @@ struct AIProviderConfigureSheet: View {
                 startingAt: start)
         else { return }
         commandPath = (url.path as NSString).abbreviatingWithTildeInPath
+        save()
     }
-
-    // MARK: - Load and save
 
     private func load() {
         commandPath = settings.override(for: kind).commandPath
@@ -254,24 +226,24 @@ struct AIProviderConfigureSheet: View {
                 Dictionary(uniqueKeysWithValues: variables.map { ($0.name, $0.value) }))
         } catch {
             environmentReadable = false
-            environmentError = "The variables could not be read from the Keychain."
         }
+        loaded = true
     }
 
-    private func done() {
+    /// The store ignores an unchanged launch, so saving on every exit re-checks nothing needlessly.
+    private func save() {
+        guard loaded else { return }
         settings.setCommandPath(commandPath, for: kind)
-        if environmentReadable {
-            let variables = AssistantSecretStore.parse(environmentText)
-                .sorted { $0.key < $1.key }
-                .map { InstalledAIVariable(name: $0.key, value: $0.value) }
-            do {
-                try settings.setEnvironment(variables, for: kind)
-            } catch {
-                environmentError = "The variables could not be saved to the Keychain."
-                return
-            }
+        guard environmentReadable else { return }
+        let variables = AssistantSecretStore.parse(environmentText)
+            .sorted { $0.key < $1.key }
+            .map { InstalledAIVariable(name: $0.key, value: $0.value) }
+        do {
+            try settings.setEnvironment(variables, for: kind)
+        } catch {
+            core.showMessage(
+                "\(kind.title)'s variables could not be saved to the Keychain", tone: .danger)
         }
-        onClose()
     }
 }
 

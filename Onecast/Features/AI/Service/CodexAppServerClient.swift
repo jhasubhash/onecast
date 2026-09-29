@@ -29,6 +29,8 @@ final class CodexAppServerClient {
     var onExit: ((String) -> Void)?
     /// The reader's command path and variables, asked at each launch so an edit takes the next one.
     var launchSettings: () -> InstalledAILaunch = { InstalledAILaunch() }
+    /// The command the last launch ran, kept after it stops so Settings can still name it.
+    private(set) var executable: URL?
 
     private let codexHome: URL?
     let workspace: URL
@@ -84,6 +86,7 @@ final class CodexAppServerClient {
         let stdout = Pipe()
         let stderr = Pipe()
         process.executableURL = executable
+        self.executable = executable
         process.arguments = [
             "-c", "check_for_update_on_startup=false",
             "-c", "features.apps=false",

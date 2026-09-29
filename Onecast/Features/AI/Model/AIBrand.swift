@@ -4,6 +4,8 @@ import Foundation
 enum AIBrand: String, CaseIterable, Sendable {
     case openAI, claude, gemini, openRouter, x, deepSeek, qwen, mistral, meta, kimi, miniMax
     case perplexity, zai
+    /// An installed route's own mark; no model id resolves to it.
+    case openCode
 
     var assetName: String {
         switch self {
@@ -20,6 +22,7 @@ enum AIBrand: String, CaseIterable, Sendable {
         case .miniMax: return "AIBrandMiniMax"
         case .perplexity: return "AIBrandPerplexity"
         case .zai: return "AIBrandZAI"
+        case .openCode: return "AIBrandOpenCode"
         }
     }
 
