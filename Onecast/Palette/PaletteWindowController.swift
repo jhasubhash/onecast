@@ -50,6 +50,9 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { panel?.isVisible ?? false }
 
+    /// The palette's own view, for AppKit UI that must be anchored to it rather than drawn.
+    var anchorView: NSView? { panel?.isVisible == true ? panel?.contentView : nil }
+
     /// What the palette covered when it was summoned, for anything it expands into on dismissal.
     var previousTarget: InjectionTarget? {
         InjectionTarget.behindPalette(ownWindow: previousOwnWindow, app: previousApp)
