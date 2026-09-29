@@ -14,6 +14,7 @@ struct KeychainSecretStore: Sendable {
     static let aiAPIKeys = KeychainSecretStore(scope: "ai-api-keys")
     static let mcpSecrets = KeychainSecretStore(scope: "mcp-secrets")
     static let assistantEnvironment = KeychainSecretStore(scope: "assistant-environment")
+    static let installedAIEnvironment = KeychainSecretStore(scope: "installed-ai-environment")
 
     init(scope: String, bundleIdentifier: String? = Bundle.main.bundleIdentifier) {
         service = "\(bundleIdentifier ?? "com.onecast.app").\(scope)"

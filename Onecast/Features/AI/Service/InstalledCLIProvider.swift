@@ -6,11 +6,11 @@ struct InstalledCLIProvider: AIProvider {
     @MainActor
     init(
         kind: InstalledAIKind, executable: URL?, model: String, effort: String?, workspace: URL,
-        toolConfig: AICLIToolConfig? = nil
+        launch: InstalledAILaunch = InstalledAILaunch(), toolConfig: AICLIToolConfig? = nil
     ) {
         runner = InstalledCLITurnRunner(
             kind: kind, executable: executable, model: model, effort: effort,
-            workspace: workspace, toolConfig: toolConfig)
+            workspace: workspace, launch: launch, toolConfig: toolConfig)
     }
 
     func stream(_ request: AIRequest) -> AIProviderStream {
@@ -25,11 +25,6 @@ private final class InstalledCLITurnRunner {
         environment, access external resources, or modify anything. Use only the conversation and \
         instructions in this request.
         """
-    private static let openCodeConfiguration = """
-        {"permission":"deny","share":"disabled","agent":{"build":{"permission":"deny"},\
-        "plan":{"permission":"deny"}}}
-        """
-
     private static let maximumPartialLineBytes = 8 * 1_048_576
     private static let claudeManagedMCPConfig =
         "/Library/Application Support/ClaudeCode/managed-mcp.json"
@@ -41,6 +36,7 @@ private final class InstalledCLITurnRunner {
     private let model: String
     private let effort: String?
     private let workspace: URL
+    private let launch: InstalledAILaunch
 
     private var token: TurnToken?
     private var process: Process?
@@ -54,9 +50,10 @@ private final class InstalledCLITurnRunner {
 
     init(
         kind: InstalledAIKind, executable: URL?, model: String, effort: String?, workspace: URL,
-        toolConfig: AICLIToolConfig?
+        launch: InstalledAILaunch, toolConfig: AICLIToolConfig?
     ) {
         self.kind = kind
+        self.launch = launch
         configuredExecutable = executable
         self.model = model
         self.effort = effort
@@ -91,11 +88,21 @@ private final class InstalledCLITurnRunner {
             return
         }
         let resolvedExecutable: URL?
-        if let configuredExecutable {
-            resolvedExecutable = configuredExecutable
-        } else {
-            resolvedExecutable = await ExecutableLocator.locate(
-                kind.command, extraHomePaths: kind.extraExecutablePaths)
+        switch launch.command() {
+        case .executable(let url):
+            resolvedExecutable = url
+        case .missing(let path):
+            continuation.finish(
+                throwing: AIProviderError.unavailable(
+                    InstalledAILaunch.missingCommandMessage(path)))
+            return
+        case .automatic:
+            if let configuredExecutable {
+                resolvedExecutable = configuredExecutable
+            } else {
+                resolvedExecutable = await ExecutableLocator.locate(
+                    kind.command, extraHomePaths: kind.extraExecutablePaths)
+            }
         }
         guard let executable = resolvedExecutable else {
             continuation.finish(
@@ -276,24 +283,15 @@ private final class InstalledCLITurnRunner {
     }
 
     private func environment(for executable: URL) -> [String: String] {
-        let inheritedPath = ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin"
-        var result = ProcessInfo.processInfo.environment.merging(
+        let inherited = launch.inherited(for: kind)
+        let inheritedPath = inherited["PATH"] ?? "/usr/bin:/bin"
+        var result = inherited.merging(
             [
                 "NO_COLOR": "1",
                 "PATH": executable.deletingLastPathComponent().path + ":" + inheritedPath
             ]
         ) { _, value in value }
-        switch kind {
-        case .claude:
-            result["CLAUDE_CODE_SKIP_PROMPT_HISTORY"] = "1"
-            result["ENABLE_CLAUDEAI_MCP_SERVERS"] = "false"
-        case .openCode:
-            result["OPENCODE_CONFIG_CONTENT"] = Self.openCodeConfiguration
-            result["OPENCODE_AUTO_SHARE"] = "false"
-            result["OPENCODE_DISABLE_AUTOUPDATE"] = "true"
-        case .codex, .copilot:
-            break
-        }
+        result.merge(kind.managedEnvironment) { _, managed in managed }
         // The assistant's own variables win, so a Skill's script can authenticate with its own tokens.
         if let toolConfig {
             for (key, value) in toolConfig.environment { result[key] = value }

@@ -329,7 +329,7 @@ struct QuickActionsSettingsView: View {
     private var modelChoices: [AIModelOption] {
         AIModelOption.availableGroups(
             settings: aiSettings, subscription: core.chatGPTSubscription,
-            installedAI: core.installedAI
+            installedAI: core.installedAI, listsHidden: true
         )
         .flatMap(\.options)
     }

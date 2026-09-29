@@ -19,6 +19,16 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   OpenCode visible with an individual toggle for each, all off by default. Turning one off cancels
   its check, clears its catalog and releases its process; Apple Intelligence is the default route when
   available, and saved API connections stay available.
+- **A route that is off is off everywhere.** Apple Intelligence and each API connection have a
+  switch beside the installed tools' own; one switched off stays configured but leaves every picker,
+  the default moves to a route still on, and `AIProviderFactory` refuses it with a message.
+- **A picker lists what was ticked, and a hidden model is still a real one.** A route nobody has
+  trimmed lists everything, including models it adds later. `availableGroups` always keeps the
+  default and the picker's own selection listed, and Quick Actions repairs against the whole list
+  (`listsHidden`), so hiding a model never rewrites a saved choice.
+- **A set command path wins or fails, and a reader's variable never replaces one Onecast sets.**
+  Falling back to the lookup would hide the mistake the path was set to fix; `isManagedVariable`
+  keeps the chat's own sandbox variables, `COPILOT_ALLOW_ALL` included, out of the reader's reach.
 - **Every request carries Onecast's own preamble, and the user's text goes after it.**
   `AIInstructions.compose` builds `AIRequest.instructions`: a fixed preamble that tells the model
   where it is running and what the app can do, then whatever Settings → AI holds. The preamble
@@ -503,6 +513,24 @@ model variant through `--variant`; it captures the returned session identifier, 
 `opencode session delete` after the process exits. Cancellation terminates the child process; only
 one installed-CLI turn can own a runner at a time.
 
+### Configure: models and launch
+
+Each installed tool's row in the Providers sheet has a Configure button, shown even while the tool is
+off so a bad path can be fixed first. `AIProviderConfigureSheet` has two pages. **Models** ticks which
+of the tool's models the pickers list, with Show All and Hide All; it is a `List`, which builds only
+the rows on screen, because OpenCode alone offers hundreds. API connections have no Models page:
+their model list is already the hand-picked one from the connection editor. **Advanced** sets a
+command path, which replaces `ExecutableLocator`'s lookup, and `NAME=value` variables set each time
+the tool starts, in the Assistant editor's format.
+
+`AISettingsStore` keeps the path and the variable names in `aiInstalledOverrides` and their values in
+the login Keychain (`InstalledAIEnvironmentStore.keychain`, one item per tool). A Keychain read that
+fails is an error, never an empty list, so a save can't write blanks over values it couldn't read.
+Each edit bumps `launchRevisions`; an `AppCore` sink re-checks only that tool, and restarts Codex's
+app-server for Codex, so the next probe and turn use the new launch. `InstalledAILaunch` resolves
+it: the command, then the environment the probe, a CLI turn or the app-server inherits. The reader's
+variables go over the app's own, then Onecast's managed ones over those, then an Assistant's.
+
 ## Web search and attachments
 
 `AIRequest.webSearch`, `AIMessage.images` and `AIMessage.documents` are provider-neutral; each
@@ -653,6 +681,9 @@ tools, run commands or touch files. That is a sandbox boundary on a local CLI, n
 describing itself, and a user switch must not be able to lift it.
 
 `mcpEnabled` and `mcpServers` are excluded for the reasons in [mcp.md](mcp.md).
+`aiShownModels`, `aiDisabledRoutes` and `aiInstalledOverrides` are excluded too, and have no
+settings-file key: the first two name this Mac's own tools and connections, and the last decides which
+program this Mac launches, which an import must never do.
 `aiConnections`, `aiDefaultModel`, `aiSystemPrompt` and `aiSystemPromptEnabled` are deliberately
 excluded from settings backups. The first is meaningless without machine-local Keychain items; the
 second names an external destination and must not silently redirect AI traffic after an import; the

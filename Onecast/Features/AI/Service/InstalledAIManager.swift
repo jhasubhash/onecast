@@ -9,6 +9,10 @@ final class InstalledAIManager {
 
     @ObservationIgnored private let workspace: URL
     @ObservationIgnored private var refreshTasks: [InstalledAIKind: Task<Void, Never>] = [:]
+    /// The reader's command path and variables, asked at each launch so an edit takes the next one.
+    @ObservationIgnored var launchSettings: (InstalledAIKind) -> InstalledAILaunch = { _ in
+        InstalledAILaunch()
+    }
 
     init(supportDirectory: URL = AppPaths.applicationSupport()) {
         workspace = supportDirectory.appending(
@@ -42,9 +46,10 @@ final class InstalledAIManager {
         refreshTasks[kind]?.cancel()
         statuses[kind] = InstalledAIStatus(phase: .checking)
         let workspace = workspace
+        let launch = launchSettings(kind)
         let task = Task { [weak self] in
             guard let self else { return }
-            let result = await Self.probe(kind, workspace: workspace)
+            let result = await Self.probe(kind, launch: launch, workspace: workspace)
             guard !Task.isCancelled else { return }
             self.statuses[result.0] = result.1
         }
@@ -99,20 +104,40 @@ final class InstalledAIManager {
         }
         return InstalledCLIProvider(
             kind: kind, executable: status.executable, model: model, effort: effort,
-            workspace: workspace, toolConfig: cliTools)
+            workspace: workspace, launch: launchSettings(kind), toolConfig: cliTools)
+    }
+
+    private enum Command {
+        case found(URL)
+        case unavailable(InstalledAIStatus.Phase)
+    }
+
+    nonisolated private static func command(
+        for kind: InstalledAIKind, launch: InstalledAILaunch
+    ) async -> Command {
+        switch launch.command() {
+        case .executable(let url): return .found(url)
+        case .missing(let path):
+            return .unavailable(.failed(InstalledAILaunch.missingCommandMessage(path)))
+        case .automatic:
+            let found = await ExecutableLocator.locate(
+                kind.command, extraHomePaths: kind.extraExecutablePaths)
+            return found.map(Command.found) ?? .unavailable(.notInstalled)
+        }
     }
 
     nonisolated private static func probe(
-        _ kind: InstalledAIKind, workspace: URL
+        _ kind: InstalledAIKind, launch: InstalledAILaunch, workspace: URL
     ) async -> (InstalledAIKind, InstalledAIStatus) {
-        guard
-            let executable = await ExecutableLocator.locate(
-                kind.command, extraHomePaths: kind.extraExecutablePaths)
-        else {
-            return (kind, InstalledAIStatus(phase: .notInstalled))
+        let executable: URL
+        switch await command(for: kind, launch: launch) {
+        case .found(let url): executable = url
+        case .unavailable(let phase): return (kind, InstalledAIStatus(phase: phase))
         }
+        let environment = launch.inherited(for: kind)
         let versionResult = await InstalledAIProbe.run(
-            executable: executable, arguments: ["--version"], workspace: workspace)
+            executable: executable, arguments: ["--version"], workspace: workspace,
+            environment: environment)
         guard versionResult.status == 0 else {
             return (
                 kind,
@@ -126,7 +151,7 @@ final class InstalledAIManager {
         case .claude:
             let auth = await InstalledAIProbe.run(
                 executable: executable, arguments: ["auth", "status", "--json"],
-                workspace: workspace)
+                workspace: workspace, environment: environment)
             let loggedIn = InstalledAIProbe.loggedIn(toClaude: auth.output)
             return (
                 kind,
@@ -138,7 +163,7 @@ final class InstalledAIManager {
         case .openCode:
             let models = await InstalledAIProbe.run(
                 executable: executable, arguments: ["models", "--pure", "--verbose"],
-                workspace: workspace)
+                workspace: workspace, environment: environment)
             let catalog = InstalledAIModel.openCodeCatalog(models.output)
             return (
                 kind,
@@ -201,8 +226,10 @@ enum InstalledAIProbe {
         }
     }
 
+    /// A nil `environment` inherits the app's own, as a probe with no variables set does.
     nonisolated static func run(
-        executable: URL, arguments: [String], workspace: URL
+        executable: URL, arguments: [String], workspace: URL,
+        environment: [String: String]? = nil
     ) async -> Result {
         let handle = ProcessHandle()
         return await withTaskCancellationHandler(
@@ -216,6 +243,7 @@ enum InstalledAIProbe {
                     process.executableURL = executable
                     process.arguments = arguments
                     process.currentDirectoryURL = workspace
+                    if let environment { process.environment = environment }
                     process.standardInput = FileHandle.nullDevice
                     process.standardOutput = output
                     process.standardError = FileHandle.nullDevice

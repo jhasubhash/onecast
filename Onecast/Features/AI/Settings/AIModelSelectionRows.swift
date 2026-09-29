@@ -46,7 +46,8 @@ struct AIModelSelectionRows<ModelLabel: View, EffortLabel: View>: View {
 
     private var modelGroups: [AIModelOptionGroup] {
         AIModelOption.availableGroups(
-            settings: settings, subscription: subscription, installedAI: installedAI)
+            settings: settings, subscription: subscription, installedAI: installedAI,
+            keeping: selection)
     }
 
     private var efforts: [ChatGPTSubscription.Effort] {

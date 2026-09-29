@@ -13,6 +13,7 @@ struct AISettingsView: View {
     @State private var keyError = false
     @State private var editor: AIConnectionEditorTarget?
     @State private var pendingRemoval: AIConnection?
+    @State private var configuring: InstalledAIKind?
 
     private let keyStore = KeychainSecretStore.aiAPIKeys
 
@@ -105,7 +106,11 @@ struct AISettingsView: View {
 
     /// Why the on-device route is missing from the picker, or `nil` when it is there.
     private var appleIntelligenceReason: String? {
-        settings.isAppleIntelligenceAvailable() ? nil : AppleIntelligenceProvider.status().message
+        guard settings.isRouteEnabled(.appleIntelligence) else {
+            return "Apple Intelligence is disabled in AI Providers."
+        }
+        return settings.isAppleIntelligenceAvailable()
+            ? nil : AppleIntelligenceProvider.status().message
     }
 
     private var providerSummary: String {
@@ -115,9 +120,12 @@ struct AISettingsView: View {
         where installedAI.status(for: kind).isReady {
             providers.append(kind.title)
         }
-        if !settings.connections.isEmpty {
-            let count = settings.connections.count
-            providers.append(count == 1 ? "1 API connection" : "\(count) API connections")
+        let enabledConnections = settings.connections.count {
+            settings.isRouteEnabled(.api($0.id))
+        }
+        if enabledConnections > 0 {
+            providers.append(
+                enabledConnections == 1 ? "1 API connection" : "\(enabledConnections) API connections")
         }
         return providers.isEmpty ? "No external providers ready" : providers.joined(separator: ", ")
     }
@@ -258,6 +266,12 @@ struct AISettingsView: View {
             .padding(Theme.Spacing.xxl)
         }
         .frame(width: Theme.Size.editorSheetWidth, height: 600)
+        .sheet(item: $configuring) { kind in
+            AIProviderConfigureSheet(
+                kind: kind, models: configurableModels(kind),
+                foundCommand: kind == .codex ? nil : installedAI.status(for: kind).executable,
+                onClose: { configuring = nil })
+        }
         .sheet(item: $editor) { target in
             AIConnectionEditorSheet(
                 target: target,
@@ -284,6 +298,7 @@ struct AISettingsView: View {
 
     private var installedAISection: some View {
         Section {
+            appleIntelligenceConnection
             codexConnection
             if let limits = subscription.rateLimits, subscription.isConnected {
                 if let primary = limits.primary {
@@ -314,7 +329,10 @@ struct AISettingsView: View {
             switch subscription.phase {
             case .starting:
                 LabeledContent {
-                    providerActions { providerToggle(.codex) }
+                    providerActions {
+                        configureButton(.codex)
+                        providerToggle(.codex)
+                    }
                 } label: {
                     HStack {
                         ProgressView().controlSize(.small)
@@ -326,6 +344,7 @@ struct AISettingsView: View {
                     providerActions {
                         Button("Copy Sign-In Command") { copySignInCommand(.codex) }
                         Button("Check Again") { subscription.refresh() }
+                        configureButton(.codex)
                         providerToggle(.codex)
                     }
                 } label: {
@@ -337,6 +356,7 @@ struct AISettingsView: View {
                     LabeledContent {
                         providerActions {
                             Button("Refresh") { subscription.refresh() }
+                            configureButton(.codex)
                             providerToggle(.codex)
                         }
                     } label: {
@@ -361,6 +381,7 @@ struct AISettingsView: View {
                             }
                         }
                         Button("Check Again") { subscription.refresh() }
+                        configureButton(.codex)
                         providerToggle(.codex)
                     }
                 } label: {
@@ -371,6 +392,7 @@ struct AISettingsView: View {
                 LabeledContent {
                     providerActions {
                         Button("Try Again") { subscription.refresh() }
+                        configureButton(.codex)
                         providerToggle(.codex)
                     }
                 } label: {
@@ -391,7 +413,10 @@ struct AISettingsView: View {
             switch status.phase {
             case .idle, .checking:
                 LabeledContent {
-                    providerActions { providerToggle(kind) }
+                    providerActions {
+                        configureButton(kind)
+                        providerToggle(kind)
+                    }
                 } label: {
                     HStack {
                         ProgressView().controlSize(.small)
@@ -404,6 +429,7 @@ struct AISettingsView: View {
                         Button("Refresh") {
                             installedAI.refresh(kind: kind)
                         }
+                        configureButton(kind)
                         providerToggle(kind)
                     }
                 } label: {
@@ -419,6 +445,7 @@ struct AISettingsView: View {
                         Button("Check Again") {
                             installedAI.refresh(kind: kind)
                         }
+                        configureButton(kind)
                         providerToggle(kind)
                     }
                 } label: {
@@ -432,6 +459,7 @@ struct AISettingsView: View {
                         Button("Check Again") {
                             installedAI.refresh(kind: kind)
                         }
+                        configureButton(kind)
                         providerToggle(kind)
                     }
                 } label: {
@@ -444,6 +472,7 @@ struct AISettingsView: View {
                         Button("Try Again") {
                             installedAI.refresh(kind: kind)
                         }
+                        configureButton(kind)
                         providerToggle(kind)
                     }
                 } label: {
@@ -459,7 +488,10 @@ struct AISettingsView: View {
 
     private func disabledProvider(_ kind: InstalledAIKind) -> some View {
         LabeledContent {
-            providerActions { providerToggle(kind) }
+            providerActions {
+                configureButton(kind)
+                providerToggle(kind)
+            }
         } label: {
             Text(kind.title)
             Text("Disabled")
@@ -473,6 +505,47 @@ struct AISettingsView: View {
             content()
         }
         .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var appleIntelligenceConnection: some View {
+        LabeledContent {
+            providerActions {
+                Toggle(
+                    "Enable \(AppleIntelligence.title)",
+                    isOn: Binding(
+                        get: { settings.isRouteEnabled(.appleIntelligence) },
+                        set: { settings.setRoute(.appleIntelligence, enabled: $0) })
+                )
+                .labelsHidden()
+                .toggleStyle(.switch)
+            }
+        } label: {
+            Text(AppleIntelligence.title)
+            Text(appleIntelligenceState)
+        }
+    }
+
+    private var appleIntelligenceState: String {
+        guard settings.isRouteEnabled(.appleIntelligence) else { return "Disabled" }
+        return AppleIntelligenceProvider.status().message ?? "On device · Nothing leaves this Mac"
+    }
+
+    private func configureButton(_ kind: InstalledAIKind) -> some View {
+        Button {
+            configuring = kind
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+        }
+        .buttonStyle(.plain)
+        .help("Configure \(kind.title)")
+        .accessibilityLabel("Configure \(kind.title)")
+    }
+
+    private func configurableModels(_ kind: InstalledAIKind) -> [AIProviderConfigureSheet.Model] {
+        if kind == .codex {
+            return subscription.models.map { .init(id: $0.id, name: $0.name) }
+        }
+        return installedAI.status(for: kind).models.map { .init(id: $0.id, name: $0.name) }
     }
 
     private func providerToggle(_ kind: InstalledAIKind) -> some View {
@@ -496,6 +569,9 @@ struct AISettingsView: View {
                     AIConnectionRow(
                         connection: connection,
                         hasStoredKey: keyStatuses[connection.id] == true,
+                        isEnabled: Binding(
+                            get: { settings.isRouteEnabled(.api(connection.id)) },
+                            set: { settings.setRoute(.api(connection.id), enabled: $0) }),
                         onEdit: { edit(connection) },
                         onRemove: { pendingRemoval = connection })
                 }
@@ -643,13 +719,15 @@ struct AISettingsView: View {
 private struct AIConnectionRow: View {
     let connection: AIConnection
     let hasStoredKey: Bool
+    @Binding var isEnabled: Bool
     let onEdit: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
         SettingsRow(
             title: connection.title,
-            subtitle: "\(connection.provider.title) · \(keyStatus) · \(modelCount)"
+            subtitle: isEnabled
+                ? "\(connection.provider.title) · \(keyStatus) · \(modelCount)" : "Disabled"
         ) {
             Image(systemName: "sparkles")
                 .foregroundStyle(.secondary)
@@ -664,6 +742,9 @@ private struct AIConnectionRow: View {
             .buttonStyle(.plain)
             .help("Remove \(connection.title)")
             .accessibilityLabel("Remove \(connection.title)")
+            Toggle("Enable \(connection.title)", isOn: $isEnabled)
+                .labelsHidden()
+                .toggleStyle(.switch)
         }
     }
 

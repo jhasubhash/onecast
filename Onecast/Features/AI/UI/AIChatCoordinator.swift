@@ -860,7 +860,7 @@ final class AIChatCoordinator {
     var modelGroups: [AIModelOptionGroup] {
         AIModelOption.availableGroups(
             settings: core.aiSettings, subscription: core.chatGPTSubscription,
-            installedAI: core.installedAI)
+            installedAI: core.installedAI, keeping: effectiveModel)
     }
 
     /// Shortened here, not by layout: a flexible label would take the row from the search field.
@@ -976,23 +976,42 @@ struct AIModelOption: Identifiable {
 
     static let appleIntelligenceIcon = PopoverMenuIcon.symbol("apple.intelligence")
 
+    /// A picker keeps the default and what it holds itself listed, even when unticked;
+    /// `listsHidden` is for repairs, which must never take a hidden model for a missing one.
     @MainActor
     static func availableGroups(
         settings: AISettingsStore, subscription: ChatGPTSubscriptionManager,
-        installedAI: InstalledAIManager
+        installedAI: InstalledAIManager, keeping held: AIModelSelection? = nil,
+        listsHidden: Bool = false
     ) -> [AIModelOptionGroup] {
         let enabled = settings.enabledInstalledProviders
         let claude = installedAI.status(for: .claude)
         let openCode = installedAI.status(for: .openCode)
         let copilot = installedAI.status(for: .copilot)
+        let kept = [settings.defaultModel, held].compactMap { $0 }
+        func shown(_ model: String, _ source: AIModelSource) -> Bool {
+            listsHidden || settings.isModelShown(model, in: source)
+                || kept.contains { $0.source == source && $0.model == model }
+        }
+        func shown(_ models: [InstalledAIModel], _ source: AIModelSource) -> [InstalledAIModel] {
+            models.filter { shown($0.id, source) }
+        }
         return groupedCatalog(
-            appleIntelligence: settings.isAppleIntelligenceAvailable(),
+            appleIntelligence: settings.isAppleIntelligenceAvailable()
+                && settings.isRouteEnabled(.appleIntelligence),
             codex: enabled.contains(.codex) && subscription.isConnected
-                ? subscription.models : [],
-            claude: enabled.contains(.claude) && claude.isReady ? claude.models : [],
-            openCode: enabled.contains(.openCode) && openCode.isReady ? openCode.models : [],
-            copilot: enabled.contains(.copilot) && copilot.isReady ? copilot.models : [],
-            connections: settings.connections)
+                ? subscription.models.filter { shown($0.id, .codex) } : [],
+            claude: enabled.contains(.claude) && claude.isReady ? shown(claude.models, .claude) : [],
+            openCode: enabled.contains(.openCode) && openCode.isReady
+                ? shown(openCode.models, .openCode) : [],
+            copilot: enabled.contains(.copilot) && copilot.isReady
+                ? shown(copilot.models, .copilot) : [],
+            connections: settings.connections.compactMap { connection in
+                guard settings.isRouteEnabled(.api(connection.id)) else { return nil }
+                var trimmed = connection
+                trimmed.models.removeAll { !shown($0, .api(connection.id)) }
+                return trimmed
+            })
     }
 
     /// An unrecognised model keeps the generic sparkle rather than borrowing someone's mark.

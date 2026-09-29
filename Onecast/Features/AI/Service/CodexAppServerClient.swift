@@ -27,6 +27,8 @@ final class CodexAppServerClient {
 
     var onNotification: ((String, [String: JSONValue]) -> Void)?
     var onExit: ((String) -> Void)?
+    /// The reader's command path and variables, asked at each launch so an edit takes the next one.
+    var launchSettings: () -> InstalledAILaunch = { InstalledAILaunch() }
 
     private let codexHome: URL?
     let workspace: URL
@@ -46,9 +48,20 @@ final class CodexAppServerClient {
 
     func start() async throws {
         if isRunning { return }
-        guard let executable = await ExecutableLocator.locate("codex") else {
-            throw ClientError.executableMissing
+        let settings = launchSettings()
+        let executable: URL
+        switch settings.command() {
+        case .executable(let url):
+            executable = url
+        case .missing(let path):
+            throw ClientError.launchFailed(InstalledAILaunch.missingCommandMessage(path))
+        case .automatic:
+            guard let found = await ExecutableLocator.locate("codex") else {
+                throw ClientError.executableMissing
+            }
+            executable = found
         }
+        let inherited = settings.inherited(for: .codex)
         // A second caller may have started it during the lookup.
         if isRunning { return }
         do {
@@ -90,13 +103,13 @@ final class CodexAppServerClient {
             "app-server"
         ]
         process.currentDirectoryURL = workspace
-        let inheritedPath = ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin"
+        let inheritedPath = inherited["PATH"] ?? "/usr/bin:/bin"
         let commandPaths = [
             executable.deletingLastPathComponent().path,
             "/opt/homebrew/bin",
             "/usr/local/bin"
         ]
-        var environment = ProcessInfo.processInfo.environment.merging(
+        var environment = inherited.merging(
             [
                 "NO_COLOR": "1",
                 "PATH": (commandPaths + [inheritedPath]).joined(separator: ":")

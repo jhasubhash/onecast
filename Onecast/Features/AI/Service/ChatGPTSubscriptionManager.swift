@@ -9,6 +9,11 @@ final class ChatGPTSubscriptionManager {
     private static let idleShutdown: Duration = .seconds(600)
 
     private let client: CodexAppServerClient
+    /// Forwarded to the app-server's launch; a change takes effect at its next start.
+    @ObservationIgnored var launchSettings: () -> InstalledAILaunch {
+        get { client.launchSettings }
+        set { client.launchSettings = newValue }
+    }
     let turns: CodexTurnRunner
 
     private(set) var phase = ChatGPTSubscription.Phase.idle
