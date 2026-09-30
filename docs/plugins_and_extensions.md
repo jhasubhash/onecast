@@ -111,8 +111,8 @@ npm run build          # esbuild writes one <command>.js beside package.json, pe
 
 Install from **Settings → Extensions → Add**, picking the built folder. Onecast copies exactly what an
 install needs — `package.json`, each declared command's `<command>.js`, and `assets/` — into
-`~/Library/Application Support/<bundle id>/extensions/<name>/`. After re-installing, Settings →
-Extensions rescans (or use the **Reload Extensions** command).
+`~/Library/Application Support/<bundle id>/extensions/<name>/`. Onecast watches that folder, so a
+re-install from `install.sh` or the **Reload Extensions** command shows up by itself.
 
 Launch a command directly with a deep link:
 `onecast://extensions/<author>/<extension-name>/<command-name>` (the `raycast://` scheme also works).

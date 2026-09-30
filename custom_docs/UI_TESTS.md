@@ -31,7 +31,7 @@ would have caught it.
 | --- | --- | --- |
 | The app | the Debug `xcodebuild` line in [CUSTOM.md](CUSTOM.md) | yes |
 | A native plugin | copy `manifest.json` + `.swift` into `…/plugins/<name>/` (the app compiles it) | leave & reopen the plugin, or restart |
-| A Raycast extension | `npm run ship` (build + `install.sh`) | rescan in Settings, or restart |
+| A Raycast extension | `npm run ship` (build + `install.sh`) | no — the extensions folder is watched |
 
 Two traps: a `OnecastPluginKit` signature change (even a defaulted init param) invalidates every
 cached plugin build — the app rebuilds each against the new framework on the next scan, but a plugin

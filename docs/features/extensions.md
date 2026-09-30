@@ -31,13 +31,17 @@ produces, rendered natively into the palette. No Electron, no browser, no Node.j
 - **`ExtensionScreen` is the only place extension row order is decided**, so the flat palette selection
   keeps matching the visible rows — the same invariant every other palette screen holds.
 - **Off means off.** `extensionsEnabled` is opt-in, and `ExtensionManager.setEnabled(false)` stops the
-  foreground and menu commands, removes status items and refresh tasks, discards JS contexts, empties
-  the installed set and clears the launcher rows;
+  foreground and menu commands, removes status items and refresh tasks, stops the extensions-folder
+  watcher, discards JS contexts, empties the installed set and clears the launcher rows;
   `refresh()` returns early while it is off, so nothing is scanned and nothing is held. Enabling is also
   consent to run third-party code, so it confirms first and never rides a settings backup.
 - **`SymbolCatalog` reads a system bundle, not API.** The list comes from `CoreGlyphs.bundle` at
   runtime; every read stays optional and falls back to `SymbolCatalog.suggested`, and Apple's restricted
   marks are never offered.
+- **Installs outside Settings are live.** While enabled, `ExtensionManager` watches the extensions
+  folder (the same debounced watcher as `PluginManager`) and calls `refresh()` on any entry change, so
+  `install.sh` or the Reload Extensions command — both replace an extension's whole directory — add,
+  rename or drop launcher rows without opening Settings or relaunching.
 
 ## How it works
 

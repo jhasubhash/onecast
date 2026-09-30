@@ -56,6 +56,9 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     @ObservationIgnored private var backgroundTask: Task<Void, Never>?
     @ObservationIgnored private var nextToastID = 1
     @ObservationIgnored private var lastOAuthExtensionName: String?
+    @ObservationIgnored private var directoryWatcher: DispatchSourceFileSystemObject?
+    @ObservationIgnored private var watcherGeneration = 0
+    @ObservationIgnored private var rescanTask: Task<Void, Never>?
 
     init(clipboardStore: ClipboardStore) {
         storage = ExtensionStorage(directory: ExtensionCatalog.storageDirectory())
@@ -81,6 +84,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
         guard enabled != isEnabled else { return }
         isEnabled = enabled
         guard enabled else {
+            stopWatching()
             menuBars?.stop()
             menuBars = nil
             await stop()
@@ -116,6 +120,7 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
                 })
         }
         await refresh()
+        armDirectoryWatcher()
         ensureBackgroundLoop()
     }
 
@@ -137,6 +142,53 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
             restartBackgroundLoop()
         }
         menuBars?.synchronize(found)
+    }
+
+    // MARK: - Live install detection
+
+    /// Watches the extensions folder so an install that bypasses Settings — `install.sh`, the
+    /// Reload Extensions command — reaches the launcher without opening Settings or relaunching.
+    /// Both replace an extension's whole directory, which is an entry change this watch sees.
+    private func armDirectoryWatcher() {
+        directoryWatcher?.cancel()
+        let root = ExtensionCatalog.extensionsDirectory()
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let descriptor = Darwin.open(root.path, O_EVTONLY)
+        guard descriptor >= 0 else { return }
+        watcherGeneration &+= 1
+        let generation = watcherGeneration
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: descriptor,
+            eventMask: [.write, .extend, .attrib, .delete, .rename, .revoke],
+            queue: .main)
+        source.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.handleDirectoryChange(generation: generation) }
+        }
+        source.setCancelHandler { Darwin.close(descriptor) }
+        directoryWatcher = source
+        source.resume()
+    }
+
+    private func handleDirectoryChange(generation: Int) {
+        guard isEnabled, generation == watcherGeneration else { return }
+        let events = directoryWatcher?.data ?? []
+        // The folder itself was replaced; re-arm against the fresh inode.
+        if !events.isDisjoint(with: [.delete, .rename, .revoke]) { armDirectoryWatcher() }
+        // Debounced: the staged copy + swap of one install collapses into a single rescan.
+        rescanTask?.cancel()
+        rescanTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(200))
+            guard let self, !Task.isCancelled, self.isEnabled else { return }
+            await self.refresh()
+        }
+    }
+
+    private func stopWatching() {
+        watcherGeneration &+= 1
+        rescanTask?.cancel()
+        rescanTask = nil
+        directoryWatcher?.cancel()
+        directoryWatcher = nil
     }
 
     func extensionNamed(_ name: String) -> InstalledExtension? {
