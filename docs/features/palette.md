@@ -491,6 +491,9 @@ Typing filters the open menu instead:
 - The caret is hidden by clearing SwiftUI's **own** live field editor's `insertionPointColor`. SwiftUI
   force-casts its field editor to a private subclass, so vending a custom one crashes — only the
   existing one can be tuned.
+- SwiftUI resolves `tint` into a fixed caret colour on focus and never refreshes it, and the search
+  field keeps focus across hide and show. `PalettePanel.makeFirstResponder` re-colours the editor with
+  the dynamic `textPrimary`, so the caret follows a Light/Dark switch.
 
 ## ↵ never commits the search field
 
