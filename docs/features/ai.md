@@ -278,7 +278,10 @@ token count and the tools the turn may call. It returns an `AsyncThrowingStream`
 state, reasoning text, tool activity, usage and completion. `.thinking` is only the route saying the
 model is thinking; `.reasoning` carries what it shares of it (OpenRouter's `reasoning`, DeepSeek's
 `reasoning_content`, Anthropic and Claude CLI thinking blocks, Codex's reasoning summaries), never
-mixed into answer text and never sent back as context. `AIUsage` carries cached and thinking tokens,
+mixed into answer text and never sent back as context. A response's leading `<think>…</think>`
+content block counts as reasoning too; `AIThinkTagDecoder` holds back a tag split across deltas,
+drops the whitespace between the closing tag and the answer, and flushes an unclosed block as
+reasoning, while a literal `<think>` later in an answer stays text. `AIUsage` carries cached and thinking tokens,
 the window where a route names one (Claude's CLI) and cost where one is reported (OpenRouter, Claude's
 CLI); the tool loop adds each round's cost, but keeps the last round's tokens, whose prompt already
 holds the rounds before it. Anthropic
@@ -463,7 +466,8 @@ and `MCPCoordinator` the twentieth.
 - Setting `Keep conversations` to 7 days drops older chats from ⌘K → Chat History and shrinks
   `ai-chats.sqlite3`. Switching AI off, waiting past a boundary and switching back on prunes nothing
   that was saved before it went off.
-- Harnesses: `ai-provider-test` (endpoints, request bodies, stream decoding, persistence repair,
+- Harnesses: `ai-provider-test` (endpoints, request bodies, stream decoding including leading
+  think tags across content and SSE splits, persistence repair,
   Codex framing, on-device routing), `ai-chat-test` (`ChatSession`, `MarkdownBlock`, the copy text
   `MarkdownRenderer` gives a selection, `ChatHistoryStore` with renames, pins, generated titles and
   per-chat models, regenerate, export, `ChatTitle`, `ChatChoices`, `ChatReferences`,
