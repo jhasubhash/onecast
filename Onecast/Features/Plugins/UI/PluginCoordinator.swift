@@ -82,6 +82,13 @@ final class PluginCoordinator {
         guard settings.pluginsEnabled, let install = plugins.install(forEntryID: entryID) else {
             return
         }
+        // The shortcut's second press closes its plugin, as an extension command's does.
+        if paletteCoordinator.isShowing(.plugin),
+            plugins.runningIdentifier == install.manifest.identifier
+        {
+            paletteCoordinator.hidePalette()
+            return
+        }
         runPlugin(install)
     }
 
