@@ -5,6 +5,9 @@
 // `turn/start` response — and either can be arbitrarily late. Each mode withholds one or both so
 // `codex-turn-test` can Stop inside that window and watch what the runner does about it.
 //
+// `api-auth`, `auth-required` and `auth-undetermined` answer `account/read` the way a custom
+// provider, a signed-out OpenAI route and a server without the `requiresOpenaiAuth` flag do.
+//
 // `TC_STUB_ROOT` is the scratch directory the harness and this process signal through;
 // `TC_STUB_MODE` picks which half of the turn ID to withhold.
 
@@ -66,6 +69,14 @@ for (const line of lines()) {
 
     if (method === "thread/start") {
         emit({ id: requestID, result: { thread: { id: THREAD } } });
+    } else if (method === "turn/start" && MODE === "api-auth") {
+        emit({ method: "turn/started", params: { threadId: THREAD, turn: { id: TURN } } });
+        emit({ id: requestID, result: { turn: { id: TURN } } });
+        emit({ method: "item/agentMessage/delta", params: { threadId: THREAD, delta: "ready" } });
+        emit({
+            method: "turn/completed",
+            params: { threadId: THREAD, turn: { id: TURN, status: "completed" } },
+        });
     } else if (method === "turn/start") {
         record(`turn-params:${JSON.stringify(message.params ?? {})}`);
         mark("turn-start-received");
@@ -78,7 +89,17 @@ for (const line of lines()) {
         const params = message.params ?? {};
         record(`interrupt:${params.threadId}:${params.turnId}`);
         emit({ id: requestID, result: {} });
+    } else if (method === "account/read") {
+        const result = MODE === "api-auth"
+            ? { account: null, requiresOpenaiAuth: false }
+            : MODE === "auth-required" ? { account: null, requiresOpenaiAuth: true }
+            : MODE === "auth-undetermined" ? { account: null }
+            : { account: { type: "chatgpt", planType: "plus" }, requiresOpenaiAuth: true };
+        emit({ id: requestID, result });
+    } else if (method === "model/list" && MODE === "api-auth") {
+        emit({ id: requestID, result: { data: [{ model: "custom-model", displayName: "Custom model" }] } });
     } else if (requestID !== undefined && requestID !== null) {
         emit({ id: requestID, result: {} });
     }
 }
+record("stdin-closed");

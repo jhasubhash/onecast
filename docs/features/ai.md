@@ -488,7 +488,11 @@ app-server lifecycle and discovered account metadata. Production never sets `COD
 server uses the same login and credential store as the user's normal Codex command. Onecast supplies
 only a private working directory. The server stops after ten idle minutes, when AI is switched off or
 when the app terminates, and restarts on demand. Account state, model availability and rate-limit
-windows come from the supported app-server protocol.
+windows come from the supported app-server protocol. A custom Codex provider can report no account
+and `requiresOpenaiAuth: false`; Onecast then loads its models and runs turns without inventing an
+account or asking for `codex login`. A missing or true flag still requires sign-in. Onecast keeps what
+a check found, account or provider, beside the models and rate limits it read with it, until the next
+check; a turn that finds nothing to run on leaves Codex signed out and stops the server, as a check does.
 
 `CodexTurnRunner` is the generation half behind `CodexInstalledProvider`.
 
