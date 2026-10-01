@@ -695,6 +695,7 @@ struct RootPaletteView: View {
                 case .clipboardFilter: toggleClipboardFilter()
                 case .fileSearchFilter: toggleFileSearchFilter()
                 case .emojiCategory: toggleEmojiCategory()
+                case .aiModel: toggleAIModel()
                 case .ignored: return .ignored
                 }
                 return .handled
