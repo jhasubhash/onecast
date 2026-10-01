@@ -46,7 +46,8 @@ final class PluginManager {
     @ObservationIgnored var onMessage: ((String) -> Void)?
     /// Fired when a level is pushed, so the coordinator can reset the search field and selection.
     @ObservationIgnored var onDidPush: (() -> Void)?
-    /// The entry ids an uninstall invalidated, so another feature can drop what it keyed to them.
+    /// The entry ids an uninstall invalidated, so another feature can drop what it keyed to them:
+    /// an uninstall from Settings, or a plugin whose folder disappeared from disk.
     @ObservationIgnored var onDidUninstall: (([String]) -> Void)?
     /// Fired after a scan updates the installed set, so pop-out windows can be restored once loaded.
     @ObservationIgnored var onDidRefresh: (() -> Void)?
@@ -136,10 +137,25 @@ final class PluginManager {
         Task { [weak self] in
             let found = await Task.detached(priority: .utility) { PluginCatalog.scan() }.value
             guard let self, found != self.installed else { return }
+            let vanished = Set(self.installed.map(\.entryID)).subtracting(found.map(\.entryID))
             self.installed = found
             self.publishLauncherEntries()
             self.onDidRefresh?()
             self.prewarm(found)
+            if !vanished.isEmpty { self.confirmRemoval(of: vanished) }
+        }
+    }
+
+    /// A plugin gone from a scan is uninstalled only if a later scan still misses it, so replacing
+    /// its folder (delete, then copy) never counts. Without this, deleting a plugin's folder by hand
+    /// left its shortcut bound to nothing, still claiming the chord.
+    private func confirmRemoval(of entryIDs: Set<String>) {
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            let found = await Task.detached(priority: .utility) { PluginCatalog.scan() }.value
+            guard let self, self.isEnabled else { return }
+            let gone = entryIDs.subtracting(found.map(\.entryID))
+            if !gone.isEmpty { self.onDidUninstall?(gone.sorted()) }
         }
     }
 

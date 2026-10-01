@@ -98,13 +98,14 @@ final class HotKeyManager {
         syncModifierTaps()
     }
 
-    /// Never pruned at launch: not-installed-yet and gone are indistinguishable there.
+    /// Never pruned at launch: not-installed-yet and gone are indistinguishable there. An uninstall,
+    /// or a folder deleted while Onecast runs, clears it through `ExtensionManager.onDidUninstall`.
     var boundExtensionCommandEntryIDs: [String] {
         UserDefaults.standard.stringArray(forKey: boundExtensionCommandKey) ?? []
     }
 
     /// Never pruned at launch, for the same reason as extension commands: not-yet-installed reads
-    /// the same as gone.
+    /// the same as gone. Cleared through `PluginManager.onDidUninstall` instead.
     var boundPluginCommandEntryIDs: [String] {
         UserDefaults.standard.stringArray(forKey: boundPluginCommandKey) ?? []
     }

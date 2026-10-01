@@ -45,7 +45,8 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
     @ObservationIgnored private weak var appIndex: AppIndex?
     @ObservationIgnored private weak var coordinator: ExtensionCoordinator?
 
-    /// The entry ids an uninstall invalidated, so another feature can drop what it keyed to them.
+    /// The entry ids an uninstall invalidated, so another feature can drop what it keyed to them:
+    /// an uninstall from Settings, or an extension whose folder disappeared from disk.
     @ObservationIgnored var onDidUninstall: (([String]) -> Void)?
 
     @ObservationIgnored private var sessionID: String?
@@ -137,11 +138,35 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
         let found = await Task.detached(priority: .utility) { ExtensionCatalog.scan() }.value
         guard isEnabled else { return }
         if found != installed {
+            let vanished = Self.entryIDs(of: installed).subtracting(Self.entryIDs(of: found))
             installed = found
             publishLauncherEntries()
             restartBackgroundLoop()
+            if !vanished.isEmpty { confirmRemoval(of: vanished) }
         }
         menuBars?.synchronize(found)
+    }
+
+    private static func entryIDs(of extensions: [InstalledExtension]) -> Set<String> {
+        Set(extensions.flatMap { owner in
+            owner.manifest.commands.map {
+                ExtensionCommandRef(extensionName: owner.manifest.name, commandName: $0.name).entryID
+            }
+        })
+    }
+
+    /// A command gone from a scan is uninstalled only if a later scan still misses it: `install.sh`
+    /// deletes the folder before copying the new one in, and a rescan can land in that gap. Without
+    /// this, deleting an extension's folder by hand left its shortcut bound to nothing, still
+    /// claiming the chord.
+    private func confirmRemoval(of entryIDs: Set<String>) {
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            let found = await Task.detached(priority: .utility) { ExtensionCatalog.scan() }.value
+            guard let self, self.isEnabled else { return }
+            let gone = entryIDs.subtracting(Self.entryIDs(of: found))
+            if !gone.isEmpty { self.onDidUninstall?(gone.sorted()) }
+        }
     }
 
     // MARK: - Live install detection
