@@ -306,9 +306,6 @@ struct RootPaletteView: View {
                 // The panel has no title bar, so this thin top margin is the only place left to grab
                 // it — kept even over a plugin surface, so Drag to reposition still works there.
                 .overlay(alignment: .top) { topDragStrip }
-                .modifier(
-                    ExtensionToastOverlay(extensions: extensions, showing: vm.mode == .extensionCommand)
-                )
                 // Never conditionally mounted: unmounting strands SwiftUI's hover target and eats clicks.
                 .overlay {
                     Color.black.opacity(0.001)
@@ -1095,7 +1092,13 @@ struct RootPaletteView: View {
                         title: "Actions", keys: ["⌘", "K"], tint: Theme.Colors.textSecondary,
                         action: toggleActions)
                     : nil),
-            style: actionBarStyle)
+            style: actionBarStyle
+        )
+        .modifier(
+            ExtensionToastFooter(
+                extensions: extensions, showing: vm.mode == .extensionCommand,
+                inset: metrics.spacing.md,
+                slotWidth: metrics.spacing.md + metrics.size.menuButton))
     }
 
     /// Binds the shared bar to Theme and the current UI-size metrics, so it renders identically to

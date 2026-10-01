@@ -16,19 +16,40 @@ struct ExtensionShortcutKeys: ViewModifier {
     }
 }
 
-/// Toasts a running view command raised, stacked above the footer.
-struct ExtensionToastOverlay: ViewModifier {
+/// The footer is the shared `ActionBar`: a toast masks its leading `slotWidth` and takes it over.
+struct ExtensionToastFooter: ViewModifier {
     let extensions: ExtensionManager
     let showing: Bool
+    let inset: CGFloat
+    let slotWidth: CGFloat
 
     func body(content: Content) -> some View {
-        content.overlay(alignment: .bottom) {
-            if showing, !extensions.toasts.isEmpty {
-                ExtensionFeedbackOverlay(
-                    toasts: extensions.toasts,
-                    onToastAction: { extensions.runToastAction(token: $0) })
+        let toast = showing ? extensions.toasts.last : nil
+        content
+            .mask(alignment: .leading) {
+                HStack(spacing: 0) {
+                    Color.clear.frame(width: toast == nil ? 0 : slotWidth)
+                    Color.black
+                }
             }
-        }
+            .overlay(alignment: .leading) {
+                if let toast {
+                    ZStack(alignment: .leading) {
+                        // The masked menu button must not take a click through the gap beside the pill.
+                        Color.clear
+                            .frame(width: slotWidth)
+                            .contentShape(Rectangle())
+                        ExtensionToastPill(
+                            toast: toast, onAction: { extensions.runToastAction(token: $0) },
+                            onDismiss: { extensions.hide(toast: toast.id) }
+                        )
+                        .id(toast.id)
+                        .padding(.leading, inset)
+                        .transition(.scale(scale: 0.5, anchor: .leading).combined(with: .opacity))
+                    }
+                }
+            }
+            .animation(.spring(duration: 0.3, bounce: 0.2), value: toast?.id)
     }
 }
 
