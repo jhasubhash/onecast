@@ -87,6 +87,7 @@ struct InterfaceSizeTests {
         expect(m.size.bottomBarHeight, Theme.Size.bottomBarHeight, "size.bottomBarHeight")
         expect(m.size.barButtonHeight, Theme.Size.barButtonHeight, "size.barButtonHeight")
         expect(m.size.rowIcon, Theme.Size.rowIcon, "size.rowIcon")
+        expect(m.size.resultRowIcon, Theme.Size.resultRowIcon, "size.resultRowIcon")
         expect(m.size.keyCap, Theme.Size.keyCap, "size.keyCap")
         expect(m.size.compactKeyCap, Theme.Size.compactKeyCap, "size.compactKeyCap")
         expect(m.size.heroKeyCap, Theme.Size.heroKeyCap, "size.heroKeyCap")
@@ -268,6 +269,7 @@ struct InterfaceSizeTests {
             ("size.compactHeight", m.size.compactHeight),
             ("size.bottomBarHeight", m.size.bottomBarHeight),
             ("size.barButtonHeight", m.size.barButtonHeight), ("size.rowIcon", m.size.rowIcon),
+            ("size.resultRowIcon", m.size.resultRowIcon),
             ("size.keyCap", m.size.keyCap), ("size.compactKeyCap", m.size.compactKeyCap),
             ("size.heroKeyCap", m.size.heroKeyCap), ("size.menuButton", m.size.menuButton),
             ("size.checkbox", m.size.checkbox), ("size.menuWidth", m.size.menuWidth),
