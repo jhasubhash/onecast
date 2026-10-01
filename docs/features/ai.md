@@ -363,6 +363,7 @@ carries `markdownCopyText`, so a selection copies the source, and Find counts it
 never matches. While a reply streams, `parse(_:midStream:)` holds back an equation still arriving:
 a display one is a centred `…` where it will land, and an inline one is left out until it closes. A
 formula wider than a narrow column scales down rather than running off its edge.
+
 **Only a click may focus a reply.** `acceptsFirstResponder` is true just while `mouseDown` tracks,
 then focus and caret go back to the composer, so typing, ↵ and ⎋ never strand in read-only text.
 Because the window focuses a clicked view before `mouseDown` runs, anything looser loses the

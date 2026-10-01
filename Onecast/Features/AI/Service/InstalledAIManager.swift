@@ -102,6 +102,9 @@ final class InstalledAIManager {
         guard status.phase != .signInRequired else {
             throw AIProviderError.unavailable("Sign in with `" + kind.signInCommand + "` first.")
         }
+        // A chat may hold an effort from before its model's efforts were known; Copilot refuses those.
+        let effort =
+            status.models.first { $0.id == model }.map { $0.resolvedEffort(effort) } ?? effort
         return InstalledCLIProvider(
             kind: kind, executable: status.executable, model: model, effort: effort,
             workspace: workspace, launch: launchSettings(kind), toolConfig: cliTools)
@@ -186,12 +189,10 @@ final class InstalledAIManager {
             // The recent-models list stands in when the ACP server cannot be asked.
             var models = InstalledAIModel.copilotCatalog(configJSON: configData)
             if signedIn {
-                let answer = await InstalledAIProbe.request(
-                    executable: executable, arguments: ["--acp"], workspace: workspace,
-                    environment: environment,
-                    input: InstalledAIModel.copilotACPRequest(workspace: workspace),
-                    until: { InstalledAIModel.copilotACPCatalog($0) != nil })
-                models = InstalledAIModel.copilotACPCatalog(answer) ?? models
+                models =
+                    await InstalledAIProbe.copilotModels(
+                        executable: executable, workspace: workspace, environment: environment)
+                    ?? models
             }
             return (
                 kind,
@@ -288,12 +289,12 @@ enum InstalledAIProbe {
             })
     }
 
-    /// Holds stdin open until the answer arrives, since an ACP server exits once its input closes.
-    nonisolated static func request(
-        executable: URL, arguments: [String], workspace: URL, environment: [String: String]?,
-        input: Data, until answered: @escaping @Sendable (String) -> Bool,
+    /// Asks Copilot's ACP server for the account's models, then selects each in turn to learn
+    /// which reasoning efforts it takes: Copilot rejects an effort a model does not offer.
+    nonisolated static func copilotModels(
+        executable: URL, workspace: URL, environment: [String: String]?,
         timeout: Duration = .seconds(20)
-    ) async -> String {
+    ) async -> [InstalledAIModel]? {
         let handle = ProcessHandle()
         return await withTaskCancellationHandler(
             operation: {
@@ -304,34 +305,62 @@ enum InstalledAIProbe {
                     let stdin = Pipe()
                     let output = Pipe()
                     process.executableURL = executable
-                    process.arguments = arguments
+                    process.arguments = ["--acp"]
                     process.currentDirectoryURL = workspace
                     if let environment { process.environment = environment }
                     process.standardInput = stdin
                     process.standardOutput = output
                     process.standardError = FileHandle.nullDevice
-                    guard let exit = try? process.runObservingExit() else { return "" }
+                    guard let exit = try? process.runObservingExit() else { return nil }
                     handle.set(process)
                     // A child that exits before reading must fail the write, not SIGPIPE Onecast.
                     _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
-                    try? stdin.fileHandleForWriting.write(contentsOf: input)
                     let watchdog = Task {
                         try? await Task.sleep(for: timeout)
                         if process.isRunning { process.terminate() }
                     }
+                    defer {
+                        try? stdin.fileHandleForWriting.close()
+                        if process.isRunning { process.terminate() }
+                        exit.wait()
+                        watchdog.cancel()
+                    }
                     var data = Data()
                     // `availableData`, not `read(upToCount:)`, which would wait for the watchdog.
-                    while data.count < Self.maximumOutputBytes {
-                        let chunk = output.fileHandleForReading.availableData
-                        guard !chunk.isEmpty else { break }
-                        data.append(chunk)
-                        if answered(String(bytes: data, encoding: .utf8) ?? "") { break }
+                    func answer<Value>(_ parse: (String) -> Value?) -> Value? {
+                        while data.count < Self.maximumOutputBytes {
+                            if let value = parse(String(bytes: data, encoding: .utf8) ?? "") {
+                                return value
+                            }
+                            let chunk = output.fileHandleForReading.availableData
+                            guard !chunk.isEmpty else { return nil }
+                            data.append(chunk)
+                        }
+                        return nil
                     }
-                    try? stdin.fileHandleForWriting.close()
-                    if process.isRunning { process.terminate() }
-                    exit.wait()
-                    watchdog.cancel()
-                    return String(bytes: data, encoding: .utf8) ?? ""
+                    func send(_ line: Data) {
+                        try? stdin.fileHandleForWriting.write(contentsOf: line)
+                    }
+                    send(InstalledAIModel.copilotACPRequest(workspace: workspace))
+                    guard let catalog = answer({ InstalledAIModel.copilotACPCatalog($0) }) else {
+                        return nil
+                    }
+                    var models: [InstalledAIModel] = []
+                    // One at a time: a selection answered early still describes the model before it.
+                    for (offset, model) in catalog.models.enumerated() {
+                        let requestID = 100 + offset
+                        send(
+                            InstalledAIModel.copilotACPSelect(
+                                model: model.id, session: catalog.session, requestID: requestID))
+                        guard
+                            let efforts = answer({
+                                InstalledAIModel.copilotACPEfforts($0, requestID: requestID)
+                            })
+                        else { break }
+                        models.append(InstalledAIModel(id: model.id, name: model.name, efforts: efforts))
+                    }
+                    // A model never asked about takes no effort, which Copilot always accepts.
+                    return models + catalog.models.dropFirst(models.count)
                 }.value
             },
             onCancel: {
@@ -339,7 +368,6 @@ enum InstalledAIProbe {
             })
     }
 
-    /// A sentence's closing full stop is not part of the version it ends on.
     nonisolated static func version(in output: String) -> String? {
         output.firstMatch(of: #/\d+\.\d+(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?/#)
             .map { String($0.output).trimmingCharacters(in: CharacterSet(charactersIn: ".-")) }

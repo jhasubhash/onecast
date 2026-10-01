@@ -72,10 +72,10 @@ struct InstalledAITests {
             """
         let catalog = InstalledAIModel.copilotACPCatalog(output)
         expect(
-            catalog?.map(\.id) == ["auto", "b", "c"],
+            catalog?.session == "s" && catalog?.models.map(\.id) == ["auto", "b", "c"],
             "the session's answer lists each model once, past other replies and notifications")
         expect(
-            catalog?.map(\.name) == ["Auto", "Model B", "c"],
+            catalog?.models.map(\.name) == ["Auto", "Model B", "c"],
             "a model keeps Copilot's display name, or its id when it has none")
         expect(
             InstalledAIModel.copilotACPCatalog(String(session.dropLast(4))) == nil,
@@ -84,6 +84,32 @@ struct InstalledAITests {
             InstalledAIModel.copilotACPCatalog(
                 #"{"jsonrpc":"2.0","id":2,"result":{"models":{"availableModels":[]}}}"#) == nil,
             "an empty list leaves the fallback in place")
+
+        let selected = #"{"jsonrpc":"2.0","id":7,"result":{"configOptions":[{"id":"model"},"#
+            + #"{"id":"reasoning_effort","options":[{"value":"low"},{"value":"high"}]}]}}"#
+        let plain = #"{"jsonrpc":"2.0","id":8,"result":{"configOptions":[{"id":"model"}]}}"#
+        expect(
+            InstalledAIModel.copilotACPEfforts(selected, requestID: 7)?.map(\.id) == ["low", "high"],
+            "a selected model's efforts are the ones its reasoning_effort option offers")
+        expect(
+            InstalledAIModel.copilotACPEfforts(plain, requestID: 8)?.isEmpty == true,
+            "a model without that option takes no effort")
+        expect(
+            InstalledAIModel.copilotACPEfforts(selected, requestID: 8) == nil,
+            "an answer to another selection is no answer, so the probe keeps reading")
+        let none = InstalledAIModel(id: "haiku", name: "Haiku")
+        let some = InstalledAIModel(
+            id: "kimi", name: "Kimi", efforts: ["low", "max"].map { .init(id: $0, detail: nil) })
+        expect(
+            none.resolvedEffort("high") == nil && some.resolvedEffort("medium") == "low"
+                && some.resolvedEffort("max") == "max",
+            "a stale saved effort is dropped, or moved onto one the model takes")
+        let fallback = InstalledAIModel.copilotCatalog(
+            configJSON: Data(#"{"recentModelIds":["claude-haiku-4.5"]}"#.utf8))
+        expect(
+            fallback.contains { $0.id == "claude-haiku-4.5" }
+                && fallback.allSatisfy { $0.efforts.isEmpty && $0.resolvedEffort("high") == nil },
+            "when Copilot can't be asked, no model is offered or sent an effort")
     }
 
     private static func claudeStatusNamesItsAccount() {

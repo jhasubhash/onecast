@@ -113,7 +113,7 @@ struct InstalledAIModel: Equatable, Identifiable, Sendable {
         InstalledAIModel(id: "haiku", name: "Claude Haiku")
     ]
 
-    /// The `--effort` / `--reasoning-effort` ladder the Claude and Copilot CLIs both accept.
+    /// The `--effort` ladder Claude's CLI accepts; Copilot reports each model's own.
     private static let cliEfforts = ["low", "medium", "high", "xhigh", "max"].map {
         ChatGPTSubscription.Effort(id: $0, detail: nil)
     }
@@ -161,7 +161,8 @@ struct InstalledAIModel: Equatable, Identifiable, Sendable {
         // A couple of well-known ones stay present even on a fresh install.
         for id in ["claude-sonnet-5", "claude-opus-4.8"] where !ids.contains(id) { ids.append(id) }
         return ids.map {
-            InstalledAIModel(id: $0, name: $0 == "auto" ? "Auto" : $0, efforts: cliEfforts)
+            // Unprobed, so no effort: Copilot accepts none from every model, but not every effort.
+            InstalledAIModel(id: $0, name: $0 == "auto" ? "Auto" : $0)
         }
     }
 
@@ -184,25 +185,52 @@ struct InstalledAIModel: Equatable, Identifiable, Sendable {
         }
     }
 
-    /// Nil until a whole line answers `session/new` with models, so a caller keeps its fallback.
-    static func copilotACPCatalog(_ output: String) -> [InstalledAIModel]? {
+    /// The session `session/new` opened and every model the account offers, efforts not yet known.
+    static func copilotACPCatalog(_ output: String) -> (session: String, models: [InstalledAIModel])? {
+        guard
+            let result = acpResult(in: output, requestID: copilotACPSessionID),
+            let session = result["sessionId"] as? String,
+            let models = (result["models"] as? [String: Any])?["availableModels"] as? [[String: Any]]
+        else { return nil }
+        var seen = Set<String>()
+        let catalog = models.compactMap { model -> InstalledAIModel? in
+            guard let id = model["modelId"] as? String, !id.isEmpty, seen.insert(id).inserted
+            else { return nil }
+            let name = (model["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? id
+            return InstalledAIModel(id: id, name: name)
+        }
+        return catalog.isEmpty ? nil : (session, catalog)
+    }
+
+    /// Selects one model, so the answer says which reasoning efforts that model takes.
+    static func copilotACPSelect(model: String, session: String, requestID: Int) -> Data {
+        let line: [String: Any] = [
+            "jsonrpc": "2.0", "id": requestID, "method": "session/set_config_option",
+            "params": ["sessionId": session, "configId": "model", "value": model]
+        ]
+        guard var data = try? JSONSerialization.data(withJSONObject: line) else { return Data() }
+        data.append(UInt8(ascii: "\n"))
+        return data
+    }
+
+    /// Nil until `requestID` is answered; a model with no `reasoning_effort` option takes none.
+    static func copilotACPEfforts(_ output: String, requestID: Int) -> [ChatGPTSubscription.Effort]? {
+        guard let result = acpResult(in: output, requestID: requestID) else { return nil }
+        let options = result["configOptions"] as? [[String: Any]] ?? []
+        let effort = options.first { $0["id"] as? String == "reasoning_effort" }
+        let values = (effort?["options"] as? [[String: Any]] ?? []).compactMap { $0["value"] as? String }
+        return values.map { ChatGPTSubscription.Effort(id: $0, detail: nil) }
+    }
+
+    private static func acpResult(in output: String, requestID: Int) -> [String: Any]? {
         for line in output.split(separator: "\n", omittingEmptySubsequences: true) {
             guard
                 let object = try? JSONSerialization.jsonObject(with: Data(line.utf8))
                     as? [String: Any],
-                object["id"] as? Int == copilotACPSessionID,
-                let result = object["result"] as? [String: Any],
-                let models = (result["models"] as? [String: Any])?["availableModels"]
-                    as? [[String: Any]]
+                object["id"] as? Int == requestID,
+                let result = object["result"] as? [String: Any]
             else { continue }
-            var seen = Set<String>()
-            let catalog = models.compactMap { model -> InstalledAIModel? in
-                guard let id = model["modelId"] as? String, !id.isEmpty, seen.insert(id).inserted
-                else { return nil }
-                let name = (model["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? id
-                return InstalledAIModel(id: id, name: name, efforts: cliEfforts)
-            }
-            return catalog.isEmpty ? nil : catalog
+            return result
         }
         return nil
     }
