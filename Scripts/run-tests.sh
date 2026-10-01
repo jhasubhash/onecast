@@ -153,6 +153,7 @@ run clipboard-test         Onecast/Features/Clipboard/Model/ClipboardStore.swift
 # `Q` is the URL detector a drag payload builds its link with, rather than a second one.
 Q=Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift
 run clipboard-search-test  Onecast/Features/Clipboard/Model/*.swift $Q
+run paste-sequence-test    Onecast/Features/Clipboard/Model/*.swift $Q
 run clipboard-text-test    Onecast/Features/Clipboard/Model/*.swift $Q \
                            Onecast/Platform/ProcessExit.swift \
                            Onecast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
