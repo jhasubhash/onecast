@@ -158,7 +158,7 @@ final class LauncherCoordinator {
             guard let bundleID = app.bundleID else { return }
             AppLauncher.openSettingsPane(bundleID: bundleID)
         case .snippet:
-            let snippetID = String(app.id.dropFirst("snippet:".count))
+            guard let snippetID = StoredSnippet.id(fromEntryID: app.id) else { return }
             snippetCoordinator.expandSnippet(id: snippetID, target: previous)
         case .scheduledTask:
             guard let id = ScheduledTask.id(fromEntryID: app.id) else { return }

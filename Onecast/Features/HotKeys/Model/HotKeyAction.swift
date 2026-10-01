@@ -20,6 +20,7 @@ enum HotKeyAction: Hashable, Sendable {
     case appleShortcut(id: UUID)
     /// A user-created Assistant chat bar, keyed by its stable id.
     case assistant(id: UUID)
+    case snippet(id: StoredSnippet.ID)
     /// Keyed by `AppEntry.id`, which is what survives a reinstall of the extension.
     case extensionCommand(entryID: String)
     /// Keyed by `AppEntry.id`, which survives a reinstall of the plugin.
@@ -45,6 +46,7 @@ enum HotKeyAction: Hashable, Sendable {
         case .quickAction(let id): "hotkey.quickAction." + id.uuidString.lowercased()
         case .appleShortcut(let id): "hotkey.appleShortcut." + id.uuidString.lowercased()
         case .assistant(let id): "hotkey.assistant." + id.uuidString.lowercased()
+        case .snippet(let id): "hotkey.snippet." + id
         case .extensionCommand(let entryID): "hotkey.extensionCommand." + entryID
         case .pluginCommand(let entryID): "hotkey.pluginCommand." + entryID
         case .scheduledTask(let id): "hotkey.scheduledTask." + id.uuidString.lowercased()

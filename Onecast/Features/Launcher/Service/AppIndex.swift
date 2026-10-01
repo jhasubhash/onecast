@@ -214,7 +214,9 @@ struct AppEntry: Identifiable, Hashable, Sendable {
             return .pluginCommand(entryID: id)
         case .scheduledTask:
             return ScheduledTask.id(fromEntryID: id).map { .scheduledTask(id: $0) }
-        case .snippet, .meeting:
+        case .snippet:
+            return StoredSnippet.id(fromEntryID: id).map { .snippet(id: $0) }
+        case .meeting:
             return nil
         }
     }
@@ -554,7 +556,7 @@ final class AppIndex {
             .filter { $0.snippet.isEnabled }
             .map { record in
                 AppEntry(
-                    id: "snippet:\(record.id)",
+                    id: record.entryID,
                     name: record.snippet.name,
                     url: record.fileURL,
                     bundleID: nil,

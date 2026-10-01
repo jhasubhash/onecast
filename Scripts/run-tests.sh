@@ -268,6 +268,7 @@ run fallback-test          Onecast/Features/Launcher/Model/Fallback.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
                            Onecast/Features/SystemActions/Model/SystemAction.swift \
                            Onecast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Onecast/Features/Snippets/Model/Snippet.swift \
                            Onecast/Features/Intent/Model/*.swift
 run intent-test            Onecast/Features/Intent/Model/*.swift
 run hotkey-test            Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
@@ -286,7 +287,8 @@ run hotkey-test            Onecast/Features/HotKeys/Model/DoubleTapModifier.swif
                            Onecast/Features/Quicklinks/Model/Quicklink.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
                            Onecast/Features/SystemActions/Model/SystemAction.swift \
-                           Onecast/Features/WindowManagement/Model/WindowCommand.swift
+                           Onecast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Onecast/Features/Snippets/Model/Snippet.swift
 run callout-test           Onecast/Platform/Appearance.swift \
                            Onecast/DesignSystem/Theme.swift \
                            Onecast/DesignSystem/InterfaceMetrics.swift \
