@@ -3,6 +3,7 @@ import SwiftUI
 /// The `Detail` screen, and the pane a `List` shows when `isShowingDetail` is on.
 struct ExtensionDetailBody: View {
     @Environment(\.metrics) private var metrics
+    @Environment(ExtensionManager.self) private var extensions
     let markdown: String?
     let metadata: RenderNode?
     let isLoading: Bool
@@ -17,6 +18,14 @@ struct ExtensionDetailBody: View {
             }
         }
         .frame(maxWidth: .infinity)
+        // A clicked link behaves like an Open action: open it, then close the palette. Left to
+        // the default, the browser takes key focus and the palette stays up deaf to the keyboard.
+        .environment(\.openURL, OpenURLAction { url in
+            guard !ExtensionDeepLink.claims(url) else { return .systemAction }
+            NSWorkspace.shared.open(url)
+            extensions.closeMainWindow(clearRootSearch: false)
+            return .handled
+        })
     }
 
     private var markdownPane: some View {
@@ -238,6 +247,7 @@ struct ExtensionMarkdownView: View {
                 case .heading(let level, let text):
                     Text(inline(text))
                         .font(.system(size: headingSize(level), weight: .semibold))
+                        .textSelection(.enabled)
                         .padding(.top, metrics.spacing.xs)
                 case .paragraph(let text):
                     Text(inline(text))
@@ -246,12 +256,12 @@ struct ExtensionMarkdownView: View {
                 case .bullet(let text):
                     HStack(alignment: .top, spacing: metrics.spacing.sm) {
                         Text("•").foregroundStyle(.secondary)
-                        Text(inline(text)).font(metrics.typography.rowTitle)
+                        Text(inline(text)).font(metrics.typography.rowTitle).textSelection(.enabled)
                     }
                 case .numbered(let index, let text):
                     HStack(alignment: .top, spacing: metrics.spacing.sm) {
                         Text("\(index).").foregroundStyle(.secondary).monospacedDigit()
-                        Text(inline(text)).font(metrics.typography.rowTitle)
+                        Text(inline(text)).font(metrics.typography.rowTitle).textSelection(.enabled)
                     }
                 case .quote(let text):
                     HStack(spacing: metrics.spacing.sm) {
@@ -259,6 +269,7 @@ struct ExtensionMarkdownView: View {
                         Text(inline(text))
                             .font(metrics.typography.rowTitle)
                             .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
                     }
                 case .code(let text):
                     ScrollView(.horizontal) {
