@@ -75,12 +75,16 @@ final class ChatFindState {
             }
         }
         var found: [ChatFindOccurrence] = []
-        for (part, segment) in message.segments.enumerated() {
+        let segments = message.segments
+        for (part, segment) in segments.enumerated() {
             let rendered: String
             switch segment {
             case .text(let text):
                 rendered = MarkdownRenderer.render(
-                    MarkdownBlock.parse(ChatChoices.split(text).text), style: countingStyle
+                    MarkdownBlock.parse(
+                        ChatChoices.split(text).text,
+                        midStream: message.isArriving(segmentAt: part, of: segments.count)),
+                    style: countingStyle
                 ).string
             case .reasoning(let block):
                 rendered = block.text

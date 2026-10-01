@@ -350,6 +350,19 @@ line, and a table is an `NSTextTable`. It is TextKit 1 because TextKit 2 has nei
 content width, or it lays out zero wide and is never asked to draw. A copy writes plain text only, so
 no appearance's ink rides along. Runs tagged `markdownCopyText` copy differently from how they draw:
 markers as typed, table cells tab-separated, and a code card's drawn language label not at all.
+
+**Math is typeset natively, and copies as the LaTeX it came from.** `MarkdownMath` finds `\(…\)`
+and `$…$` inline and `\[…\]` and `$$…$$` on their own lines before Foundation's Markdown parser
+can eat a backslash; Pandoc's pairing rule keeps "$5 and $10", an escaped dollar and code spans as
+prose. `MarkdownBlock.inline` masks each formula as one private-use character through the parse, so
+emphasis and links still wrap it, and `MathNode` parses a bounded LaTeX subset. A formula outside it
+stays its source, and a display one shows as a `latex` code block. `MarkdownRenderer` draws a
+formula as one `MathAttachmentCell` attachment laid out by `MathLayoutEngine` in STIX Two Math
+through its OpenType MATH table, sized to the text's x-height, with no dependency. The attachment
+carries `markdownCopyText`, so a selection copies the source, and Find counts it as one character it
+never matches. While a reply streams, `parse(_:midStream:)` holds back an equation still arriving:
+a display one is a centred `…` where it will land, and an inline one is left out until it closes. A
+formula wider than a narrow column scales down rather than running off its edge.
 **Only a click may focus a reply.** `acceptsFirstResponder` is true just while `mouseDown` tracks,
 then focus and caret go back to the composer, so typing, ↵ and ⎋ never strand in read-only text.
 Because the window focuses a clicked view before `mouseDown` runs, anything looser loses the
@@ -469,8 +482,9 @@ and `MCPCoordinator` the twentieth.
   that was saved before it went off.
 - Harnesses: `ai-provider-test` (endpoints, request bodies, stream decoding including leading
   think tags across content and SSE splits, persistence repair,
-  Codex framing, on-device routing), `ai-chat-test` (`ChatSession`, `MarkdownBlock`, the copy text
-  `MarkdownRenderer` gives a selection, `ChatHistoryStore` with renames, pins, generated titles and
+  Codex framing, on-device routing), `ai-chat-test` (`ChatSession`, `MarkdownBlock` with its math
+  delimiters, LaTeX subset and mid-stream hold-back, the copy text `MarkdownRenderer` gives a
+  selection, formula attachments and their geometry, `ChatHistoryStore` with renames, pins, generated titles and
   per-chat models, regenerate, export, `ChatTitle`, `ChatChoices`, `ChatReferences`,
   `ChatToolScope`, `AIToolLoopProvider` with its per-round cost, reasoning stretches placed, timed
   and reloaded),

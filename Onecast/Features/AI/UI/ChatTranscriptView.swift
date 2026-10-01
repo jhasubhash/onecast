@@ -296,8 +296,9 @@ private struct ChatMessageView: View {
     /// Only a reply is markdown — what the user typed is shown back exactly as they typed it.
     @ViewBuilder private var rendered: some View {
         if message.role == .assistant {
+            let segments = message.segments
             VStack(alignment: .leading, spacing: metrics.spacing.lg) {
-                ForEach(Array(message.segments.enumerated()), id: \.offset) { part, segment in
+                ForEach(Array(segments.enumerated()), id: \.offset) { part, segment in
                     switch segment {
                     case .text(let text):
                         MarkdownView(
@@ -305,7 +306,8 @@ private struct ChatMessageView: View {
                             color: message.state == .failed
                                 ? Theme.Colors.destructive : Theme.Colors.textPrimary,
                             findNeedle: findHighlight?.needle,
-                            findCurrent: findHighlight?.current(in: message.id, part: part))
+                            findCurrent: findHighlight?.current(in: message.id, part: part),
+                            midStream: message.isArriving(segmentAt: part, of: segments.count))
                     case .search(let search):
                         ChatSearchRow(search: search)
                     case .tools(let uses):

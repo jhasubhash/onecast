@@ -519,6 +519,14 @@ run ai-chat-test           Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/ChatToolScope.swift \
                            Onecast/Features/AI/Model/MarkdownBlock.swift \
                            Onecast/Features/AI/UI/MarkdownRenderer.swift \
+                           Onecast/Features/AI/Model/MarkdownMath.swift \
+                           Onecast/Features/AI/Model/MathFormula.swift \
+                           Onecast/Features/AI/Model/MathNode.swift \
+                           Onecast/Features/AI/Model/MathSymbolCatalog.swift \
+                           Onecast/Features/AI/UI/MathBox.swift \
+                           Onecast/Features/AI/UI/MathFont.swift \
+                           Onecast/Features/AI/UI/MathLayoutEngine.swift \
+                           Onecast/Features/AI/UI/MathAttachmentCell.swift \
                            Onecast/Features/AI/Service/AIProvider.swift \
                            Onecast/Features/AI/Service/ChatHistoryStore.swift \
                            Onecast/Features/AI/Service/AIToolLoopProvider.swift \

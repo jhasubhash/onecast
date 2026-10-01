@@ -40,6 +40,7 @@ extension NSAttributedString.Key {
 
 /// One reply as one attributed string, so a single text view can select across every block of it.
 enum MarkdownRenderer {
+    @MainActor
     static func render(_ blocks: [MarkdownBlock], style: MarkdownTextStyle) -> NSAttributedString {
         var builder = Builder(style: style)
         builder.blocks(blocks, Builder.Context(color: style.text), first: 0, between: style.blockGap)
@@ -59,6 +60,7 @@ enum MarkdownRenderer {
     }
 }
 
+@MainActor
 private struct Builder {
     struct Context {
         var indent: CGFloat = 0
@@ -67,8 +69,14 @@ private struct Builder {
         var color: NSColor
     }
 
+    /// One engine per text size a render meets, since each loads its three fonts.
+    private final class MathEngines {
+        var bySize: [CGFloat: MathLayoutEngine] = [:]
+    }
+
     let style: MarkdownTextStyle
     private let text = NSMutableAttributedString()
+    private let mathEngines = MathEngines()
 
     init(style: MarkdownTextStyle) {
         self.style = style
@@ -111,6 +119,15 @@ private struct Builder {
             blocks(inner, nested, first: 0, between: style.blockGap)
         case .table(let table):
             self.table(table, context, gap: gap)
+        case .math(let formula):
+            let line = self.formula(
+                formula, font: style.body, attributes: [.foregroundColor: context.color])
+            paragraph(line, context, gap: gap) { $0.alignment = .center }
+        case .pendingMath:
+            // Held where the equation will land, so finishing it swaps in place, not across.
+            let dots = NSAttributedString(
+                string: "…", attributes: [.font: style.body, .foregroundColor: style.tertiary])
+            paragraph(dots, context, gap: gap) { $0.alignment = .center }
         case .rule:
             let rule = MarkdownRuleBlock(color: style.cardStroke, thickness: style.hairline)
             let nested = enter(rule, context, gap: gap)
@@ -266,15 +283,10 @@ private struct Builder {
         text.append(line)
     }
 
-    /// Emphasis, code, strikethrough and links; a soft break stays inside its paragraph.
+    /// Emphasis, code, strikethrough, links and math; a soft break stays inside its paragraph.
     private func inline(_ source: String, font: NSFont, color: NSColor) -> NSAttributedString {
-        var options = AttributedString.MarkdownParsingOptions()
-        options.interpretedSyntax = .inlineOnlyPreservingWhitespace
-        options.failurePolicy = .returnPartiallyParsedIfPossible
         let plain: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
-        guard let parsed = try? AttributedString(markdown: source, options: options) else {
-            return NSAttributedString(string: Self.softBreaks(source), attributes: plain)
-        }
+        let parsed = MarkdownBlock.inline(source)
         let result = NSMutableAttributedString()
         for run in parsed.runs {
             var attributes = plain
@@ -295,10 +307,43 @@ private struct Builder {
             }
             if let link = run.link { attributes[.link] = link }
             attributes[.font] = runFont
-            let characters = Self.softBreaks(String(parsed[run.range].characters))
-            result.append(NSAttributedString(string: characters, attributes: attributes))
+            let characters = String(parsed[run.range].characters)
+            guard let formula = run[MathFormula.Attribute.self] else {
+                result.append(
+                    NSAttributedString(string: Self.softBreaks(characters), attributes: attributes))
+                continue
+            }
+            // Two identical formulas side by side share one run, so each character is one formula.
+            for _ in characters {
+                result.append(self.formula(formula, font: runFont, attributes: attributes))
+            }
         }
         return result
+    }
+
+    private func mathEngine(for font: NSFont) -> MathLayoutEngine? {
+        if let engine = mathEngines.bySize[font.pointSize] { return engine }
+        let engine = MathLayoutEngine(size: MathFont.size(matchingXHeightOf: font))
+        mathEngines.bySize[font.pointSize] = engine
+        return engine
+    }
+
+    /// One attachment character sized to the text's x-height; copying it gives back its source.
+    private func formula(
+        _ formula: MathFormula, font: NSFont, attributes: [NSAttributedString.Key: Any]
+    ) -> NSAttributedString {
+        let color = attributes[.foregroundColor] as? NSColor ?? style.text
+        let box =
+            mathEngine(for: font)?.layout(formula)
+            ?? MathBox(text: formula.source, font: font as CTFont)
+        let attachment = NSTextAttachment()
+        attachment.attachmentCell = MathAttachmentCell(box: box, color: color, label: formula.source)
+        let string = NSMutableAttributedString(attachment: attachment)
+        var styled = attributes
+        styled[.font] = font
+        styled[.markdownCopyText] = formula.source
+        string.addAttributes(styled, range: NSRange(location: 0, length: string.length))
+        return string
     }
 
     /// A line separator breaks the line without starting a paragraph, so no gap opens above it.

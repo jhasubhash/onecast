@@ -32,6 +32,13 @@ struct AIChatTests {
         markdownParsesStreamingFriendlyBlocks()
         markdownParsesTablesQuotesAndLists()
         markdownKeepsCommonMarkEdges()
+        markdownFindsMathButNotPrices()
+        markdownDisplayMathIsItsOwnBlock()
+        mathParsesTheSupportedSubsetOnly()
+        mathStillArrivingIsHeldBackOnlyAtTheEnd()
+        formulasAreOneCharacterAndCopyAsSource()
+        formulasTypesetByTheirStructure()
+        wideFormulasShrinkToTheLine()
         markdownCopiesAsTypedText()
         segmentsClampSearchOffsets()
         leavingAConversationDropsItsStagedImages()
@@ -1060,14 +1067,7 @@ struct AIChatTests {
 
     /// A selection copies the reply as a person would type it: no blank-line padding, real markers.
     static func markdownCopiesAsTypedText() {
-        let font = NSFont.systemFont(ofSize: 13)
-        let style = MarkdownTextStyle(
-            body: font, headings: [font, font, font], code: font, inlineCode: font,
-            tableHeader: font, codeLabel: font, text: .black, secondary: .gray, tertiary: .gray,
-            checked: .green, inlineCodeFill: .clear, cardFill: .clear, cardStroke: .gray,
-            quoteBar: .gray, blockGap: 10, headingGap: 6, itemGap: 4, markerWidth: 20, markerGap: 6,
-            cardInset: CGSize(width: 12, height: 10), cardRadius: 10, codeHeader: 22,
-            quoteBarWidth: 2, quoteGap: 10, tableColumnGap: 12, tableRowGap: 6, hairline: 1)
+        let style = markdownStyle
         func copied(_ markdown: String) -> String {
             MarkdownRenderer.plainText(MarkdownRenderer.render(MarkdownBlock.parse(markdown), style: style))
         }
@@ -1083,6 +1083,258 @@ struct AIChatTests {
         expect(
             copied("```swift\nlet x = 1\n    y\n```\nafter") == "let x = 1\n    y\nafter",
             "code keeps its lines and indentation, and the drawn language label never copies")
+    }
+
+    static func markdownFindsMathButNotPrices() {
+        let pieces = MarkdownMath.pieces(of: #"Roots \(x^2\) and $y$, at $5 or $10, \$3, `$z$`."#)
+        expect(
+            pieces == [
+                .text("Roots "), .math(tex: "x^2", display: false, source: #"\(x^2\)"#), .text(" and "),
+                .math(tex: "y", display: false, source: "$y$"),
+                .text(#", at $5 or $10, \$3, `$z$`."#)
+            ],
+            "inline math is found, while prices, an escaped dollar and code stay text: \(pieces)")
+        expect(
+            MarkdownMath.pieces(of: "US$5 and US$6") == [.text("US$5 and US$6")]
+                && MarkdownMath.pieces(of: "$x$5") == [.text("$x$5")],
+            "a dollar pair around prose or before a digit is currency")
+        expect(
+            MarkdownMath.pieces(of: #"so \(x + \frac{1}{"#) == [.text("so "), .unclosed(#"\(x + \frac{1}{"#)],
+            "an equation still streaming in shows as its source")
+        let inline = MarkdownBlock.inline(#"**Bold \(x\)** and $\foo$ and [$y$](https://example.com)"#)
+        let formulas = inline.runs.compactMap { $0[MathFormula.Attribute.self]?.source }
+        expect(
+            String(inline.characters) == "Bold \u{FFFC} and $\\foo$ and \u{FFFC}"
+                && formulas == [#"\(x\)"#, "$y$"],
+            "a formula is one character in emphasis or a link, and one that won't typeset is its source")
+        expect(
+            inline.runs.contains { $0[MathFormula.Attribute.self] != nil && $0.link != nil },
+            "a formula inside a link keeps the link")
+    }
+
+    static func markdownDisplayMathIsItsOwnBlock() {
+        let blocks = MarkdownBlock.parse("The formula:\n$$\nx = \\frac{a}{b}\n$$\nwhere $b \\ne 0$.")
+        guard blocks.count == 3, case .math(let formula) = blocks[1] else {
+            expect(false, "a $$ block splits its paragraph, got \(blocks)")
+            return
+        }
+        expect(
+            formula.display && formula.source == "$$\nx = \\frac{a}{b}\n$$"
+                && blocks[0] == .paragraph("The formula:") && blocks[2] == .paragraph("where $b \\ne 0$."),
+            "display math takes its lines with their delimiters, and the prose around it stays prose")
+        expect(
+            MarkdownBlock.parse(#"\[ \unknown{x} \]"#) == [.code(language: "latex", text: #"\unknown{x}"#)],
+            "a display equation outside the subset shows as LaTeX source")
+        expect(
+            MarkdownBlock.parse("$$\n\\frac{a}{b") == [.paragraph("$$\n\\frac{a}{b")],
+            "an unclosed display equation waits as a paragraph")
+        expect(
+            MarkdownBlock.parse("$$x$$ is small") == [.paragraph("$$x$$ is small")],
+            "an equation followed by prose on its line is inline")
+        expect(
+            MarkdownBlock.parse("```\n$$x$$\n```") == [.code(language: nil, text: "$$x$$")],
+            "math inside a fence stays code")
+        expect(
+            renderedCount("apple", "apple $a$\n\n$$apple$$\n\napple") == 2,
+            "find searches the prose, never an equation's source")
+    }
+
+    static func mathParsesTheSupportedSubsetOnly() {
+        let supported = [
+            #"\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}"#, #"\sum_{i=1}^{n} i"#, #"\int_0^\infty e^{-x^2}\,dx"#,
+            #"\lim_{x \to 0} \frac{\sin x}{x}"#, #"\left( \frac{a}{b} \right)^2"#, #"\binom{n}{k}"#,
+            #"\begin{pmatrix} a & b \\ c & d \end{pmatrix}"#, #"\sqrt[3]{8}"#, #"f''(x)"#,
+            #"\begin{cases} x & \text{if } x > 0 \\ -x & \text{else} \end{cases}"#,
+            #"\begin{aligned} a &= b \\ &= c \end{aligned}"#, #"\mathbb{R}^n \vec{v} \hat{x}"#,
+            #"\boxed{x = 5} \overline{AB} \not= \operatorname{rank}(A)"#
+        ]
+        for tex in supported {
+            expect(MathNode.parse(tex) != nil, "\(tex) typesets")
+        }
+        let refused = [
+            #"\foo{x}"#, "x^2^3", #"\frac{1}{"#, #"\left( x"#, #"\begin{tikzcd}\end{tikzcd}"#,
+            String(repeating: "{", count: 60) + String(repeating: "}", count: 60),
+            String(repeating: "x", count: MathNode.maximumLength + 1)
+        ]
+        for tex in refused {
+            expect(MathNode.parse(tex) == nil, "\(tex.prefix(40)) is refused and shows as source")
+        }
+        expect(
+            MathNode.parse("a & b") != nil && MathNode.parse(#"a \\ b"#) != nil,
+            "a top-level & or \\\\ lays out as aligned or gathered rows")
+        expect(
+            MathNode.parse(#"\alpha x \mathbb{R}"#)
+                == .row([.symbol("𝛼", .ord), .symbol("𝑥", .ord), .row([.symbol("ℝ", .ord)])]),
+            "letters take the math italic, and \\mathbb its double-struck form")
+    }
+
+    static func mathStillArrivingIsHeldBackOnlyAtTheEnd() {
+        let display = "The formula:\n$$\n\\frac{a}{b"
+        expect(
+            MarkdownBlock.parse(display, midStream: true) == [.paragraph("The formula:"), .pendingMath],
+            "a display equation still arriving is a placeholder, not its half-written source")
+        expect(
+            MarkdownBlock.parse(display) == [.paragraph("The formula:"), .paragraph("$$\n\\frac{a}{b")],
+            "once the reply has finished, an unclosed display equation shows as source")
+        expect(
+            MarkdownBlock.parse("Roots \\(x + \\frac{1}{", midStream: true) == [.paragraph("Roots ")]
+                && MarkdownBlock.parse("\\(x", midStream: true).isEmpty,
+            "an inline equation still arriving is held back from the text")
+        expect(
+            MarkdownBlock.parse("Roots \\(x + \\frac{1}{") == [.paragraph("Roots \\(x + \\frac{1}{")],
+            "a finished reply keeps an unclosed inline opener as source")
+        expect(
+            MarkdownBlock.parse("It costs $5 and $x", midStream: true) == [.paragraph("It costs $5 and $x")],
+            "a lone dollar may be a price, so nothing after it is ever held back")
+        expect(
+            MarkdownBlock.parse("A stray \\( here\n\nMore \\(y", midStream: true) == [
+                .paragraph("A stray \\( here"), .paragraph("More ")
+            ],
+            "an opener the stream has moved past is a stray and stays visible")
+        expect(
+            MarkdownBlock.parse("$$\nx\n\nafter", midStream: true) == [.paragraph("$$\nx"), .paragraph("after")],
+            "a blank line inside $$ proves it stray, even mid-stream")
+        expect(
+            MarkdownBlock.parse("Text\n$$\nx = \\frac{a}{b}.\n", midStream: true) == [
+                .paragraph("Text"), .pendingMath
+            ]
+                && MarkdownBlock.parse("$$\nx\n\n", midStream: true) == [.pendingMath],
+            "a stream that has just sent a newline, or two, is still inside its equation")
+        expect(
+            MarkdownBlock.parse("Roots \\(x +\n", midStream: true) == [.paragraph("Roots ")],
+            "an inline equation is still held back when a newline is the last thing to arrive")
+        expect(
+            MarkdownBlock.parse("Text\n$$\nx = \\frac{a}{b}.\n") == [.paragraph("Text"), .paragraph("$$\nx = \\frac{a}{b}.")],
+            "a finished reply ending in a newline still shows an unclosed equation as source")
+        expect(
+            MarkdownBlock.parse("- item\n  $$\n  x", midStream: true) == [
+                .bulletList([.init(blocks: [.paragraph("item"), .pendingMath], checked: nil)])
+            ],
+            "a list item still being written holds its equation back too")
+        expect(
+            MarkdownBlock.parse("- a\n  $$\n  x\n- b", midStream: true) == [
+                .bulletList([
+                    .init(blocks: [.paragraph("a"), .paragraph("$$\nx")], checked: nil),
+                    .init(blocks: [.paragraph("b")], checked: nil)
+                ])
+            ],
+            "an item the stream has left behind shows its unclosed equation")
+        expect(
+            MarkdownBlock.parse("## Area \\(\\pi r", midStream: true) == [.heading(level: 2, text: "Area ")],
+            "a heading still arriving holds back its equation")
+        expect(
+            MarkdownBlock.parse("| A | B |\n| - | - |\n| 1 | \\(x", midStream: true) == [
+                .table(.init(header: ["A", "B"], alignments: [.leading, .leading], rows: [["1", ""]]))
+            ],
+            "only the table cell being written holds back its equation")
+        guard case .math? = MarkdownBlock.parse("$$x$$", midStream: true).first,
+            MarkdownBlock.inline("Roots \\(x\\)").runs.contains(where: { $0[MathFormula.Attribute.self] != nil })
+        else {
+            expect(false, "an equation that has closed renders mid-stream")
+            return
+        }
+        expect(
+            renderedCount("apple", "apple\n$$\napple", midStream: true) == 1,
+            "find skips an equation still arriving, as the transcript does")
+        expect(
+            renderedCount("apple", "apple\n$$\napple") == 2,
+            "and searches its source once the reply has finished")
+        let message = ChatMessage(role: .assistant, text: "apple\n$$\napple", state: .complete)
+        expect(
+            message.isArriving(segmentAt: 0, of: 1) == false
+                && ChatMessage(role: .assistant, text: "", state: .streaming).isArriving(segmentAt: 1, of: 2)
+                && !ChatMessage(role: .assistant, text: "", state: .streaming).isArriving(segmentAt: 0, of: 2),
+            "only the last segment of a streaming reply is still arriving")
+    }
+
+    /// A formula draws as one attachment character, and copying it gives back what was typed.
+    static func formulasAreOneCharacterAndCopyAsSource() {
+        let rendered = MarkdownRenderer.render(
+            MarkdownBlock.parse("Roots \\(x^2\\) and $$y$$ here\n\n$$\n\\frac{a}{b}\n$$"),
+            style: markdownStyle)
+        var attachments = 0
+        rendered.enumerateAttribute(
+            .attachment, in: NSRange(location: 0, length: rendered.length)
+        ) { value, range, _ in
+            if value != nil { attachments += range.length }
+        }
+        expect(attachments == 3, "each inline and display formula is one attachment character")
+        expect(
+            MarkdownRenderer.plainText(rendered) == "Roots \\(x^2\\) and $$y$$ here\n$$\n\\frac{a}{b}\n$$",
+            "copying a formula pastes its LaTeX source")
+        let pending = MarkdownRenderer.render(
+            MarkdownBlock.parse("Text\n$$\n\\frac{a", midStream: true), style: markdownStyle)
+        expect(
+            pending.string == "Text\n…",
+            "a display equation still arriving holds its place as a centred ellipsis")
+    }
+
+    static func formulasTypesetByTheirStructure() {
+        guard let engine = MathLayoutEngine(size: 20),
+            let fraction = MathFormula(tex: #"\frac{a}{b}"#, source: "", display: true),
+            let letter = MathFormula(tex: "a", source: "", display: true),
+            let squared = MathFormula(tex: "a^2", source: "", display: false),
+            let fenced = MathFormula(
+                tex: #"\left( \frac{\frac{a}{b}}{c} \right)"#, source: "", display: true),
+            let spaced = MathFormula(tex: "a+b", source: "", display: false),
+            let unary = MathFormula(tex: "-b", source: "", display: false)
+        else {
+            expect(false, "STIX Two Math and the formulas load")
+            return
+        }
+        let a = engine.layout(letter)
+        let over = engine.layout(fraction)
+        expect(
+            over.ascent > a.ascent && over.descent > a.descent, "a fraction stands above and below the line")
+        let power = engine.layout(squared)
+        expect(power.ascent > a.ascent && power.width > a.width, "a superscript rides up and to the right")
+        let parens = engine.layout(fenced)
+        expect(parens.height > engine.layout(fraction).height, "\\left( grows to hold what it fences")
+        expect(
+            engine.layout(spaced).width > engine.layout(unary).width,
+            "a binary plus takes medium spaces, a leading minus none")
+        expect(
+            MathFormula(tex: #"\left( a \\ b \right)"#, source: "", display: true) == nil,
+            "a row break inside \\left is refused rather than half-drawn")
+    }
+
+    static func wideFormulasShrinkToTheLine() {
+        guard let engine = MathLayoutEngine(size: 20),
+            let formula = MathFormula(
+                tex: String(repeating: "a + ", count: 40) + "a", source: "", display: true)
+        else {
+            expect(false, "a long formula typesets")
+            return
+        }
+        let box = engine.layout(formula)
+        let cell = MathAttachmentCell(box: box, color: .labelColor, label: "")
+        let container = NSTextContainer(size: CGSize(width: 200, height: 1000))
+        container.lineFragmentPadding = 0
+        let frame = cell.cellFrame(
+            for: container, proposedLineFragment: CGRect(x: 0, y: 0, width: 200, height: 20),
+            glyphPosition: .zero, characterIndex: 0)
+        expect(
+            box.width > 200 && abs(frame.width - 200) < 0.5, "the formula fits the line, got \(frame.width)")
+        expect(
+            abs(frame.height / frame.width - box.height / box.width) < 0.001, "it shrinks without distorting")
+    }
+
+    private static func renderedCount(_ needle: String, _ text: String, midStream: Bool = false) -> Int {
+        let rendered = MarkdownRenderer.render(
+            MarkdownBlock.parse(text, midStream: midStream), style: markdownStyle
+        ).string
+        return rendered.components(separatedBy: needle).count - 1
+    }
+
+    private static var markdownStyle: MarkdownTextStyle {
+        let font = NSFont.systemFont(ofSize: 13)
+        return MarkdownTextStyle(
+            body: font, headings: [font, font, font], code: font, inlineCode: font,
+            tableHeader: font, codeLabel: font, text: .black, secondary: .gray, tertiary: .gray,
+            checked: .green, inlineCodeFill: .clear, cardFill: .clear, cardStroke: .gray,
+            quoteBar: .gray, blockGap: 10, headingGap: 6, itemGap: 4, markerWidth: 20, markerGap: 6,
+            cardInset: CGSize(width: 12, height: 10), cardRadius: 10, codeHeader: 22,
+            quoteBarWidth: 2, quoteGap: 10, tableColumnGap: 12, tableRowGap: 6, hairline: 1)
     }
 
     static func segmentsClampSearchOffsets() {

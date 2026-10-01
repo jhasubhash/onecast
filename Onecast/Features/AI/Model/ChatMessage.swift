@@ -50,6 +50,11 @@ struct ChatMessage: Identifiable, Equatable, Sendable {
         self.usage = usage
     }
 
+    /// Text still arrives only into the last of a streaming reply's `count` segments.
+    func isArriving(segmentAt offset: Int, of count: Int) -> Bool {
+        state == .streaming && offset == count - 1
+    }
+
     /// The next search, call or stretch of thinking's place: with no text between, offsets tie.
     var nextSequence: Int { searches.count + toolUses.count + reasoning.count }
 

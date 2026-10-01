@@ -9,13 +9,17 @@ struct MarkdownView: NSViewRepresentable {
     /// Find in Chat's needle, and which of this view's matches is current, if it holds that one.
     var findNeedle: String?
     var findCurrent: Int?
+    /// The reply is still streaming here, so an equation not yet closed is held back.
+    var midStream = false
 
     func makeNSView(context: Context) -> MarkdownTextView {
         MarkdownTextView()
     }
 
     func updateNSView(_ view: MarkdownTextView, context: Context) {
-        view.show(MarkdownTextView.Content(markdown: markdown, color: color, metrics: metrics))
+        view.show(
+            MarkdownTextView.Content(
+                markdown: markdown, color: color, metrics: metrics, midStream: midStream))
         view.highlight(MarkdownTextView.Highlight(needle: findNeedle, current: findCurrent))
     }
 
@@ -33,6 +37,7 @@ final class MarkdownTextView: NSTextView {
         let markdown: String
         let color: Color
         let metrics: InterfaceMetrics
+        let midStream: Bool
     }
 
     /// The one reply holding a selection; starting a new one clears it, as a browser page does.
@@ -78,7 +83,8 @@ final class MarkdownTextView: NSTextView {
         guard next != content, let storage = textStorage else { return }
         content = next
         let rendered = MarkdownRenderer.render(
-            MarkdownBlock.parse(next.markdown), style: Self.style(next.color, next.metrics))
+            MarkdownBlock.parse(next.markdown, midStream: next.midStream),
+            style: Self.style(next.color, next.metrics))
         let selection = selectedRange()
         storage.setAttributedString(rendered)
         if NSMaxRange(selection) <= rendered.length { setSelectedRange(selection) }
