@@ -102,9 +102,8 @@ final class InstalledAIManager {
         guard status.phase != .signInRequired else {
             throw AIProviderError.unavailable("Sign in with `" + kind.signInCommand + "` first.")
         }
-        // A chat may hold an effort from before its model's efforts were known; Copilot refuses those.
-        let effort =
-            status.models.first { $0.id == model }.map { $0.resolvedEffort(effort) } ?? effort
+        let effort = InstalledAIModel.turnEffort(
+            effort, model: model, of: kind, listed: status.models)
         return InstalledCLIProvider(
             kind: kind, executable: status.executable, model: model, effort: effort,
             workspace: workspace, launch: launchSettings(kind), toolConfig: cliTools)

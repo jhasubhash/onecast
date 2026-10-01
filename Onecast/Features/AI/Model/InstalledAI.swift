@@ -100,6 +100,14 @@ struct InstalledAIModel: Equatable, Identifiable, Sendable {
         self.efforts = efforts
     }
 
+    /// A saved effort resolved for its model; an unprobed Copilot model takes none.
+    static func turnEffort(
+        _ saved: String?, model: String, of kind: InstalledAIKind, listed: [InstalledAIModel]
+    ) -> String? {
+        if let match = listed.first(where: { $0.id == model }) { return match.resolvedEffort(saved) }
+        return kind == .copilot ? nil : saved
+    }
+
     func resolvedEffort(_ preferred: String?) -> String? {
         guard !efforts.isEmpty else { return nil }
         if let preferred, efforts.contains(where: { $0.id == preferred }) { return preferred }

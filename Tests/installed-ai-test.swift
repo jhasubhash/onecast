@@ -110,6 +110,15 @@ struct InstalledAITests {
             fallback.contains { $0.id == "claude-haiku-4.5" }
                 && fallback.allSatisfy { $0.efforts.isEmpty && $0.resolvedEffort("high") == nil },
             "when Copilot can't be asked, no model is offered or sent an effort")
+        expect(
+            InstalledAIModel.turnEffort("medium", model: "kimi", of: .copilot, listed: [some]) == "low",
+            "a listed model's saved effort resolves against its own")
+        expect(
+            InstalledAIModel.turnEffort("high", model: "gone", of: .copilot, listed: fallback) == nil,
+            "a Copilot model missing from the list is sent no effort")
+        expect(
+            InstalledAIModel.turnEffort("high", model: "gone", of: .claude, listed: []) == "high",
+            "another tool's unlisted model keeps its saved effort")
     }
 
     private static func claudeStatusNamesItsAccount() {
