@@ -70,6 +70,9 @@ struct PaletteShortcutTests {
         expect(resolve("h", command: true), nil, "⌘H is not the hide chord")
         expect(resolve("q", shift: true, control: true), .quit, "⌃⇧Q quits the app")
         expect(resolve("q", control: true), nil, "⌃Q is not the quit chord")
+        expect(
+            resolve("q", shift: true, option: true, control: true), .forceQuit,
+            "⌃⌥⇧Q force quits the app")
         expect(resolve("r", command: true), .restart, "⌘R restarts the app")
         expect(resolve("r", command: true, shift: true), .restart, "an extra Shift still reads ⌘R")
 
@@ -79,7 +82,7 @@ struct PaletteShortcutTests {
 
         let expanded: [PaletteShortcut] = [
             .copyFile, .copyName, .copyPath, .pasteFile, .quickLook, .toggleFavorite, .hideFromSearch,
-            .quit, .restart
+            .quit, .forceQuit, .restart
         ]
         let anywhere: [PaletteShortcut] = [
             .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot(0), .copyCalculation
@@ -96,7 +99,7 @@ struct PaletteShortcutTests {
             .toggleFavorite, .hideFromSearch
         ]
         let leaving: [PaletteShortcut] = [
-            .commandDelete, .pasteFile, .quit, .restart, .pin, .favoriteSlot(0)
+            .commandDelete, .pasteFile, .quit, .forceQuit, .restart, .pin, .favoriteSlot(0)
         ]
         for shortcut in closing {
             expect(shortcut.closesMenu, "\(shortcut) closes an open menu")

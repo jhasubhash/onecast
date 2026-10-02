@@ -26,6 +26,8 @@ enum PaletteShortcut: Equatable {
     case hideFromSearch
     /// ⌃⇧Q.
     case quit
+    /// ⌃⌥⇧Q.
+    case forceQuit
     /// ⌘R.
     case restart
     /// ⌘., which AppKit binds to `cancelOperation:`, so it arrives as a token instead of a key.
@@ -49,7 +51,7 @@ enum PaletteShortcut: Equatable {
         if control, matches("x") { return shift ? .deleteAll : .delete }
         if command, shift, matches("f") { return .toggleFavorite }
         if command, shift, matches("h") { return .hideFromSearch }
-        if control, shift, matches("q") { return .quit }
+        if control, shift, matches("q") { return option ? .forceQuit : .quit }
         if command, matches("r") { return .restart }
         return nil
     }
@@ -58,7 +60,7 @@ enum PaletteShortcut: Equatable {
     var requiresExpanded: Bool {
         switch self {
         case .copyFile, .copyName, .copyPath, .pasteFile, .quickLook, .toggleFavorite,
-            .hideFromSearch, .quit, .restart:
+            .hideFromSearch, .quit, .forceQuit, .restart:
             true
         case .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot, .copyCalculation:
             false
@@ -70,7 +72,7 @@ enum PaletteShortcut: Equatable {
         case .delete, .deleteAll, .copyFile, .copyName, .copyPath, .copyCalculation, .quickLook,
             .toggleFavorite, .hideFromSearch:
             true
-        case .commandDelete, .pasteFile, .quit, .restart, .pin, .favoriteSlot:
+        case .commandDelete, .pasteFile, .quit, .forceQuit, .restart, .pin, .favoriteSlot:
             false
         }
     }
