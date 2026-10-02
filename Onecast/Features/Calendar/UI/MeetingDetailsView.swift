@@ -12,7 +12,9 @@ struct MeetingDetailsView: View {
                 header
                 if let location = details.location {
                     HStack(alignment: .firstTextBaseline, spacing: metrics.spacing.sm) {
-                        Image(systemName: "mappin.and.ellipse")
+                        SymbolImage(
+                            name: "mappin.and.ellipse",
+                            size: metrics.typography.nsFont(.body).pointSize)
                             .foregroundStyle(Theme.Colors.textSecondary)
                         Text(location)
                     }
@@ -88,7 +90,8 @@ private struct AttendeeRow: View {
 
     var body: some View {
         HStack(spacing: metrics.spacing.sm) {
-            Image(systemName: attendee.response.symbol)
+            SymbolImage(
+                name: attendee.response.symbol, size: metrics.typography.nsFont(.body).pointSize)
                 .foregroundStyle(attendee.response.tint)
             Text(attendee.name)
                 .lineLimit(1)
