@@ -401,6 +401,7 @@ public struct PluginScaffold<Root: View>: View {
                         run: run)
                         .padding(.trailing, 12)
                         .padding(.bottom, 44)
+                        .padding(.top, 10)   // never above the panel's top edge: past it, the rows scroll
                         .transition(.opacity)
                 }
             }
@@ -648,9 +649,15 @@ private struct CommandPaletteView: View {
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, minHeight: 36)
             } else {
-                ForEach(Array(commands.enumerated()), id: \.element.id) { index, command in
-                    row(command, selected: index == selection)
-                        .onTapGesture { run(index) }
+                // As tall as its rows while they fit under the panel's top edge; past that it
+                // scrolls, and ↑/↓ keep the selected row in view.
+                ViewThatFits(in: .vertical) {
+                    rows
+                    ScrollViewReader { proxy in
+                        ScrollView { rows }
+                            .scrollIndicators(.never)
+                            .onChange(of: selection) { proxy.scrollTo(selection) }
+                    }
                 }
             }
         }
@@ -661,6 +668,18 @@ private struct CommandPaletteView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(.primary.opacity(0.14), lineWidth: 1))
         .shadow(color: .black.opacity(0.28), radius: 18, y: 8)
+    }
+
+    private var rows: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            // Positional, like the `.id(index)` scroll target: commands are rebuilt each time the
+            // palette asks, so their ids are not stable identities (UI_TESTS.md identity conflict).
+            ForEach(Array(commands.enumerated()), id: \.offset) { index, command in
+                row(command, selected: index == selection)
+                    .id(index)
+                    .onTapGesture { run(index) }
+            }
+        }
     }
 
     private var searchField: some View {
