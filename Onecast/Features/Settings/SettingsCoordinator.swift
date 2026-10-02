@@ -51,6 +51,7 @@ final class SettingsCoordinator {
             .environment(core.customWindowSizes)
             .environment(core.scheduledTasks)
             .environment(core.customWindowSizeCoordinator)
+            .environment(core.windowShortcutPresetCoordinator)
             .environment(core.calendarStore)
             .environment(core.aiSettings)
             .environment(core.mcpSettings)

@@ -329,6 +329,13 @@ run window-command-test    Onecast/Features/WindowManagement/Model/WindowCommand
                            Onecast/Features/WindowManagement/Model/WindowCycle.swift \
                            Onecast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
                            Onecast/Features/WindowManagement/Model/WindowActionMemory.swift
+run window-preset-test     Onecast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Onecast/Features/WindowManagement/Model/WindowShortcutPreset.swift \
+                           Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Onecast/Features/HotKeys/Model/HyperKey.swift \
+                           Onecast/Platform/ASCIIKeyboardLayout.swift \
+                           Onecast/Features/HotKeys/Service/KeyShortcut.swift
 run space-gesture-test     Onecast/Features/WindowManagement/Model/WindowCommand.swift \
                            Onecast/Features/WindowManagement/Model/SpaceGesture.swift
 run window-layout-test     Onecast/Features/WindowManagement/Model/WindowCommand.swift \
