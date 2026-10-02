@@ -1,7 +1,6 @@
 import Foundation
 
-/// Fills in a preset, asking first only when that replaces shortcuts the user set; observable only
-/// for `@Environment`.
+/// Fills in a preset, asking before replacing a user's shortcut; observable for `@Environment`.
 @MainActor
 @Observable
 final class WindowShortcutPresetCoordinator {
