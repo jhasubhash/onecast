@@ -11,6 +11,8 @@ struct ExtensionGitHubSheet: View {
     @State private var installedTitle: String?
     @State private var installTask: Task<Void, Never>?
 
+    private static let captionGlyph = NSFont.preferredFont(forTextStyle: .caption1).pointSize
+
     private var source: ExtensionGitHubSource? { ExtensionGitHubSource(repository) }
     private var isInstalling: Bool { progress != nil }
 
@@ -87,13 +89,21 @@ struct ExtensionGitHubSheet: View {
                 Text(progress.message).font(.caption).foregroundStyle(.secondary)
             }
         } else if let failure {
-            Label(failure, systemImage: "exclamationmark.triangle")
+            Label {
+                Text(failure)
+            } icon: {
+                SymbolImage(name: "exclamationmark.triangle", size: Self.captionGlyph)
+            }
                 .font(.caption)
                 .foregroundStyle(.orange)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         } else if let installedTitle {
-            Label("Installed \(installedTitle).", systemImage: "checkmark.circle.fill")
+            Label {
+                Text("Installed \(installedTitle).")
+            } icon: {
+                SymbolImage(name: "checkmark.circle.fill", size: Self.captionGlyph)
+            }
                 .font(.caption)
                 .foregroundStyle(.green)
         }

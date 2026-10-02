@@ -163,7 +163,13 @@ struct ExtensionsSettingsView: View {
                     .foregroundStyle(.orange)
             }
             if let updateError {
-                Label(updateError, systemImage: "exclamationmark.triangle")
+                Label {
+                    Text(updateError)
+                } icon: {
+                    SymbolImage(
+                        name: "exclamationmark.triangle",
+                        size: NSFont.preferredFont(forTextStyle: .caption1).pointSize)
+                }
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
@@ -386,8 +392,7 @@ private struct ExtensionSettingsIcon: View {
     private let iconSize = Theme.Size.settingsRowIcon + Theme.Spacing.xs
 
     var body: some View {
-        Image(systemName: systemName)
-            .font(.system(size: Theme.Size.settingsRowIcon - Theme.Spacing.xs))
+        SymbolImage(name: systemName, size: Theme.Size.settingsRowIcon - Theme.Spacing.xs)
             .foregroundStyle(.primary)
             .frame(width: iconSize, height: iconSize)
     }
@@ -425,7 +430,8 @@ private struct ExtensionDisclosure: View {
                 Button("Update", action: onUpdate)
             }
             Button(action: onUninstall) {
-                Image(systemName: "trash")
+                SymbolImage(
+                    name: "trash", size: NSFont.preferredFont(forTextStyle: .body).pointSize)
                     .foregroundStyle(Theme.Colors.destructive)
             }
             .buttonStyle(.plain)
