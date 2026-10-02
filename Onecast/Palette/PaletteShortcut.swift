@@ -20,6 +20,10 @@ enum PaletteShortcut: Equatable {
     case pasteFile
     /// ⌘Y.
     case quickLook
+    /// ⌘O, the row handed to the app that owns it.
+    case openInApp
+    /// ⌘I.
+    case showDetails
     /// ⇧⌘F.
     case toggleFavorite
     /// ⇧⌘H.
@@ -48,6 +52,8 @@ enum PaletteShortcut: Equatable {
         }
         if command, shift, matches("v") { return .pasteFile }
         if command, matches("y") { return .quickLook }
+        if command, !shift, matches("o") { return .openInApp }
+        if command, !shift, matches("i") { return .showDetails }
         if control, matches("x") { return shift ? .deleteAll : .delete }
         if command, shift, matches("f") { return .toggleFavorite }
         if command, shift, matches("h") { return .hideFromSearch }
@@ -59,8 +65,8 @@ enum PaletteShortcut: Equatable {
     /// The compact bar shows no selection, so a chord aimed at a highlighted row waits for the list.
     var requiresExpanded: Bool {
         switch self {
-        case .copyFile, .copyName, .copyPath, .pasteFile, .quickLook, .toggleFavorite,
-            .hideFromSearch, .quit, .forceQuit, .restart:
+        case .copyFile, .copyName, .copyPath, .pasteFile, .quickLook, .openInApp, .showDetails,
+            .toggleFavorite, .hideFromSearch, .quit, .forceQuit, .restart:
             true
         case .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot, .copyCalculation:
             false
@@ -70,7 +76,7 @@ enum PaletteShortcut: Equatable {
     var closesMenu: Bool {
         switch self {
         case .delete, .deleteAll, .copyFile, .copyName, .copyPath, .copyCalculation, .quickLook,
-            .toggleFavorite, .hideFromSearch:
+            .openInApp, .showDetails, .toggleFavorite, .hideFromSearch:
             true
         case .commandDelete, .pasteFile, .quit, .forceQuit, .restart, .pin, .favoriteSlot:
             false

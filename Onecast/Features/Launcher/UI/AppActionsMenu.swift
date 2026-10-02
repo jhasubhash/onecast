@@ -18,50 +18,7 @@ enum AppActionsMenu {
         favorites: FavoriteActions, onResetRanking: @escaping () -> Void,
         onHideFromSearch: @escaping () -> Void
     ) -> PopoverMenuContent {
-        var items: [PopoverMenuItem] = [
-            PopoverMenuItem(
-                title: app.kind.descriptor.openVerb, systemImage: "list.bullet.rectangle",
-                shortcut: "↵"
-            ) { core.launcherCoordinator.launch(app, searchQuery: searchQuery) }
-        ]
-        if app.kind == .quicklink, let id = Quicklink.id(fromEntryID: app.id),
-            let quicklink = core.quicklinks.quicklink(id: id)
-        {
-            items.append(
-                PopoverMenuItem(title: "Edit Quicklink", systemImage: "pencil") {
-                    core.paletteCoordinator.hidePalette(restoreFocus: false)
-                    core.quicklinkCoordinator.editQuicklink(quicklink)
-                })
-            var rename = PopoverMenuItem(
-                title: "Rename Quicklink", systemImage: "character.cursor.ibeam"
-            ) {
-                core.quicklinkCoordinator.configureRename(id: id)
-            }
-            rename.trailingAccessory = LauncherInlineEditor.renameBox(id: id)
-            rename.keepsMenuOpen = true
-            items.append(rename)
-        }
-        if app.kind == .scheduledTask {
-            items.append(
-                PopoverMenuItem(
-                    title: "Edit Scheduled Task", systemImage: "pencil", startsSection: true
-                ) {
-                    core.schedulerEditorCoordinator.editTask(entryID: app.id)
-                })
-            items.append(
-                PopoverMenuItem(
-                    title: "Delete Scheduled Task", systemImage: "trash", isDestructive: true
-                ) {
-                    core.paletteCoordinator.hidePalette(restoreFocus: false)
-                    core.schedulerEditorCoordinator.deleteTask(entryID: app.id)
-                })
-        }
-        if app.canRevealInFinder {
-            items.append(
-                PopoverMenuItem(title: "Show in Finder", systemImage: "folder", shortcut: "⌘↵") {
-                    core.launcherCoordinator.showInFinder(app)
-                })
-        }
+        var items = leadingItems(app: app, searchQuery: searchQuery, core: core)
         // A query-driven row lives only for its query, so no preference could outlive it.
         let isPersistent = !CommandCatalog.isQueryDriven(app)
         if isPersistent {
@@ -177,5 +134,59 @@ enum AppActionsMenu {
                 })
         }
         return PopoverMenuContent(header: app.name, items: items)
+    }
+
+    /// A meeting row leads with the same actions as the meeting's card.
+    private static func leadingItems(
+        app: AppEntry, searchQuery: String, core: AppCore
+    ) -> [PopoverMenuItem] {
+        if app.kind == .meeting, let meeting = core.calendarCoordinator.meeting(entryID: app.id) {
+            return MeetingActionsMenu.content(meeting: meeting, core: core).items
+        }
+        var items = [
+            PopoverMenuItem(
+                title: app.kind.descriptor.openVerb, systemImage: "list.bullet.rectangle",
+                shortcut: "↵"
+            ) { core.launcherCoordinator.launch(app, searchQuery: searchQuery) }
+        ]
+        if app.kind == .quicklink, let id = Quicklink.id(fromEntryID: app.id),
+            let quicklink = core.quicklinks.quicklink(id: id)
+        {
+            items.append(
+                PopoverMenuItem(title: "Edit Quicklink", systemImage: "pencil") {
+                    core.paletteCoordinator.hidePalette(restoreFocus: false)
+                    core.quicklinkCoordinator.editQuicklink(quicklink)
+                })
+            var rename = PopoverMenuItem(
+                title: "Rename Quicklink", systemImage: "character.cursor.ibeam"
+            ) {
+                core.quicklinkCoordinator.configureRename(id: id)
+            }
+            rename.trailingAccessory = LauncherInlineEditor.renameBox(id: id)
+            rename.keepsMenuOpen = true
+            items.append(rename)
+        }
+        if app.kind == .scheduledTask {
+            items.append(
+                PopoverMenuItem(
+                    title: "Edit Scheduled Task", systemImage: "pencil", startsSection: true
+                ) {
+                    core.schedulerEditorCoordinator.editTask(entryID: app.id)
+                })
+            items.append(
+                PopoverMenuItem(
+                    title: "Delete Scheduled Task", systemImage: "trash", isDestructive: true
+                ) {
+                    core.paletteCoordinator.hidePalette(restoreFocus: false)
+                    core.schedulerEditorCoordinator.deleteTask(entryID: app.id)
+                })
+        }
+        if app.canRevealInFinder {
+            items.append(
+                PopoverMenuItem(title: "Show in Finder", systemImage: "folder", shortcut: "⌘↵") {
+                    core.launcherCoordinator.showInFinder(app)
+                })
+        }
+        return items
     }
 }

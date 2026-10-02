@@ -408,6 +408,8 @@ enum Theme {
         static let destructive = Color.red
         /// Success tint: the leading glyph of a `.success` dialog.
         static let success = Color.green
+        /// Caution tint, short of destructive: a meeting attendee's tentative reply.
+        static let warning = Color.orange
         /// Find in Chat: every match faint, the current one solid, with ink that reads on it.
         static let findMatch = Color.yellow.opacity(0.28)
         static let findCurrent = Color.yellow
