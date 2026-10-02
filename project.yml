@@ -43,6 +43,10 @@ targets:
           - Features/Clipboard/Service/ClipboardTextExtractor.swift
           - Features/Clipboard/Service/ClipboardTextHelper.swift
           - Features/AI/Service/ComputerUseHelper.swift
+          - Resources/EmojiKeywords
+      # A folder reference keeps the packs in their own directory, which `EmojiIndex` lists.
+      - path: Onecast/Resources/EmojiKeywords
+        type: folder
       # The MIT mark's licence asks the notice to travel with the binary, not just the repo.
       - path: NOTICE.md
         buildPhase: resources

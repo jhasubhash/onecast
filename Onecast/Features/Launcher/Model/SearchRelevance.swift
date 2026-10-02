@@ -35,19 +35,30 @@ enum FuzzyMatch {
         }
     }
 
+    /// A candidate folded once, for an index that matches the same text against every query.
+    struct Candidate: Sendable, Hashable {
+        let text: String
+        fileprivate let length: Int
+
+        init(_ raw: String) {
+            text = FuzzyMatch.normalized(raw)
+            length = text.count
+        }
+    }
+
     /// The tier a query hits a candidate at, with the geometry `SearchRelevance.shape` reads.
     static func match(query: String, candidate: String) -> Match? {
         match(Query(query), candidate: candidate)
     }
 
     static func match(_ query: Query, candidate: String) -> Match? {
-        match(query, normalizedCandidate: normalized(candidate))
+        match(query, candidate: Candidate(candidate))
     }
 
-    /// The candidate is already folded, so an alias built once per index change never re-folds it.
-    static func match(_ query: Query, normalizedCandidate c: String) -> Match? {
+    static func match(_ query: Query, candidate: Candidate) -> Match? {
         let q = query.text
-        let length = c.count
+        let c = candidate.text
+        let length = candidate.length
         guard !q.isEmpty else {
             return Match(
                 tier: .exact, offset: 0, queryLength: 0, candidateLength: length, spread: 0)
@@ -82,6 +93,10 @@ enum FuzzyMatch {
 
     /// The folded form, for a caller sweeping many candidates against one query.
     static func score(_ query: Query, candidate: String) -> Int? {
+        match(query, candidate: candidate).map(rawScore)
+    }
+
+    static func score(_ query: Query, candidate: Candidate) -> Int? {
         match(query, candidate: candidate).map(rawScore)
     }
 
@@ -170,12 +185,12 @@ struct SearchAlias: Sendable, Hashable {
 
     let text: String
     /// Folded once when the entry's alias list is built, so matching never re-folds per keystroke.
-    let normalizedText: String
+    let candidate: FuzzyMatch.Candidate
     let role: Role
 
     init(_ text: String, _ role: Role) {
         self.text = text
-        self.normalizedText = FuzzyMatch.normalized(text)
+        self.candidate = FuzzyMatch.Candidate(text)
         self.role = role
     }
 
@@ -237,7 +252,7 @@ enum SearchRelevance {
         guard !query.isEmpty else { return 0 }
         var best: Int?
         for alias in fields.aliases {
-            guard let match = FuzzyMatch.match(query, normalizedCandidate: alias.normalizedText),
+            guard let match = FuzzyMatch.match(query, candidate: alias.candidate),
                 let cell = cell(alias.role, match.tier)
             else { continue }
             best = max(best ?? Int.min, cell + shape(match))

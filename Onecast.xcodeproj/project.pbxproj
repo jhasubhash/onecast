@@ -381,6 +381,7 @@
 		78959E922B4F6E933DCD2807 /* MessageHUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A43DEA9D9B1E3DA09E606 /* MessageHUDView.swift */; };
 		78A7F765DF0A5253214F89BB /* UninstallPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50332118D9E3378865B4078 /* UninstallPlan.swift */; };
 		794486339AF1205C999F28A9 /* MCPComposerAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07134741733D3409482EFE6E /* MCPComposerAddress.swift */; };
+		79862E719EF9AA45C752099B /* EmojiKeywords in Resources */ = {isa = PBXBuildFile; fileRef = 6456F6A630FF721A77D27CF9 /* EmojiKeywords */; };
 		79B366DEB86241DF367323BF /* RenderNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A054C09C743CB9F0E3B5B630 /* RenderNode.swift */; };
 		7A07325156664E6C47D0C34D /* CalcDateTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A60E846D4D7517A896B0CC /* CalcDateTime.swift */; };
 		7A587AD99228B0DF7229236C /* ExtensionSearchAccessory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C2D5B2E59C16855D5756E9 /* ExtensionSearchAccessory.swift */; };
@@ -1070,6 +1071,7 @@
 		6266F058D489BD69BE2F3DDF /* SettingsNavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNavigationState.swift; sourceTree = "<group>"; };
 		6296DC23882F06BC8D751389 /* TextTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTranslator.swift; sourceTree = "<group>"; };
 		645677CD9813091C4FEE1C30 /* SelectionReveal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionReveal.swift; sourceTree = "<group>"; };
+		6456F6A630FF721A77D27CF9 /* EmojiKeywords */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EmojiKeywords; path = Onecast/Resources/EmojiKeywords; sourceTree = SOURCE_ROOT; };
 		6494BD530A158F5A63F0EC86 /* ExtensionRefreshPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionRefreshPolicy.swift; sourceTree = "<group>"; };
 		64BB3FFDFF34544502605F56 /* ApplicationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationsSettingsView.swift; sourceTree = "<group>"; };
 		64C2D5B2E59C16855D5756E9 /* ExtensionSearchAccessory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionSearchAccessory.swift; sourceTree = "<group>"; };
@@ -1560,7 +1562,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_F834258C-5D49-410C-8812-E9A9B36ADC6B" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_0ECFCB82-344A-4A31-A4BA-3C927C7A8B86" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2031,6 +2033,7 @@
 		3CAD7D67094A22209EAA8A50 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				6456F6A630FF721A77D27CF9 /* EmojiKeywords */,
 				B2616BC3C6792B8AEF16BA99 /* RaycastRuntime.generated.js */,
 			);
 			path = Resources;
@@ -3572,10 +3575,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_AA24FB69-031B-4EA8-8756-FED9BE140D97" /* onecast */ = {
+		"TEMP_0EB9202C-3750-4849-A9C3-8012590EBE37" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_F834258C-5D49-410C-8812-E9A9B36ADC6B" /* Signing.xcconfig */,
+				"TEMP_0ECFCB82-344A-4A31-A4BA-3C927C7A8B86" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -3714,6 +3717,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				39487F5EAE2ACB547B0A7CE0 /* Assets.xcassets in Resources */,
+				79862E719EF9AA45C752099B /* EmojiKeywords in Resources */,
 				3DF2606CFFEF1245E564B0A3 /* NOTICE.md in Resources */,
 				C704CFAB22EC1A1F748E10E6 /* RaycastRuntime.generated.js in Resources */,
 			);
@@ -4537,7 +4541,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_F834258C-5D49-410C-8812-E9A9B36ADC6B" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_0ECFCB82-344A-4A31-A4BA-3C927C7A8B86" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -4740,7 +4744,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_F834258C-5D49-410C-8812-E9A9B36ADC6B" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_0ECFCB82-344A-4A31-A4BA-3C927C7A8B86" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
