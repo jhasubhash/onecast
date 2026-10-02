@@ -8,6 +8,9 @@ final class ExtensionNodeShims: @unchecked Sendable {
     private let fileManager = FileManager.default
     private var fileHandles: [Int32: FileHandle] = [:]
 
+    /// Every non-detached `start` here, so `closeFiles` can stop the ones `wait` never claimed.
+    private var started: [Int32: Process] = [:]
+
     /// A lock flag like `O_EXLOCK` would block the JS queue with no way back.
     private static let openableFlags =
         O_RDONLY | O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC | O_EXCL | O_NOFOLLOW
@@ -16,6 +19,8 @@ final class ExtensionNodeShims: @unchecked Sendable {
     func closeFiles() {
         for handle in fileHandles.values { try? handle.close() }
         fileHandles.removeAll()
+        ExtensionAsyncProcess.forget(started)
+        started.removeAll()
     }
 
     /// Returns the JSON envelope `{ok, value}` / `{ok:false, error, code}` the JS side unwraps.
@@ -384,9 +389,10 @@ final class ExtensionNodeShims: @unchecked Sendable {
             return try launch(spec).collect(timeout: timeout)
         case "start":
             let child = try launch(spec)
-            // A detached child outlives its caller, so nothing ever waits on it.
+            // A detached child outlives its caller, so nothing ever waits on it or stops it.
             if spec["detached"] as? Bool != true {
                 ExtensionAsyncProcess.enqueue(child, timeout: timeout)
+                started[child.task.processIdentifier] = child.task
             }
             return Int(child.task.processIdentifier)
         default:

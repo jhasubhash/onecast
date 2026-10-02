@@ -76,31 +76,96 @@ enum ExtensionAsyncProcess {
         let stdout: Pipe
         let stderr: Pipe
 
-        /// A child filling the 64 KB pipe blocks before it can exit, so the drain comes first.
-        func collect(timeout: Double?) -> [String: Any] {
-            var watchdog: DispatchSourceTimer?
-            if let timeout, timeout > 0 { watchdog = terminationWatchdog(after: timeout / 1000) }
-            let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-            let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-            exit.wait()
-            watchdog?.cancel()
+        /// How long a stopped group gets to leave politely before the signal it cannot trap.
+        private static let killGrace = 2.0
 
+        private static let signalNames: [Int32: String] = [
+            SIGTERM: "SIGTERM", SIGKILL: "SIGKILL", SIGINT: "SIGINT", SIGHUP: "SIGHUP",
+            SIGQUIT: "SIGQUIT"
+        ]
+
+        /// A timeout reports Node's shape, a null status beside the signal, whatever the exit was.
+        func collect(timeout: Double?) -> [String: Any] {
+            let deadline = timeout.flatMap {
+                $0 > 0 ? DispatchTime.now() + .milliseconds(Int($0)) : nil
+            }
+            var output = OutputDrain(stdout: stdout, stderr: stderr)
+            let timedOut = !output.read(until: deadline)
+            if timedOut {
+                stop()
+                _ = output.read(until: .now() + .milliseconds(Int(Self.killGrace * 1000) + 500))
+            }
+            exit.wait()
+
+            let killedBy =
+                task.terminationReason == .uncaughtSignal
+                ? Self.signalNames[task.terminationStatus] ?? "SIGTERM" : nil
             return [
-                "stdout": outData.base64EncodedString(),
-                "stderr": errData.base64EncodedString(),
-                "status": Int(task.terminationStatus),
-                "signal": task.terminationReason == .uncaughtSignal ? "SIGTERM" : NSNull()
+                "stdout": output.stdout.base64EncodedString(),
+                "stderr": output.stderr.base64EncodedString(),
+                "status": timedOut ? NSNull() : Int(task.terminationStatus),
+                "signal": killedBy ?? (timedOut ? "SIGTERM" : NSNull())
             ]
         }
 
-        /// Signals the pid rather than the `Process`, which a `@Sendable` timer handler cannot capture.
-        private func terminationWatchdog(after seconds: Double) -> DispatchSourceTimer {
-            let pid = task.processIdentifier
-            let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
-            timer.schedule(deadline: .now() + seconds)
-            timer.setEventHandler { kill(pid, SIGTERM) }
-            timer.resume()
-            return timer
+        /// `Process` makes the child a group leader, so this takes a backgrounded grandchild too.
+        func stop() {
+            let group = -task.processIdentifier
+            guard group < 0 else { return }
+            kill(group, SIGTERM)
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + Self.killGrace) {
+                kill(group, SIGKILL)
+            }
+        }
+    }
+
+    /// Reads both pipes in one poll, since a child blocked on a full stderr never closes stdout.
+    private struct OutputDrain {
+        private(set) var stdout = Data()
+        private(set) var stderr = Data()
+        private let stdoutDescriptor: Int32
+        private var open: Set<Int32>
+
+        init(stdout: Pipe, stderr: Pipe) {
+            stdoutDescriptor = stdout.fileHandleForReading.fileDescriptor
+            open = [stdoutDescriptor, stderr.fileHandleForReading.fileDescriptor]
+        }
+
+        /// True once both pipes reach EOF; false when the deadline passes first.
+        mutating func read(until deadline: DispatchTime?) -> Bool {
+            var buffer = [UInt8](repeating: 0, count: 16 * 1024)
+            while !open.isEmpty {
+                var descriptors = open.map { pollfd(fd: $0, events: Int16(POLLIN), revents: 0) }
+                let ready = poll(
+                    &descriptors, nfds_t(descriptors.count), Self.millisecondsLeft(deadline))
+                if ready == 0 { return false }
+                if ready < 0 {
+                    guard errno == EINTR else { return false }
+                    continue
+                }
+                for descriptor in descriptors where descriptor.revents != 0 {
+                    let count = Darwin.read(descriptor.fd, &buffer, buffer.count)
+                    if count > 0 {
+                        if descriptor.fd == stdoutDescriptor {
+                            stdout.append(contentsOf: buffer[..<count])
+                        } else {
+                            stderr.append(contentsOf: buffer[..<count])
+                        }
+                    } else if count == 0 || errno != EINTR {
+                        open.remove(descriptor.fd)
+                    }
+                }
+            }
+            return true
+        }
+
+        /// `poll`'s own forms: -1 waits forever, 0 checks once, and a long timeout clamps to Int32.
+        private static func millisecondsLeft(_ deadline: DispatchTime?) -> Int32 {
+            guard let deadline else { return -1 }
+            let now = DispatchTime.now().uptimeNanoseconds
+            guard deadline.uptimeNanoseconds > now else { return 0 }
+            let milliseconds = (deadline.uptimeNanoseconds - now + 999_999) / 1_000_000
+            return Int32(min(milliseconds, UInt64(Int32.max)))
         }
     }
 
@@ -130,20 +195,37 @@ enum ExtensionAsyncProcess {
         return nil
     }
 
+    /// Never pruned on exit: a fast child can finish before its `wait` arrives to claim it.
     static func enqueue(_ child: Child, timeout: Double?) {
         uncollected.withLock { $0[child.task.processIdentifier] = (child, timeout) }
     }
 
+    /// Matched by `Process` as well as pid: a reused pid may now be another extension's child.
+    static func forget(_ started: [Int32: Process]) {
+        for (pid, task) in started {
+            let entry = uncollected.withLock { entries -> (child: Child, timeout: Double?)? in
+                guard entries[pid]?.child.task === task else { return nil }
+                return entries.removeValue(forKey: pid)
+            }
+            entry?.child.stop()
+        }
+    }
+
+    /// A runtime shutting down cancels this, which stops the child rather than leaving it running.
     static func wait(_ pid: RenderValue?) async throws -> [String: Any] {
         guard let pid = pid?.doubleValue.flatMap({ Int32(exactly: $0) }),
             let entry = uncollected.withLock({ $0.removeValue(forKey: pid) })
         else { throw ProcessError.notStarted }
 
-        return await withCheckedContinuation { continuation in
-            // The drain blocks until the child closes its output, which can be minutes away.
-            DispatchQueue.global(qos: .userInitiated).async {
-                continuation.resume(returning: entry.child.collect(timeout: entry.timeout))
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                // The drain blocks until the child closes its output, which can be minutes away.
+                DispatchQueue.global(qos: .userInitiated).async {
+                    continuation.resume(returning: entry.child.collect(timeout: entry.timeout))
+                }
             }
+        } onCancel: {
+            entry.child.stop()
         }
     }
 }

@@ -157,6 +157,7 @@ final class PopOutWindowPanel: NSPanel {
 
 /// Centres a fresh pop-out on whichever screen the cursor is over, matching where the launcher itself
 /// tends to be summoned.
+@MainActor
 func positionPopOutWindow(_ panel: NSPanel, size: CGSize) {
     let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
     guard let visible = screen?.visibleFrame else { return panel.center() }

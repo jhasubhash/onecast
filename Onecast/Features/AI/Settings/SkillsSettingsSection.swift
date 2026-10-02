@@ -18,7 +18,6 @@ struct SkillsSettingsSection: View {
                 ForEach(store.skills) { skill in
                     SkillRow(
                         skill: skill,
-                        onToggle: { store.setEnabled($0, for: skill.id) },
                         onRemove: { store.remove(id: skill.id) })
                 }
             }
@@ -64,15 +63,17 @@ struct SkillsSettingsSection: View {
     }
 }
 private struct SkillRow: View {
+    @Environment(SkillStore.self) private var store
     let skill: Skill
-    let onToggle: (Bool) -> Void
     let onRemove: () -> Void
 
     var body: some View {
         SettingsRow(title: skill.name, subtitle: skill.summary.isEmpty ? nil : skill.summary) {
             Image(systemName: "book.closed").foregroundStyle(.secondary)
         } trailing: {
-            Toggle("Enabled", isOn: Binding(get: { skill.enabledInLibrary }, set: onToggle))
+            Toggle("Enabled", isOn: Binding(
+                get: { skill.enabledInLibrary },
+                set: { store.setEnabled($0, for: skill.id) }))
                 .labelsHidden()
                 .help(skill.enabledInLibrary ? "Enabled" : "Disabled")
             Button(action: onRemove) {

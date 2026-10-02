@@ -435,6 +435,18 @@ run ext-store-test         $E/Model/ExtensionGitHubSource.swift \
                            $E/Model/ExtensionListing.swift \
                            $E/Model/ExtensionPackageManager.swift \
                            $E/Model/ExtensionStoreResponse.swift
+run slow ext-process-test  Onecast/Platform/ProcessExit.swift \
+                           Onecast/Platform/Compression/Zlib.swift \
+                           Onecast/Platform/AppDisplayName.swift \
+                           $E/Model/ExtensionBootConfig.swift \
+                           $E/Model/ExtensionLaunchType.swift \
+                           $E/Model/ExtensionManifest.swift \
+                           $E/Model/ExtensionRefreshPolicy.swift \
+                           $E/Model/ExtensionRefreshState.swift \
+                           $E/Model/RenderNode.swift \
+                           $E/Service/ExtensionFetcher.swift \
+                           $E/Service/ExtensionNodeShims.swift \
+                           $E/Service/ExtensionRuntime.swift
 run ext-form-test          $E/Model/ExtensionFormMetrics.swift \
                            $E/Model/ExtensionFormField.swift \
                            $E/UI/ExtensionFormKey.swift \
