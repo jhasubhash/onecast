@@ -524,9 +524,12 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   with the next event and never moves the `Calendar in Menu Bar` picker off its choice
 - Hide Current Event on Automatically clears the entry at the start and hands the space to the next
   event inside its lead time; on 5 minutes it lingers counting up, then clears
-- Clicking the calendar item opens `Join <title>`, `Open in Calendar...`, `My Schedule` and
-  `Calendar Settings...` and nothing else; the second opens that event in Calendar.app, while a bare
-  click never joins
+- Clicking the calendar item opens `Join <title>` and `Open in Calendar` for the displayed event,
+  then the agenda under day headings, then `My Schedule` (⌘O) and `Calendar Settings…` (⌘,), and
+  nothing else; `Open in Calendar` opens that event in Calendar.app, an agenda row joins (or opens a
+  linkless event in Calendar), and a bare click never joins
+- `Days to Show` (Today / Today and Tomorrow / Next 7 Days) sets the days the agenda, `My Schedule`
+  and launcher search cover, together
 - Camera Preview on: ↵ on the join card opens the panel **already showing live video** — no black
   frame, no blank mid-preview; ↵ joins, Esc drops the join; the camera light goes out with the
   panel, and the first run prompts once, before any panel appears
