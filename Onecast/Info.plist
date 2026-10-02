@@ -68,7 +68,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Onecast shows a camera preview so you can check yourself, and take a photo to the clipboard.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Onecast reads today's and tomorrow's events so you can join a meeting from the palette.</string>
+	<string>Onecast reads your upcoming events so you can join a meeting from the palette.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Onecast adds the reminders you ask it to put in Apple Reminders, and lets extensions you run read and edit them.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>

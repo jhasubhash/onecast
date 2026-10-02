@@ -110,7 +110,7 @@ private struct CalendarSymbol: View {
         if let image = color?.menuSymbol(name) {
             Image(nsImage: image)
         } else {
-            Image(systemName: name)
+            SymbolImage(name: name, size: NSFont.menuFont(ofSize: 0).pointSize)
         }
     }
 }
