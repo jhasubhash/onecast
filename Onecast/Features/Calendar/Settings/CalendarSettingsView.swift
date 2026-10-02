@@ -12,7 +12,7 @@ struct CalendarSettingsView: View {
                 anchor: .calendarCalendar,
                 enableTitle: "Join meetings from Onecast",
                 enableSubtitle:
-                    "Reads \(core.calendarCoordinator.span.possessivePhrase) events to find join "
+                    "Reads \(settings.calendarSpan.possessivePhrase) events to find join "
                     + "links. Nothing leaves this Mac.",
                 launcherSubtitle: "List individual meetings alongside apps and commands.",
                 isEnabled: enabledBinding,
@@ -24,7 +24,7 @@ struct CalendarSettingsView: View {
                         Text(limit.title).tag(limit)
                     }
                 } label: {
-                    SettingsRowTitle(.calendarSchedule, "Upcoming meetings in launcher")
+                    SettingsRowTitle(.calendarCalendar, "Upcoming meetings in launcher")
                     Text("Choose how many upcoming meetings appear alongside apps and commands.")
                 }
             }
@@ -51,16 +51,6 @@ struct CalendarSettingsView: View {
                     }
                 }
             }
-
-            Section {
-                Toggle(isOn: $settings.calendarIncludesTomorrow) {
-                    SettingsRowTitle(.calendarSchedule, "Include Tomorrow's Events")
-                    Text("Read tomorrow as well as the rest of today, everywhere meetings appear.")
-                }
-            } header: {
-                SettingsSectionHeader(.calendarSchedule)
-            }
-            .settingsEnabled(settings.calendarEnabled)
 
             Section {
                 Picker(selection: $settings.joinWindowMinutes) {
@@ -100,6 +90,14 @@ struct CalendarSettingsView: View {
                     Text(
                         "Its own menu bar item, showing a meeting icon or its title and countdown."
                     )
+                }
+                Picker(selection: $settings.calendarSpan) {
+                    ForEach(MeetingSpan.allCases) { span in
+                        Text(span.title).tag(span)
+                    }
+                } label: {
+                    SettingsRowTitle(.calendarMenuBar, "Days to Show")
+                    Text("In the menu, My Schedule and launcher search.")
                 }
                 Picker(selection: $settings.menuBarEvents) {
                     ForEach(MenuBarEvents.allCases) { lead in

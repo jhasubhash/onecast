@@ -670,7 +670,7 @@ final class AppCore {
                 _ = $0.calendarLauncherLimit
             }, reproject: { $0.calendarCoordinator.applyEnabled() })
         track(
-            { _ = $0.calendarIncludesTomorrow },
+            { _ = $0.calendarSpan },
             reproject: { $0.calendarCoordinator.applySpan() })
         track(
             {

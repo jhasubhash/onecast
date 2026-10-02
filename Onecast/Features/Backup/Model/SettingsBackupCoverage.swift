@@ -52,7 +52,7 @@ enum SettingsBackupCoverage {
         "extensionsShowInLauncher": .extensionsShowInLauncher,
         "calendarShowInLauncher": .calendarShowInLauncher,
         "calendarLauncherLimit": .calendarLauncherLimit,
-        "calendarIncludesTomorrow": .calendarIncludesTomorrow,
+        "calendarSpan": .calendarSpan,
         "joinWindowMinutes": .joinWindowMinutes,
         "autoJoinConfirms": .autoJoinConfirms,
         "menuBarEvents": .menuBarEvents,

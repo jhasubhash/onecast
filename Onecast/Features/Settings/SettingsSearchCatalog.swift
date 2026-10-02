@@ -490,11 +490,8 @@ enum SettingsSearchCatalog {
             .calendarCalendar, "Join meetings from Onecast",
             keywords: ["zoom", "meet", "teams", "permission"]),
         .init(
-            .calendarSchedule, "Upcoming meetings in launcher",
+            .calendarCalendar, "Upcoming meetings in launcher",
             keywords: ["count", "limit", "events"]),
-        .init(
-            .calendarSchedule, "Include Tomorrow's Events",
-            keywords: ["next day", "range"]),
         .init(
             .calendarJoining, "Show the join card",
             keywords: ["hud", "timing", "early", "reminder"]),
@@ -513,6 +510,9 @@ enum SettingsSearchCatalog {
         .init(
             .calendarMenuBar, "Calendar in Menu Bar",
             keywords: ["status item", "menubar", "date"]),
+        .init(
+            .calendarMenuBar, "Days to Show",
+            keywords: ["tomorrow", "week", "next 7 days", "range", "agenda", "schedule"]),
         .init(
             .calendarMenuBar, "Show Upcoming Events",
             keywords: ["menubar", "next event", "title"]),
