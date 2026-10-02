@@ -445,7 +445,7 @@ like everything else, so a Debug build never shares installs with a release chan
 `package.json`, `assets/` and one `<command>.js` per command — byte-for-byte the layout Raycast's own
 build produces.
 
-Settings → Extensions offers four routes, under **Install New**:
+Settings → Extensions offers four routes, under **Install**:
 
 1. **Search extensions** — searches the Raycast Store and installs the bundle it already built. Nothing
    is compiled, so no Node or package manager is involved. The search is
@@ -466,10 +466,10 @@ multi-megabyte `.js.map` Raycast writes beside each bundle.
 
 ## Installing from GitHub
 
-The panel takes `owner/repo`, a clone URL, or the `/tree/<ref>/<path>` link a browser copies from an
+The sheet takes `owner/repo`, a clone URL, or the `/tree/<ref>/<path>` link a browser copies from an
 extension's folder — `ExtensionGitHubSource` parses all three. A bare repository builds its root on
 `HEAD`, which follows the default branch whatever it is called. The package manager and custom search
-paths sit in the same panel, because only this route needs them.
+paths sit in the same sheet, because only this route needs them.
 
 **Only the extension's own folder is ever fetched.** `raycast/extensions` is gigabytes; cloning it to
 install one extension would be absurd.
@@ -497,7 +497,7 @@ exactly the layout `ExtensionCatalog.install` expects: `package.json`, one `<com
 `assets/`. What it installs from is that directory, not the source.
 
 **Only the build survives.** Source, `node_modules` and build all live in the install's workspace
-(below), which a `defer` removes whichever way the install ends. **Closing the panel cancels the
+(below), which a `defer` removes whichever way the install ends. **Closing the sheet cancels the
 install**: the running child is terminated and the workspace goes with it, so a cancelled build leaves
 nothing behind.
 
@@ -517,7 +517,7 @@ build script is the contract, a `postinstall` is code nobody asked to run. The p
 inherits none of a login shell's `PATH`, so `ExtensionPackageManager.searchPaths` is where they are
 looked for, version managers included (Homebrew, Volta, asdf, mise, fnm, nvm, Yarn).
 
-That hardcoded list can never cover every toolchain layout — Nix among them — so the panel also has
+That hardcoded list can never cover every toolchain layout — Nix among them — so the sheet also has
 "Custom search paths": a `:`-separated list, `extensionCustomSearchPaths` in `AppSettings`, checked
 *before* the built-in list wherever it resolves a package manager or Node. Set once, it applies to
 every future install. `ExtensionInstaller` takes it as `additionalSearchPaths` rather than reading
