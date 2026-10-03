@@ -130,7 +130,8 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   chat's own `aiShellAccess` toggle, which the default route honors only on a shell-capable CLI
   (Claude or Copilot).
 - **The browser relay borrows omp's, it does not ship one.** `BrowserRelayClient` speaks plain CDP to
-  `omp browser-relay` on `127.0.0.1:9224` (`/json/list` for tabs, `ws://…/cdp` for commands), whose
+  `omp browser-relay` on `127.0.0.1:9224` by default (`/json/list` for tabs, `ws://…/cdp` for
+  commands), whose
   Chrome extension drives the user's own browser — their profile, cookies and SSO — so an armed model
   works inside pages the user is already logged into, without Onecast holding any credential. Armed
   like computer use: the global `aiBrowserRelay` toggle for the default chat, an assistant's own
@@ -142,6 +143,12 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   exact host instead of navigating it, keeping a logged-in page as it is; `browser__screenshot` is
   offered only to a route that takes images. A relay that is not running is a readable tool error
   naming `omp browser-relay`, never a hang.
+  The port is that relay's own default (`BrowserRelayClient.defaultPort`) until `aiBrowserRelayPort`
+  names another, and one `RelayPortField` rides in the toggle's own row — the default chat's and
+  each assistant's — because one relay serves the Mac and they all share this one value.
+  The client refuses anything no listener could hold and takes the default instead, and a failure
+  names the address it actually dialled. The CLI route asks for the port per call, because its
+  bridge is built once and outlives any one setting.
 - **Chat is a palette screen, not another window** — including its lifetime. The launcher command
   enters `.ai`; its search field is the composer, and the shared footer's primary pill is Return's
   job: Send (`↵`), or Stop (`↵`) while a response streams — followed by Actions (`⌘K`), which owns

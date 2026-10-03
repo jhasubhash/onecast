@@ -201,6 +201,9 @@ enum SettingsBackupCoverage {
         AppSettingsKey.aiBrowserRelay.rawValue:
             "Arms a model to act in the user's logged-in Chrome through the browser relay; a flag that "
             + "grants a capability is never carried by a backup.",
+        AppSettingsKey.aiBrowserRelayPort.rawValue:
+            "Names the port this Mac's relay listens on; the Mac a backup lands on may start its "
+            + "relay on another.",
         AppSettingsKey.aiShellAccess.rawValue:
             "Grants the default chat unrestricted shell access; a flag that grants a capability is "
             + "never carried by a backup.",

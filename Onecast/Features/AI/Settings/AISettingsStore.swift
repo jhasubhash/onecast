@@ -24,6 +24,13 @@ final class AISettingsStore {
     var browserRelayEnabled: Bool {
         didSet { defaults.set(browserRelayEnabled, forKey: AppSettingsKey.aiBrowserRelay.rawValue) }
     }
+    /// The port `omp browser-relay` was started on; nil is the port it takes with no `-p`.
+    /// This Mac's own arrangement, so a backup never carries it (see `SettingsBackupCoverage`).
+    var browserRelayPort: Int? {
+        didSet {
+            defaults.set(browserRelayPort, forKey: AppSettingsKey.aiBrowserRelayPort.rawValue)
+        }
+    }
     /// Off by default, excluded from backups: it lets the default chat run any shell command.
     var shellAccessEnabled: Bool {
         didSet { defaults.set(shellAccessEnabled, forKey: AppSettingsKey.aiShellAccess.rawValue) }
@@ -109,6 +116,8 @@ final class AISettingsStore {
             defaults.object(forKey: AppSettingsKey.aiComputerUse.rawValue) as? Bool ?? false
         browserRelayEnabled =
             defaults.object(forKey: AppSettingsKey.aiBrowserRelay.rawValue) as? Bool ?? false
+        browserRelayPort =
+            defaults.object(forKey: AppSettingsKey.aiBrowserRelayPort.rawValue) as? Int
         shellAccessEnabled =
             defaults.object(forKey: AppSettingsKey.aiShellAccess.rawValue) as? Bool ?? false
         showReasoning =

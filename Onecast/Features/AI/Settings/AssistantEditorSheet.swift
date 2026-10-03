@@ -34,6 +34,9 @@ struct AssistantEditorSheet: View {
                 behaviourSection
             }
             .formStyle(.grouped)
+            // SwiftUI infers a toggle's style from where it sits: a row's own toggle is a switch,
+            // but one nested beside the port box fell back to a checkbox — for the whole section.
+            .toggleStyle(.switch)
 
             Divider()
             HStack {
@@ -108,11 +111,20 @@ struct AssistantEditorSheet: View {
             Toggle("Web search", isOn: $draft.webSearch)
             Toggle("Stream reasoning", isOn: $draft.showReasoning)
             Toggle("Computer use", isOn: $draft.allowComputerUse)
-            Toggle("Browser relay", isOn: $draft.allowBrowserRelay)
+            LabeledContent("Browser relay") {
+                HStack(spacing: Theme.Spacing.sm) {
+                    RelayPortField()
+                    Toggle("Browser relay", isOn: $draft.allowBrowserRelay).labelsHidden()
+                }
+            }
         } header: {
             Text("Model")
         } footer: {
-            Text("Leave on Default model to follow the global default; web search needs a model that supports it.")
+            Text(
+                "Leave on Default model to follow the global default; web search needs a model "
+                    + "that supports it. One relay serves this Mac, so the port here is the one "
+                    + "every assistant and the default chat dial."
+            )
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

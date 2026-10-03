@@ -624,7 +624,8 @@ run slow ai-tool-bridge-test \
                            Onecast/Features/AI/Model/AITool.swift \
                            Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/JSONValue.swift
-run browser-relay-test     Onecast/Features/AI/Model/BrowserRelayPage.swift
+run browser-relay-test     Onecast/Features/AI/Model/BrowserRelayPage.swift \
+                           Onecast/Features/AI/Service/BrowserRelayClient.swift
 run assistant-store-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Model/*.swift \
                            Onecast/Features/AI/Service/AssistantStore.swift \

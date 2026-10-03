@@ -738,6 +738,7 @@
 		F66BFB00F16D2DABE8CE7426 /* NoteSwitcherInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7AA7B67367D35F237E302F8 /* NoteSwitcherInteraction.swift */; };
 		F67E16A49EB70F3DF701159C /* FileSearchQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4147F4D6E55C6DA23246BE6 /* FileSearchQuery.swift */; };
 		F68D5A7FD9C2D851770AF7A6 /* ArmedHover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A703937FA47F6DD52D51F1A /* ArmedHover.swift */; };
+		F693F02FC75BA7AF51FF8179 /* RelayPortField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A7C2EFCD00B773616D0FA2 /* RelayPortField.swift */; };
 		F6A98B2ED4A16F8FD37F90EA /* QuickActionFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D8FA8DFEFA1803AA952E40 /* QuickActionFailure.swift */; };
 		F73C561FF595A66625E96B29 /* CameraSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98DAA75738E53E99EF2927EC /* CameraSession.swift */; };
 		F76CE194DB33C6AB2F1D9971 /* MeetingLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49BDB89753BA0B1C825075FF /* MeetingLauncher.swift */; };
@@ -1221,6 +1222,7 @@
 		8FD9E8915D02F1BDD64A2A5C /* AIBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBrand.swift; sourceTree = "<group>"; };
 		9027630F336D56C9FE479032 /* IntentClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentClassifier.swift; sourceTree = "<group>"; };
 		90458F23793139E6239C965E /* ExtensionStoreClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionStoreClient.swift; sourceTree = "<group>"; };
+		90A7C2EFCD00B773616D0FA2 /* RelayPortField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayPortField.swift; sourceTree = "<group>"; };
 		90C710CCC5D58704748E4510 /* WindowMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowMover.swift; sourceTree = "<group>"; };
 		90E9DDFFCFA3F3CA2E7FA2AB /* ExtensionOAuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionOAuthSession.swift; sourceTree = "<group>"; };
 		910062C857816684715CBA54 /* CustomWindowSizeEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWindowSizeEditorSheet.swift; sourceTree = "<group>"; };
@@ -1574,7 +1576,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_5BDA5AD6-BDF0-4C60-A329-0F12C934116F" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_3E243E5D-1EC2-4074-BBF1-BFD9DFD47317" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2915,6 +2917,7 @@
 				7F67E966BEF8AEEDB62457AA /* AISettingsView.swift */,
 				D44ADF7A2039EDDA04E75A1B /* AssistantEditorSheet.swift */,
 				A07CE4E108F47291AEEE8AD0 /* AssistantsSettingsSection.swift */,
+				90A7C2EFCD00B773616D0FA2 /* RelayPortField.swift */,
 				A2AE4B16935FA1FEEB53DC4F /* SkillsSettingsSection.swift */,
 				38FB67094B52E60F1D2FFA58 /* SystemPromptEditor.swift */,
 			);
@@ -3593,10 +3596,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_5F902552-343C-4494-AC75-7E65AB56A8EE" /* onecast */ = {
+		"TEMP_52D0F6CF-8ADD-4BC1-8E05-23F93E32D839" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_5BDA5AD6-BDF0-4C60-A329-0F12C934116F" /* Signing.xcconfig */,
+				"TEMP_3E243E5D-1EC2-4074-BBF1-BFD9DFD47317" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -4330,6 +4333,7 @@
 				F5EF5238F31CC9B85FA094C5 /* RegionCurrency.swift in Sources */,
 				35F3AB8C76EABA21C7E1DAE1 /* RegionNumberFormatMonitor.swift in Sources */,
 				1413795751E447695C7E2728 /* RelaunchRunner.swift in Sources */,
+				F693F02FC75BA7AF51FF8179 /* RelayPortField.swift in Sources */,
 				55E4131A04029562300CB31B /* ReleaseArchitecture.swift in Sources */,
 				AE844588CA75A1362A2D13FE /* ReleaseChannel.swift in Sources */,
 				99E52229992F026F34B61DD7 /* ReleaseFeed.swift in Sources */,
@@ -4565,7 +4569,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_5BDA5AD6-BDF0-4C60-A329-0F12C934116F" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_3E243E5D-1EC2-4074-BBF1-BFD9DFD47317" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -4784,7 +4788,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_5BDA5AD6-BDF0-4C60-A329-0F12C934116F" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_3E243E5D-1EC2-4074-BBF1-BFD9DFD47317" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

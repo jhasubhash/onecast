@@ -283,7 +283,10 @@ enum SettingsSearchCatalog {
         .init(.aiChat, "Tool call rounds", keywords: ["mcp", "tools", "limit", "loop", "agent", "unlimited"]),
         .init(
             .aiChat, "Browser relay",
-            keywords: ["chrome", "browser", "tabs", "omp", "relay", "cdp", "javascript", "logged in"]),
+            keywords: [
+                "chrome", "browser", "tabs", "omp", "relay", "cdp", "javascript", "logged in",
+                "port", "9224", "localhost",
+            ]),
         .init(
             .aiChat, "Shell access",
             keywords: ["shell", "terminal", "applescript", "command", "bash", "run"]),

@@ -282,7 +282,9 @@ final class AIChatCoordinator {
         // Computer use needs the tool loop and a vision route, so it rides only a route with both.
         let computerUse = computerUseArmed && capabilities.tools && capabilities.images
         if computerUse { tools.append(contentsOf: ComputerUseTool.tools) }
-        let browser = armed(\.allowBrowserRelay, \.browserRelayEnabled) ? BrowserRelayTool() : nil
+        let browser =
+            armed(\.allowBrowserRelay, \.browserRelayEnabled)
+            ? BrowserRelayTool(port: core.aiSettings.browserRelayPort) : nil
         if browser != nil {
             tools.append(contentsOf: BrowserRelayTool.tools(images: capabilities.images))
         }

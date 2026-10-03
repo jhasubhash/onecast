@@ -1,4 +1,5 @@
-// The relay's tab list is read as pages only, and a tab is reused only on the URL's exact host.
+// The relay's tab list is read as pages only, a tab is reused only on the URL's exact host, and
+// the endpoint is the port the user set — or the relay's own default when they set no usable one.
 import Foundation
 
 @main
@@ -19,6 +20,7 @@ struct BrowserRelayPageTests {
         keepsOnlyPages()
         reusesOnlyTheExactHost()
         clipsOnlyPastTheLimit()
+        dialsTheConfiguredPortOrTheDefault()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -51,5 +53,29 @@ struct BrowserRelayPageTests {
         expect(BrowserRelayPage.clipped("abcde", to: 5) == "abcde", "text at the limit is untouched")
         let cut = BrowserRelayPage.clipped("abcdefgh", to: 5)
         expect(cut.hasPrefix("abcde\n") && cut.contains("3 more characters"), "over the limit: \(cut)")
+    }
+
+    static func dialsTheConfiguredPortOrTheDefault() {
+        expect(
+            BrowserRelayClient().endpoint == "127.0.0.1:9224",
+            "unset dials the relay's own default: \(BrowserRelayClient().endpoint)")
+        expect(
+            BrowserRelayClient(port: 9333).endpoint == "127.0.0.1:9333",
+            "a configured port is dialled: \(BrowserRelayClient(port: 9333).endpoint)")
+        for unusable in [0, -1, 65536, Int.max] {
+            expect(
+                BrowserRelayClient(port: unusable).endpoint == "127.0.0.1:9224",
+                "\(unusable) is no port a listener holds, so the default answers: "
+                    + "\(BrowserRelayClient(port: unusable).endpoint)")
+        }
+        expect(
+            BrowserRelayClient.isValidPort(1) && BrowserRelayClient.isValidPort(65535),
+            "1 and 65535 are the ends of the range")
+        expect(
+            !BrowserRelayClient.isValidPort(0) && !BrowserRelayClient.isValidPort(65536),
+            "and neither end past them is")
+        let named = BrowserRelayError.unreachable("127.0.0.1:9333").errorDescription ?? ""
+        expect(named.contains("9333"), "the failure names the port it dialled: \(named)")
+        expect(!named.contains("9224"), "and not one it did not: \(named)")
     }
 }

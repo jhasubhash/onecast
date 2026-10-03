@@ -2,7 +2,11 @@ import Foundation
 
 /// Native tools that drive the user's own Chrome through omp's browser relay: list, open, read, run JS.
 struct BrowserRelayTool: Sendable {
-    let client = BrowserRelayClient()
+    let client: BrowserRelayClient
+
+    init(port: Int? = nil) {
+        client = BrowserRelayClient(port: port)
+    }
 
     static let tabsName = "browser__tabs"
     static let openName = "browser__open"
@@ -23,12 +27,12 @@ struct BrowserRelayTool: Sendable {
     }
 
     /// The CLI route's way in: the same tools, served by `AIToolBridge` through the helper.
-    static func toolset() -> AIToolBridge.Toolset {
-        let tool = BrowserRelayTool()
-        return AIToolBridge.Toolset(
+    /// The port is asked for per call: the bridge is built once and outlives any one setting.
+    static func toolset(port: @escaping @MainActor () -> Int?) -> AIToolBridge.Toolset {
+        AIToolBridge.Toolset(
             slug: "onecast_browser", serverName: "onecast-browser-relay", namespace: "browser__",
             tools: tools(images: true), refusal: "The browser relay is not enabled in Onecast.",
-            invoke: { await tool.invoke($0) })
+            invoke: { await BrowserRelayTool(port: port()).invoke($0) })
     }
 
     private static let evaluateLimit = 60_000

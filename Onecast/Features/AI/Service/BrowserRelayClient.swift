@@ -1,7 +1,8 @@
 import Foundation
 
 enum BrowserRelayError: LocalizedError {
-    case unreachable
+    /// The endpoint is carried, not read back from the type: a relay on a non-default port is named.
+    case unreachable(String)
     case unreadableList
     case noSuchTab(String)
     case timedOut(String)
@@ -9,9 +10,9 @@ enum BrowserRelayError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unreachable:
+        case .unreachable(let endpoint):
             return
-                "The browser relay is not reachable at \(BrowserRelayClient.endpoint). Start it with "
+                "The browser relay is not reachable at \(endpoint). Start it with "
                 + "`omp browser-relay` and turn on the omp extension in Chrome, then try again."
         case .unreadableList:
             return "The browser relay answered with a tab list Onecast could not read."
@@ -29,9 +30,23 @@ enum BrowserRelayError: LocalizedError {
 
 /// CDP through omp's browser relay, which drives the user's own Chrome and so its logged-in sessions.
 final class BrowserRelayClient: Sendable {
-    static let endpoint = "127.0.0.1:9224"
+    /// What `omp browser-relay` listens on with no `-p`, and the fallback for anything unusable.
+    static let defaultPort = 9224
+    /// A port a listener can hold; 0 and 65536+ are not one, so neither is ever dialled.
+    static func isValidPort(_ port: Int) -> Bool { (1...65535).contains(port) }
+    /// The port to dial: what the user set, or the default when they set nothing a listener holds.
+    static func port(_ configured: Int?) -> Int {
+        guard let configured, isValidPort(configured) else { return defaultPort }
+        return configured
+    }
+
+    let endpoint: String
     /// Under the relay's own 20 s per-call limit, so its timeout never surfaces as a hung socket.
     static let callTimeout: Duration = .seconds(18)
+
+    init(port: Int? = nil) {
+        endpoint = "127.0.0.1:\(Self.port(port))"
+    }
 
     private nonisolated static let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -45,9 +60,9 @@ final class BrowserRelayClient: Sendable {
     func pages() async throws -> [BrowserRelayPage] {
         let data: Data
         do {
-            (data, _) = try await Self.session.data(from: URL(string: "http://\(Self.endpoint)/json/list")!)
+            (data, _) = try await Self.session.data(from: URL(string: "http://\(endpoint)/json/list")!)
         } catch {
-            throw BrowserRelayError.unreachable
+            throw BrowserRelayError.unreachable(endpoint)
         }
         do {
             return try BrowserRelayPage.pages(fromList: data)
@@ -78,11 +93,11 @@ final class BrowserRelayClient: Sendable {
     }
 
     func withConnection<T: Sendable>(_ body: (CDPConnection) async throws -> T) async throws -> T {
-        let socket = Self.session.webSocketTask(with: URL(string: "ws://\(Self.endpoint)/cdp")!)
+        let socket = Self.session.webSocketTask(with: URL(string: "ws://\(endpoint)/cdp")!)
         socket.maximumMessageSize = 64 << 20
         socket.resume()
         defer { socket.cancel(with: .normalClosure, reason: nil) }
-        return try await body(CDPConnection(socket: socket))
+        return try await body(CDPConnection(socket: socket, endpoint: endpoint))
     }
 }
 
@@ -90,9 +105,12 @@ final class BrowserRelayClient: Sendable {
 final class CDPConnection {
     private let socket: URLSessionWebSocketTask
     private var nextID = 0
+    /// The address this channel is dialled at, so a dropped socket names where it was dropped.
+    let endpoint: String
 
-    init(socket: URLSessionWebSocketTask) {
+    init(socket: URLSessionWebSocketTask, endpoint: String) {
         self.socket = socket
+        self.endpoint = endpoint
     }
 
     func send(
@@ -108,7 +126,7 @@ final class CDPConnection {
         do {
             try await socket.send(.string(text))
         } catch {
-            throw BrowserRelayError.unreachable
+            throw BrowserRelayError.unreachable(endpoint)
         }
         let socket = self.socket
         let started = ContinuousClock.now
@@ -116,7 +134,8 @@ final class CDPConnection {
         do {
             // The timer closes the socket, which is what unblocks the pending receive so the group ends.
             data = try await withThrowingTaskGroup(of: Data.self) { group in
-                group.addTask { try await Self.reply(to: id, on: socket) }
+                let endpoint = self.endpoint
+                group.addTask { try await Self.reply(to: id, on: socket, endpoint: endpoint) }
                 group.addTask {
                     try await Task.sleep(for: timeout)
                     socket.cancel(with: .goingAway, reason: nil)
@@ -135,14 +154,16 @@ final class CDPConnection {
         return reply["result"] as? [String: Any] ?? [:]
     }
 
-    private static func reply(to id: Int, on socket: URLSessionWebSocketTask) async throws -> Data {
+    private static func reply(
+        to id: Int, on socket: URLSessionWebSocketTask, endpoint: String
+    ) async throws -> Data {
         while true {
             let message: URLSessionWebSocketTask.Message
             do {
                 message = try await socket.receive()
             } catch {
                 try Task.checkCancellation()
-                throw BrowserRelayError.unreachable
+                throw BrowserRelayError.unreachable(endpoint)
             }
             let data: Data
             switch message {

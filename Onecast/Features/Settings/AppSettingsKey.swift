@@ -45,6 +45,7 @@ enum AppSettingsKey: String, CaseIterable {
     case snippetsFolder = "snippetsFolder"
     case aiComputerUse = "aiComputerUse"
     case aiBrowserRelay = "aiBrowserRelay"
+    case aiBrowserRelayPort = "aiBrowserRelayPort"
     case aiShellAccess = "aiShellAccess"
     case navigationEnabled = "navigationEnabled"
     case menuSearchDisabledApps = "menuSearchDisabledApps"
