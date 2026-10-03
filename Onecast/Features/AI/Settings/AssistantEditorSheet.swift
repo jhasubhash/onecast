@@ -108,6 +108,7 @@ struct AssistantEditorSheet: View {
             Toggle("Web search", isOn: $draft.webSearch)
             Toggle("Stream reasoning", isOn: $draft.showReasoning)
             Toggle("Computer use", isOn: $draft.allowComputerUse)
+            Toggle("Browser relay", isOn: $draft.allowBrowserRelay)
         } header: {
             Text("Model")
         } footer: {

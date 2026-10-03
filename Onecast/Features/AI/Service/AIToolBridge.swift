@@ -1,20 +1,32 @@
 import Foundation
 import Network
 
-/// In-app half of computer use: the CLI's helper relays MCP calls here, where the TCC grants live.
+/// In-app half of a built-in CLI tool set: the CLI's helper relays MCP calls here, where the work lives.
 @MainActor
-final class ComputerUseBridge {
+final class AIToolBridge {
+    /// One built-in tool set the CLI reaches through the helper, e.g. computer use or the browser relay.
+    struct Toolset {
+        /// A `_` can't occur in a slug (`MCPSlug.normalize` uses `-`), so a built-in won't collide.
+        let slug: String
+        let serverName: String
+        /// The in-app tool-name prefix the MCP names drop, e.g. `computer__`.
+        let namespace: String
+        let tools: [AITool]
+        /// What a call on a disarmed or unknown token is told.
+        let refusal: String
+        let invoke: @MainActor (AIToolCall) async -> AIToolResult
+    }
+
     private struct Request: Sendable {
         let token: String
         let action: String
         let arguments: String
     }
 
-    /// Holds the TCC-granted work; the one controller shared with the in-process route.
-    private let tool: ComputerUseTool
+    private let toolset: Toolset
 
-    init(controller: ComputerController) {
-        tool = ComputerUseTool(controller: controller)
+    init(_ toolset: Toolset) {
+        self.toolset = toolset
     }
 
     /// One loopback listener on a kernel-assigned port, kept alive across arms for its accept loop.
@@ -26,19 +38,18 @@ final class ComputerUseBridge {
     private var generation = 0
 
     /// The token gate; refuses an unknown, disarmed, or expired token. Bounded vs dead helpers.
-    private var ledger = ComputerUseTokenLedger()
+    private var ledger = AIToolTokenLedger()
 
     /// Builds the MCP server the CLI spawns; awaits `.ready` so its handshake names a bound port.
     func server(armed: @escaping @MainActor () -> Bool) async -> AICLIMCPServer? {
         guard let port = await ensureListening() else { return nil }
-        Self.sweepStaleHandshakes()
+        sweepStaleHandshakes()
         let token = Self.newToken()
         ledger.issue(token, armed: armed, now: Date())
-        guard let handshake = Self.writeHandshake(port: port, token: token) else { return nil }
-        let helper = Bundle.main.bundleURL
-            .appendingPathComponent("Contents/Helpers/ComputerUseHelper").path
+        guard let handshake = writeHandshake(port: port, token: token) else { return nil }
+        let helper = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/AIToolHelper").path
         return AICLIMCPServer(
-            slug: Self.reservedSlug,
+            slug: toolset.slug,
             transport: .stdio(command: helper, arguments: [handshake]),
             headerValue: "", environment: [:])
     }
@@ -124,11 +135,11 @@ final class ComputerUseBridge {
 
     private func execute(_ request: Request) async -> Data {
         guard ledger.authorizes(request.token, now: Date()) else {
-            return Self.encode(["ok": false, "error": "Computer use is not enabled in Onecast."])
+            return Self.encode(["ok": false, "error": toolset.refusal])
         }
         let call = AIToolCall(
-            id: "bridge", name: "computer__" + request.action, arguments: request.arguments)
-        let result = await tool.invoke(call)
+            id: "bridge", name: toolset.namespace + request.action, arguments: request.arguments)
+        let result = await toolset.invoke(call)
         var object: [String: Any] = ["ok": !result.isError, "text": result.content]
         if let image = result.images.first {
             object["image"] = image.data.base64EncodedString()
@@ -158,17 +169,19 @@ final class ComputerUseBridge {
     }
 
     /// Unique handshake per issuance (port, token, schemas); the helper reads once and deletes it.
-    private static func writeHandshake(port: UInt16, token: String) -> String? {
-        let tools = ComputerUseTool.tools.map { tool -> [String: Any] in
+    private func writeHandshake(port: UInt16, token: String) -> String? {
+        let tools = toolset.tools.map { tool -> [String: Any] in
             [
-                "name": String(tool.name.dropFirst("computer__".count)),
+                "name": String(tool.name.dropFirst(toolset.namespace.count)),
                 "description": tool.description,
                 "inputSchema": tool.parameters.jsonObject,
             ]
         }
-        let object: [String: Any] = ["port": Int(port), "token": token, "tools": tools]
+        let object: [String: Any] = [
+            "port": Int(port), "token": token, "name": toolset.serverName, "tools": tools,
+        ]
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return nil }
-        let name = Self.handshakePrefix + "\(UUID().uuidString).json"
+        let name = handshakePrefix + "\(UUID().uuidString).json"
         let path = (NSTemporaryDirectory() as NSString).appendingPathComponent(name)
         guard
             FileManager.default.createFile(
@@ -183,15 +196,12 @@ final class ComputerUseBridge {
         return bytes.map { String(format: "%02x", $0) }.joined()
     }
 
-    /// A `_` can't occur in a slug (`MCPSlug.normalize` uses `-`), so this built-in won't collide.
-    static let reservedSlug = "onecast_computer"
-
-    private static var handshakePrefix: String {
-        (Bundle.main.bundleIdentifier ?? "com.onecast.app") + ".computeruse."
+    private var handshakePrefix: String {
+        (Bundle.main.bundleIdentifier ?? "com.onecast.app") + ".\(toolset.slug)."
     }
 
     /// Deletes our handshakes a helper never consumed, so a failed CLI launch leaves no live token.
-    private static func sweepStaleHandshakes() {
+    private func sweepStaleHandshakes() {
         let directory = NSTemporaryDirectory()
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory) else {
             return

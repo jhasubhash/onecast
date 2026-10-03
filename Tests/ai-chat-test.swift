@@ -65,6 +65,7 @@ struct AIChatTests {
         chatsKeepTheirOwnModel()
         titlesAreCleanedAndNeverBeatARename()
         referencesAreTheLinksAReplyCites()
+        closingLinkLineIsLeftToTheChips()
         toolScopeSwitchesServersPerChat()
         choicesComeOutOfTheirFence()
 
@@ -1624,6 +1625,25 @@ struct AIChatTests {
             !references.contains { $0.host == "example.com" },
             "a URL inside a code sample is not a source")
         expect(ChatReferences.extract(from: "No links here.").isEmpty, "prose alone cites nothing")
+    }
+
+    static func closingLinkLineIsLeftToTheChips() {
+        let body = "Error rate is 10%.\n\n| a | b |\n| --- | --- |\n| 1 | 2 |"
+        let links = "**Open in Splunk:** [overview ↗](https://splunk.example/a) · [trend ↗](https://splunk.example/b)"
+        expect(
+            ChatReferences.withoutTrailingLinkLine(body + "\n\n" + links) == body,
+            "a closing line of only links leaves the text, its links stay as chips")
+        let cited = "See [the docs](https://swift.org/a) for details."
+        expect(
+            ChatReferences.withoutTrailingLinkLine(body + "\n\n" + cited) == body + "\n\n" + cited,
+            "a closing sentence that cites a link is prose and stays")
+        expect(
+            ChatReferences.withoutTrailingLinkLine(links) == links,
+            "a reply that is only links keeps them in its text")
+        let many = (1...9).map { "[q\($0)](https://splunk.example/\($0))" }.joined(separator: " · ")
+        expect(
+            ChatReferences.withoutTrailingLinkLine(body + "\n\n" + many) == body + "\n\n" + many,
+            "a line with more links than the chips can hold stays, so none is lost")
     }
 
     static func toolScopeSwitchesServersPerChat() {

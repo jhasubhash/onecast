@@ -20,6 +20,10 @@ final class AISettingsStore {
     var computerUseEnabled: Bool {
         didSet { defaults.set(computerUseEnabled, forKey: AppSettingsKey.aiComputerUse.rawValue) }
     }
+    /// Off by default, excluded from backups: an armed model acts in the user's logged-in Chrome.
+    var browserRelayEnabled: Bool {
+        didSet { defaults.set(browserRelayEnabled, forKey: AppSettingsKey.aiBrowserRelay.rawValue) }
+    }
     /// Off by default, excluded from backups: it lets the default chat run any shell command.
     var shellAccessEnabled: Bool {
         didSet { defaults.set(shellAccessEnabled, forKey: AppSettingsKey.aiShellAccess.rawValue) }
@@ -103,6 +107,8 @@ final class AISettingsStore {
             defaults.object(forKey: AppSettingsKey.aiWebSearch.rawValue) as? Bool ?? false
         computerUseEnabled =
             defaults.object(forKey: AppSettingsKey.aiComputerUse.rawValue) as? Bool ?? false
+        browserRelayEnabled =
+            defaults.object(forKey: AppSettingsKey.aiBrowserRelay.rawValue) as? Bool ?? false
         shellAccessEnabled =
             defaults.object(forKey: AppSettingsKey.aiShellAccess.rawValue) as? Bool ?? false
         showReasoning =

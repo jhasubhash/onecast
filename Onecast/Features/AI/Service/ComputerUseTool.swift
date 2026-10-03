@@ -28,6 +28,15 @@ struct ComputerUseTool {
         name.hasPrefix("computer__")
     }
 
+    /// The CLI route's way in: the same tools, served by `AIToolBridge` through the helper.
+    static func toolset(controller: ComputerController) -> AIToolBridge.Toolset {
+        let tool = ComputerUseTool(controller: controller)
+        return AIToolBridge.Toolset(
+            slug: "onecast_computer", serverName: "onecast-computer-use", namespace: "computer__",
+            tools: tools, refusal: "Computer use is not enabled in Onecast.",
+            invoke: { await tool.invoke($0) })
+    }
+
     func invoke(_ call: AIToolCall) async -> AIToolResult {
         do {
             switch call.name {

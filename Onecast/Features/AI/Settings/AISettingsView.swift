@@ -160,6 +160,13 @@ struct AISettingsView: View {
                     "Lets a vision-capable model see the screen and drive the mouse and keyboard, "
                         + "acting on its own within a reply. Needs Screen Recording and Accessibility.")
             }
+            Toggle(isOn: $settings.browserRelayEnabled) {
+                SettingsRowTitle(.aiChat, "Browser relay")
+                Text(
+                    "Lets the chat list, open, read and run JavaScript in tabs of your own Chrome, "
+                        + "logins included, through omp's browser relay (omp browser-relay and its "
+                        + "Chrome extension).")
+            }
             Toggle(isOn: $settings.shellAccessEnabled) {
                 SettingsRowTitle(.aiChat, "Shell access")
                 Text(

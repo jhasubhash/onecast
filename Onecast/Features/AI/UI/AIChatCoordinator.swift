@@ -282,6 +282,10 @@ final class AIChatCoordinator {
         // Computer use needs the tool loop and a vision route, so it rides only a route with both.
         let computerUse = computerUseArmed && capabilities.tools && capabilities.images
         if computerUse { tools.append(contentsOf: ComputerUseTool.tools) }
+        let browser = armed(\.allowBrowserRelay, \.browserRelayEnabled) ? BrowserRelayTool() : nil
+        if browser != nil {
+            tools.append(contentsOf: BrowserRelayTool.tools(images: capabilities.images))
+        }
         guard !tools.isEmpty else { return provider }
         let chatID = chat.session.id
         let mcp = core.mcpCoordinator
@@ -293,9 +297,12 @@ final class AIChatCoordinator {
                 title: reminder.title, rule: reminder.rule, to: app, now: Date(), calendar: .current)
         }
         let computer = computerUse ? ComputerUseTool(controller: core.computerController) : nil
-        let invoke: @Sendable (AIToolCall) async -> AIToolResult = { [mcp, store, handOff, computer] call in
+        let invoke: @Sendable (AIToolCall) async -> AIToolResult = { [mcp, store, handOff, computer, browser] call in
             if let computer, ComputerUseTool.handles(call.name) {
                 return await computer.invoke(call)
+            }
+            if let browser, BrowserRelayTool.handles(call.name) {
+                return await browser.invoke(call)
             }
             if SchedulerAITool.handles(call.name) {
                 return await SchedulerAITool.invoke(
@@ -579,19 +586,27 @@ final class AIChatCoordinator {
         isDynamic ? nil : chat.session.model
     }
 
-    /// The user's arming of computer use for the active route, independent of route capabilities.
-    private var computerUseArmed: Bool {
-        activeAssistant?.allowComputerUse ?? core.aiSettings.computerUseEnabled
+    /// The user's arming of a capability for the active route, independent of route capabilities.
+    private func armed(
+        _ assistantFlag: KeyPath<Assistant, Bool>, _ globalFlag: KeyPath<AISettingsStore, Bool>
+    ) -> Bool {
+        activeAssistant?[keyPath: assistantFlag] ?? core.aiSettings[keyPath: globalFlag]
     }
 
-    /// A live predicate for the bridge, re-read at call time and bound to this route only.
-    private func computerUseArmPredicate() -> @MainActor () -> Bool {
+    private var computerUseArmed: Bool {
+        armed(\.allowComputerUse, \.computerUseEnabled)
+    }
+
+    /// A live predicate for a bridge, re-read at call time and bound to this route only.
+    private func armPredicate(
+        _ assistantFlag: KeyPath<Assistant, Bool>, _ globalFlag: KeyPath<AISettingsStore, Bool>
+    ) -> @MainActor () -> Bool {
         let settings = core.aiSettings
         let assistants = core.assistants
         let routeID = activeAssistant?.id
         return {
-            if let routeID { return assistants.assistant(id: routeID)?.allowComputerUse == true }
-            return settings.computerUseEnabled
+            if let routeID { return assistants.assistant(id: routeID)?[keyPath: assistantFlag] == true }
+            return settings[keyPath: globalFlag]
         }
     }
 
@@ -603,16 +618,28 @@ final class AIChatCoordinator {
         return try core.aiProvider(cliTools: cliTools)
     }
 
-    /// CLI-tools payload: assistant MCP/shell opt-in plus the computer-use server on an armed CLI.
+    /// CLI-tools payload: assistant MCP/shell opt-in plus each armed built-in server on a CLI route.
     private func cliToolConfig() async -> AICLIToolConfig? {
         var config = activeAssistant.flatMap(assistantCLIToolConfig) ?? defaultRouteCLIToolConfig()
-        guard computerUseArmed, effectiveModel?.source.installedKind?.acceptsInjectedMCP == true,
-            let server = await core.computerUseBridge.server(armed: computerUseArmPredicate())
-        else { return config }
+        guard effectiveModel?.source.installedKind?.acceptsInjectedMCP == true else { return config }
+        var servers: [AICLIMCPServer] = []
+        if computerUseArmed,
+            let server = await core.computerUseBridge.server(
+                armed: armPredicate(\.allowComputerUse, \.computerUseEnabled))
+        {
+            servers.append(server)
+        }
+        if armed(\.allowBrowserRelay, \.browserRelayEnabled),
+            let server = await core.browserRelayBridge.server(
+                armed: armPredicate(\.allowBrowserRelay, \.browserRelayEnabled))
+        {
+            servers.append(server)
+        }
+        guard !servers.isEmpty else { return config }
         if config == nil {
-            config = AICLIToolConfig(servers: [server])
+            config = AICLIToolConfig(servers: servers)
         } else {
-            config?.servers.append(server)
+            config?.servers.append(contentsOf: servers)
         }
         return config
     }

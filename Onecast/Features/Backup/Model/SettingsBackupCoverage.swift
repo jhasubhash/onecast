@@ -198,6 +198,9 @@ enum SettingsBackupCoverage {
         AppSettingsKey.aiComputerUse.rawValue:
             "Arms a model to drive the mouse and keyboard through Screen Recording and Accessibility; "
             + "a flag that grants a capability is never carried by a backup.",
+        AppSettingsKey.aiBrowserRelay.rawValue:
+            "Arms a model to act in the user's logged-in Chrome through the browser relay; a flag that "
+            + "grants a capability is never carried by a backup.",
         AppSettingsKey.aiShellAccess.rawValue:
             "Grants the default chat unrestricted shell access; a flag that grants a capability is "
             + "never carried by a backup.",

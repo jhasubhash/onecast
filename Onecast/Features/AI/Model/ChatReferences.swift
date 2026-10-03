@@ -46,6 +46,26 @@ enum ChatReferences {
             .map { $0 }
     }
 
+    /// A reply's closing line that is only links (an optional `**Label:**`, the links, separators) is
+    /// what the chips under it already show, so the text drops it — but only when every one of its
+    /// links made a chip, and never when it is all the reply says.
+    static func withoutTrailingLinkLine(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let start = trimmed.range(of: "\n\n", options: .backwards)?.upperBound else { return text }
+        let line = trimmed[start...]
+        let links = line.matches(of: #/\[([^\]\n]+)\]\((https?://[^)\s]+)\)/#)
+        guard !line.contains("\n"), !links.isEmpty else { return text }
+        let rest = line.replacing(#/\[[^\]\n]+\]\(https?://[^)\s]+\)/#) { _ in "" }
+            .replacing(#/^\s*(\*\*)?[^*\[\]\n]{1,40}:(\*\*)?/#) { _ in "" }
+        guard rest.allSatisfy({ " \t·•|,–-".contains($0) }) else { return text }
+        let chips = Set(extract(from: text).map { key($0.url) })
+        let allChipped = links.allSatisfy { match in
+            URL(string: String(match.output.2)).map { chips.contains(key($0)) } ?? false
+        }
+        guard allChipped else { return text }
+        return String(trimmed[..<start]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Fences and inline code are examples, not citations.
     private static func withoutCode(_ text: String) -> String {
         text.replacing(#/```[\s\S]*?(```|$)/#) { _ in "" }

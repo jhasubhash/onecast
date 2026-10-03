@@ -297,12 +297,17 @@ private struct ChatMessageView: View {
     @ViewBuilder private var rendered: some View {
         if message.role == .assistant {
             let segments = message.segments
+            // The closing links line becomes the source chips alone once the reply is whole.
+            let linksPart = message.state == .complete
+                ? segments.lastIndex { if case .text = $0 { true } else { false } } : nil
             VStack(alignment: .leading, spacing: metrics.spacing.lg) {
                 ForEach(Array(segments.enumerated()), id: \.offset) { part, segment in
                     switch segment {
                     case .text(let text):
+                        let prose = ChatChoices.split(text).text
                         MarkdownView(
-                            markdown: ChatChoices.split(text).text,
+                            markdown: part == linksPart
+                                ? ChatReferences.withoutTrailingLinkLine(prose) : prose,
                             color: message.state == .failed
                                 ? Theme.Colors.destructive : Theme.Colors.textPrimary,
                             findNeedle: findHighlight?.needle,

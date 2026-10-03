@@ -101,15 +101,17 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   latest message's pictures and no earlier ones: Claude inline in its `stream-json` input, OpenCode
   (`--file`) and Copilot (`--attachment`) as files written to a per-turn folder in the private
   workspace and removed when the turn ends or is replaced.
-- **Computer use rides an injected MCP server on a CLI route.** An installed CLI (Claude, Copilot,
-  Codex) runs its own tool loop in a child process and reaches a tool only through an MCP server it
-  spawns, so a screen-capturing helper of its own would need a second Screen Recording and Accessibility
-  identity. Instead Onecast injects `ComputerUseBridge`'s zero-capability `ComputerUseHelper`, which
-  relays each `tools/call` over loopback to the app, where the grants already live and the shared
-  `ComputerController` is the single input path. HTTP and on-device routes keep driving the computer
-  in-process through `toolAware`; a CLI route reports no in-process tools, so the two paths never both
-  fire. Each helper call is token-gated by `ComputerUseTokenLedger`: the token carries that one route's
-  live arm predicate — disarming or deleting the route refuses it at once — is bounded, expires, and
+- **Computer use and the browser relay ride an injected MCP server on a CLI route.** An installed CLI
+  (Claude, Copilot, Codex) runs its own tool loop in a child process and reaches a tool only through an
+  MCP server it spawns, so a screen-capturing helper of its own would need a second Screen Recording and
+  Accessibility identity. Instead Onecast injects one `AIToolBridge` per armed built-in tool set
+  (`ComputerUseTool.toolset`, `BrowserRelayTool.toolset`), each spawning the zero-capability
+  `AIToolHelper`, which relays each `tools/call` over loopback to the app, where the grants already live
+  and the shared `ComputerController` is the single input path. HTTP and on-device routes keep calling
+  the same tools in-process through `toolAware`; a CLI route reports no in-process tools, so the two
+  paths never both fire. Each helper call is token-gated by `AIToolTokenLedger`: the token carries
+  that one route's live arm predicate — disarming or deleting the route refuses it at once — is
+  bounded, expires, and
   rides a 0600 handshake file deleted on read (orphans a failed launch leaves are swept). OpenCode is
   excluded (`InstalledAIKind.acceptsInjectedMCP`): it ignores an injected server, so arming one would
   spawn nothing. The fallback preference lives in the computer-use tools' own schemas, always sent so
@@ -127,6 +129,19 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   native tools need a shell opt-in (`--allow-all`): an assistant's `allowShellTools`, or the default
   chat's own `aiShellAccess` toggle, which the default route honors only on a shell-capable CLI
   (Claude or Copilot).
+- **The browser relay borrows omp's, it does not ship one.** `BrowserRelayClient` speaks plain CDP to
+  `omp browser-relay` on `127.0.0.1:9224` (`/json/list` for tabs, `ws://…/cdp` for commands), whose
+  Chrome extension drives the user's own browser — their profile, cookies and SSO — so an armed model
+  works inside pages the user is already logged into, without Onecast holding any credential. Armed
+  like computer use: the global `aiBrowserRelay` toggle for the default chat, an assistant's own
+  `allowBrowserRelay`, both off by default and never carried by a backup. Each tool call opens one
+  socket, attaches to its tab, and detaches; nothing persists between calls, so a tab id from
+  `browser__tabs`/`browser__open` is the only handle. The relay cuts any single call at 20 s, so every
+  command times out at 18 s (`BrowserRelayClient.callTimeout`) and `browser__evaluate` says so: a long
+  job is started in one call and polled in the next. `browser__open` reuses a tab already on the URL's
+  exact host instead of navigating it, keeping a logged-in page as it is; `browser__screenshot` is
+  offered only to a route that takes images. A relay that is not running is a readable tool error
+  naming `omp browser-relay`, never a hang.
 - **Chat is a palette screen, not another window** — including its lifetime. The launcher command
   enters `.ai`; its search field is the composer, and the shared footer's primary pill is Return's
   job: Send (`↵`), or Stop (`↵`) while a response streams — followed by Actions (`⌘K`), which owns

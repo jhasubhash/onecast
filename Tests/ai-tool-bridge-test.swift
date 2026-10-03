@@ -2,7 +2,7 @@ import Foundation
 
 @main
 @MainActor
-struct ComputerUseBridgeConcurrencyTests {
+struct AIToolBridgeConcurrencyTests {
     static var failures = 0
     static var passes = 0
     static var handshakes: Set<String> = []
@@ -22,6 +22,13 @@ struct ComputerUseBridgeConcurrencyTests {
         return object["port"] as? Int
     }
 
+    static func makeBridge() -> AIToolBridge {
+        AIToolBridge(
+            AIToolBridge.Toolset(
+                slug: "onecast_test", serverName: "onecast-test", namespace: "test__", tools: [],
+                refusal: "off", invoke: { .failure($0.id, "unused") }))
+    }
+
     static func main() async {
         await concurrentArmsShareOneListener()
         await cancelledArmOverlappingRetriesShareOneListener()
@@ -31,7 +38,7 @@ struct ComputerUseBridgeConcurrencyTests {
     }
 
     static func concurrentArmsShareOneListener() async {
-        let bridge = ComputerUseBridge(controller: ComputerController())
+        let bridge = makeBridge()
         var tasks: [Task<AICLIMCPServer?, Never>] = []
         for _ in 0..<12 { tasks.append(Task { @MainActor in await bridge.server(armed: { true }) }) }
         var ports: [Int?] = []
@@ -43,7 +50,7 @@ struct ComputerUseBridgeConcurrencyTests {
 
     /// Cancelled and concurrent arms must not wedge or split the listener.
     static func cancelledArmOverlappingRetriesShareOneListener() async {
-        let bridge = ComputerUseBridge(controller: ComputerController())
+        let bridge = makeBridge()
         let cancelled = Task { @MainActor in await bridge.server(armed: { true }) }
         cancelled.cancel()
         var tasks: [Task<AICLIMCPServer?, Never>] = []

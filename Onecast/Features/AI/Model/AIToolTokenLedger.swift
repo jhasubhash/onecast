@@ -1,8 +1,8 @@
 import Foundation
 
-/// The bridge's token gate, extracted so its refusals are testable without a live socket.
+/// `AIToolBridge`'s token gate, extracted so its refusals are testable without a live socket.
 @MainActor
-struct ComputerUseTokenLedger {
+struct AIToolTokenLedger {
     private struct Entry {
         let armed: @MainActor () -> Bool
         let issuedAt: Date

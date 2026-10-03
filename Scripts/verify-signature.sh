@@ -30,7 +30,7 @@ codesign -d --entitlements - --xml "$APP" > "$ENTITLEMENTS" 2>/dev/null
 
 # The helper is signed by its own embed phase, which is where the runtime flag goes missing.
 for BIN in "$APP/Contents/MacOS/$NAME" "$APP/Contents/Helpers/ClipboardTextHelper" \
-    "$APP/Contents/Helpers/ComputerUseHelper"; do
+    "$APP/Contents/Helpers/AIToolHelper"; do
     INFO="$(codesign -dv --verbose=2 "$BIN" 2>&1)"
     [[ "$INFO" =~ flags=0x[0-9a-f]+\([^\)]*runtime ]] ||
         fail "${BIN##*/}: hardened runtime not enabled"

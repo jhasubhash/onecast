@@ -3,7 +3,7 @@ import Foundation
 
 @main
 @MainActor
-struct ComputerUseTokenLedgerTests {
+struct AIToolTokenLedgerTests {
     static var failures = 0
     static var passes = 0
 
@@ -31,12 +31,12 @@ struct ComputerUseTokenLedgerTests {
     private static let t0 = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
     static func refusesAnUnknownToken() {
-        let ledger = ComputerUseTokenLedger()
+        let ledger = AIToolTokenLedger()
         expect(!ledger.authorizes("nope", now: t0), "a token never issued is refused")
     }
 
     static func acceptsAnArmedTokenWhileFresh() {
-        var ledger = ComputerUseTokenLedger(lifetime: 100)
+        var ledger = AIToolTokenLedger(lifetime: 100)
         ledger.issue("t", armed: { true }, now: t0)
         expect(ledger.authorizes("t", now: t0), "an armed token authorises at issuance")
         expect(
@@ -44,7 +44,7 @@ struct ComputerUseTokenLedgerTests {
     }
 
     static func refusesADisarmedRoute() {
-        var ledger = ComputerUseTokenLedger()
+        var ledger = AIToolTokenLedger()
         ledger.issue("t", armed: { false }, now: t0)
         expect(!ledger.authorizes("t", now: t0), "a known token on a disarmed route is refused")
     }
@@ -52,7 +52,7 @@ struct ComputerUseTokenLedgerTests {
     /// The predicate is read on every call, so a route disarmed later locks its helper out.
     static func readsArmingLiveNotSnapshotted() {
         var armed = true
-        var ledger = ComputerUseTokenLedger()
+        var ledger = AIToolTokenLedger()
         ledger.issue("t", armed: { armed }, now: t0)
         expect(ledger.authorizes("t", now: t0), "armed at first call")
         armed = false
@@ -60,7 +60,7 @@ struct ComputerUseTokenLedgerTests {
     }
 
     static func expiresPastItsLifetime() {
-        var ledger = ComputerUseTokenLedger(lifetime: 100)
+        var ledger = AIToolTokenLedger(lifetime: 100)
         ledger.issue("t", armed: { true }, now: t0)
         expect(!ledger.authorizes("t", now: t0 + 100), "a token is refused once its lifetime elapses")
         expect(
@@ -69,7 +69,7 @@ struct ComputerUseTokenLedgerTests {
     }
 
     static func evictsOldestPastCapacity() {
-        var ledger = ComputerUseTokenLedger(capacity: 2, lifetime: 1000)
+        var ledger = AIToolTokenLedger(capacity: 2, lifetime: 1000)
         ledger.issue("a", armed: { true }, now: t0)
         ledger.issue("b", armed: { true }, now: t0)
         ledger.issue("c", armed: { true }, now: t0)

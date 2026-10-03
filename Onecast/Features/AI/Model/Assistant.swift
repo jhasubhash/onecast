@@ -32,6 +32,8 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
     var allowShellTools: Bool
     /// Opt-in per assistant: let a vision route see the screen and drive input, autonomously.
     var allowComputerUse: Bool
+    /// Opt-in per assistant: let the model drive the user's own Chrome through the browser relay.
+    var allowBrowserRelay: Bool
     var opensTo: AIOpensTo
     var newChatAfter: AINewChatAfter
     var retention: AIRetention
@@ -59,6 +61,7 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
         allowCLITools: Bool = false,
         allowShellTools: Bool = false,
         allowComputerUse: Bool = false,
+        allowBrowserRelay: Bool = false,
         opensTo: AIOpensTo = .recent,
         newChatAfter: AINewChatAfter = .fiveMinutes,
         retention: AIRetention = .forever,
@@ -82,6 +85,7 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
         self.allowCLITools = allowCLITools
         self.allowShellTools = allowShellTools
         self.allowComputerUse = allowComputerUse
+        self.allowBrowserRelay = allowBrowserRelay
         self.opensTo = opensTo
         self.newChatAfter = newChatAfter
         self.retention = retention
@@ -115,6 +119,8 @@ struct Assistant: Identifiable, Codable, Sendable, Equatable {
                 ?? d.allowShellTools,
             allowComputerUse: try c.decodeIfPresent(Bool.self, forKey: .allowComputerUse)
                 ?? d.allowComputerUse,
+            allowBrowserRelay: try c.decodeIfPresent(Bool.self, forKey: .allowBrowserRelay)
+                ?? d.allowBrowserRelay,
             opensTo: try c.decodeIfPresent(AIOpensTo.self, forKey: .opensTo) ?? d.opensTo,
             newChatAfter: try c.decodeIfPresent(AINewChatAfter.self, forKey: .newChatAfter)
                 ?? d.newChatAfter,

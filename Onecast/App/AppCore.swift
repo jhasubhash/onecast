@@ -197,7 +197,9 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var schedulerEditorCoordinator =
         SchedulerEditorCoordinator(store: scheduledTasks, core: self)
     @ObservationIgnored private(set) lazy var computerUseBridge =
-        ComputerUseBridge(controller: computerController)
+        AIToolBridge(ComputerUseTool.toolset(controller: computerController))
+    @ObservationIgnored private(set) lazy var browserRelayBridge =
+        AIToolBridge(BrowserRelayTool.toolset())
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     @ObservationIgnored private(set) lazy var aiChatCoordinator = AIChatCoordinator(

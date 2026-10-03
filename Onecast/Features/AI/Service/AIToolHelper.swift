@@ -3,16 +3,17 @@ import Network
 
 /// A zero-capability MCP relay: captures nothing, forwards each tools/call to the app's bridge.
 @main
-enum ComputerUseHelper {
+enum AIToolHelper {
     static func main() async {
         let handshakePath = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : nil
-        await ComputerMCPServer(handshake: handshakePath.flatMap(Handshake.read)).run()
+        await ToolMCPServer(handshake: handshakePath.flatMap(Handshake.read)).run()
     }
 }
 
 private struct Handshake {
     let port: UInt16
     let token: String
+    let name: String
     let tools: [Any]
 
     /// Read once, then delete: the token must not outlive the helper on disk.
@@ -22,12 +23,14 @@ private struct Handshake {
             let port = object["port"] as? Int, let token = object["token"] as? String
         else { return nil }
         try? FileManager.default.removeItem(atPath: path)
-        return Handshake(port: UInt16(port), token: token, tools: object["tools"] as? [Any] ?? [])
+        return Handshake(
+            port: UInt16(port), token: token, name: object["name"] as? String ?? "onecast-tools",
+            tools: object["tools"] as? [Any] ?? [])
     }
 }
 
 /// Newline-delimited JSON-RPC 2.0 over stdio (MCP stdio transport); unknown methods get not-found.
-private struct ComputerMCPServer {
+private struct ToolMCPServer {
     let handshake: Handshake?
 
     func run() async {
@@ -53,7 +56,7 @@ private struct ComputerMCPServer {
                 [
                     "protocolVersion": "2025-06-18",
                     "capabilities": ["tools": [String: Any]()],
-                    "serverInfo": ["name": "onecast-computer-use", "version": "1"],
+                    "serverInfo": ["name": handshake?.name ?? "onecast-tools", "version": "1"],
                 ])
         case "ping":
             return success(id, [String: Any]())
@@ -67,7 +70,7 @@ private struct ComputerMCPServer {
     }
 
     private func call(_ id: Any, params: [String: Any]) async -> [String: Any] {
-        guard let handshake else { return toolError(id, "Onecast computer use is not configured.") }
+        guard let handshake else { return toolError(id, "This Onecast tool set is not configured.") }
         guard let name = params["name"] as? String else {
             return toolError(id, "Missing tool name.")
         }
