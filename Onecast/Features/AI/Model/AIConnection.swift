@@ -117,6 +117,9 @@ struct AIModelCapabilities: Equatable, Sendable {
         images: true, documents: false, webSearch: true, tools: false)
     static let codex = AIModelCapabilities(
         images: true, documents: false, webSearch: true, tools: false)
+    /// Claude, OpenCode and Copilot read the latest message's pictures; nothing else reaches them.
+    static let installedCLI = AIModelCapabilities(
+        images: true, documents: false, webSearch: false, tools: false)
     /// The on-device model is text-only and reaches nothing, so it offers none of the three.
     static let appleIntelligence = AIModelCapabilities.none
 }

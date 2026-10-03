@@ -31,6 +31,7 @@ struct InstalledAITests {
         claudeMCPConfigNamesNoServers(fixture)
         await copilotMCPRouteScopesOutShell(fixture)
         await copilotEnvironmentNeutralizesAllowAll(fixture)
+        await imagesReachEachCLI(fixture)
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -293,6 +294,68 @@ struct InstalledAITests {
         }
     }
 
+    /// Only the latest message's picture goes out: inline for Claude, as a temporary file else.
+    private static func imagesReachEachCLI(_ fixture: Fixture) async {
+        let earlier = AIImage(data: Data(repeating: 1, count: 111), mimeType: "image/png")
+        let latest = AIImage(data: Data(repeating: 2, count: 321), mimeType: "image/png")
+
+        await fixture.sendImages(kind: .claude, earlier: earlier, latest: latest)
+        let claudeArgs = fixture.lastArguments("claude-args.log")
+        if let index = claudeArgs.firstIndex(of: "--input-format"), index + 1 < claudeArgs.count {
+            expect(claudeArgs[index + 1] == "stream-json", "Claude reads stream-json input")
+        } else {
+            expect(false, "Claude names its input format")
+        }
+        let claudeLine = Data(fixture.lastLine("claude-prompt.log").utf8)
+        let message = (try? JSONSerialization.jsonObject(with: claudeLine)) as? [String: Any]
+        let content = (message?["message"] as? [String: Any])?["content"] as? [[String: Any]] ?? []
+        let source = content.first?["source"] as? [String: Any]
+        expect(
+            content.count == 2 && content.first?["type"] as? String == "image"
+                && source?["media_type"] as? String == "image/png"
+                && source?["data"] as? String == latest.data.base64EncodedString(),
+            "Claude receives only the latest picture, as an image block ahead of the text")
+        let claudeText = content.last?["text"] as? String ?? ""
+        expect(
+            claudeText.contains("[1 image attached]") && claudeText.contains("shared earlier"),
+            "Claude's text says which picture is attached and which is not re-sent")
+
+        for (kind, flag) in [(InstalledAIKind.openCode, "--file"), (.copilot, "--attachment")] {
+            await fixture.sendImages(kind: kind, earlier: earlier, latest: latest)
+            let argv = fixture.lastArguments("\(kind.command)-args.log")
+            let paths = flagValues(argv, flag)
+            expect(
+                paths.count == 1, "\(kind.title) is handed only the latest picture, with \(flag)")
+            let handed =
+                (try? JSONSerialization.jsonObject(
+                    with: Data(fixture.lastLine("\(kind.command)-attachments.log").utf8)))
+                as? [[String: Any]] ?? []
+            expect(
+                handed.first?["size"] as? Int == latest.data.count,
+                "\(kind.title)'s file holds the picture while it runs")
+            expect(
+                paths.first.map { $0.hasPrefix(fixture.workspace.path) && $0.hasSuffix(".png") }
+                    == true,
+                "\(kind.title)'s picture sits in the private workspace, named by its type")
+            let gone = await eventually {
+                paths.allSatisfy { !FileManager.default.fileExists(atPath: $0) }
+            }
+            expect(gone, "\(kind.title)'s picture is deleted once the turn ends")
+            let prompt = fixture.read("\(kind.command)-prompt.log")
+            expect(
+                prompt.contains("[1 image attached]") && prompt.contains("shared earlier"),
+                "\(kind.title)'s prompt says which picture is attached")
+        }
+    }
+
+    private static func eventually(_ condition: () -> Bool) async -> Bool {
+        for _ in 0..<100 {
+            if condition() { return true }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        return condition()
+    }
+
     /// COPILOT_ALLOW_ALL=true escapes the deny flags and the flag-less route; force it off.
     private static func copilotEnvironmentNeutralizesAllowAll(_ fixture: Fixture) async {
         let server = AICLIMCPServer(
@@ -421,6 +484,29 @@ private final class Fixture {
             let env = try? JSONDecoder().decode([String: String].self, from: data)
         else { return [:] }
         return env
+    }
+
+    /// Two pictures in the conversation, so a route that re-sent an earlier one would show it.
+    func sendImages(kind: InstalledAIKind, earlier: AIImage, latest: AIImage) async {
+        guard let executable = executables[kind] else { return }
+        let provider = InstalledCLIProvider(
+            kind: kind, executable: executable, model: "sonnet", effort: nil, workspace: workspace)
+        let request = AIRequest(
+            instructions: nil,
+            messages: [
+                AIMessage(role: .user, text: "Look at this", images: [earlier]),
+                AIMessage(role: .assistant, text: "Seen it"),
+                AIMessage(role: .user, text: "And this one?", images: [latest])
+            ])
+        do { for try await _ in provider.stream(request) {} } catch {}
+    }
+
+    func lastLine(_ name: String) -> String {
+        read(name).split(separator: "\n").last.map(String.init) ?? ""
+    }
+
+    func lastArguments(_ name: String) -> [String] {
+        (try? JSONDecoder().decode([String].self, from: Data(lastLine(name).utf8))) ?? []
     }
 
     func expectPrompt(_ name: String) {

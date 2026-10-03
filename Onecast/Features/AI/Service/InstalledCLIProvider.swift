@@ -45,6 +45,8 @@ private final class InstalledCLITurnRunner {
     private var errorBuffer = Data()
     private var openCodeSessionID: String?
     private var activeExecutable: URL?
+    /// This turn's pictures written out for OpenCode or Copilot, removed when the turn ends.
+    private var attachmentDirectory: URL?
 
     private let toolConfig: AICLIToolConfig?
 
@@ -87,6 +89,16 @@ private final class InstalledCLITurnRunner {
                 throwing: AIProviderError.unavailable("There is no user message to send."))
             return
         }
+        let images = request.messages.last { $0.role == .user }?.images ?? []
+        guard
+            let payload = kind == .claude
+                ? InstalledAIImageInput.claudeUserLine(prompt, images: images) : Data(prompt.utf8)
+        else {
+            continuation.finish(
+                throwing: AIProviderError.unavailable(
+                    "Onecast could not frame the request for " + kind.title + "."))
+            return
+        }
         let resolvedExecutable: URL?
         switch launch.command() {
         case .executable(let url):
@@ -122,12 +134,29 @@ private final class InstalledCLITurnRunner {
             return
         }
 
+        var attachments: [URL] = []
+        var turnDirectory: URL?
+        if !images.isEmpty, kind != .claude {
+            let directory = workspace.appendingPathComponent(
+                "attachments-" + UUID().uuidString, isDirectory: true)
+            let written = await Task.detached { Self.write(images, into: directory) }.value
+            guard let written else {
+                continuation.finish(
+                    throwing: AIProviderError.unavailable(
+                        "Onecast could not hand the image to " + kind.title + "."))
+                return
+            }
+            attachments = written
+            turnDirectory = directory
+        }
+
         let process = Process()
         let stdin = Pipe()
         let stdout = Pipe()
         let stderr = Pipe()
         process.executableURL = executable
-        process.arguments = arguments
+        process.arguments =
+            arguments + InstalledAIImageInput.arguments(for: kind, files: attachments)
         process.currentDirectoryURL = workspace
         process.environment = environment(for: executable)
         process.standardInput = stdin
@@ -154,6 +183,7 @@ private final class InstalledCLITurnRunner {
             stdout.fileHandleForReading.readabilityHandler = nil
             stderr.fileHandleForReading.readabilityHandler = nil
             process.terminationHandler = nil
+            if let turnDirectory { Self.remove(turnDirectory) }
             continuation.finish(
                 throwing: AIProviderError.responseFailed(
                     kind.title + " could not start: " + error.localizedDescription))
@@ -161,14 +191,36 @@ private final class InstalledCLITurnRunner {
         }
         self.process = process
         activeExecutable = executable
+        attachmentDirectory = turnDirectory
         self.token = token
         self.continuation = continuation
         // A prompt past the pipe buffer blocks until the child drains it, so never on the main actor.
         let input = stdin.fileHandleForWriting
         Task.detached {
-            try? input.write(contentsOf: Data(prompt.utf8))
+            try? input.write(contentsOf: payload)
             try? input.close()
         }
+    }
+
+    /// Off the main actor: a pasted screenshot can run to megabytes.
+    private nonisolated static func write(_ images: [AIImage], into directory: URL) -> [URL]? {
+        do {
+            try FileManager.default.createDirectory(
+                at: directory, withIntermediateDirectories: true)
+            return try images.enumerated().map { index, image in
+                let file = directory.appendingPathComponent(
+                    InstalledAIImageInput.fileName(for: image, index: index))
+                try image.data.write(to: file, options: .atomic)
+                return file
+            }
+        } catch {
+            remove(directory)
+            return nil
+        }
+    }
+
+    private nonisolated static func remove(_ directory: URL) {
+        Task.detached { try? FileManager.default.removeItem(at: directory) }
     }
 
     private var arguments: [String] {
@@ -180,7 +232,7 @@ private final class InstalledCLITurnRunner {
                 var result = [
                     "-p",
                     "--model", model,
-                    "--input-format", "text",
+                    "--input-format", "stream-json",
                     "--output-format", "stream-json",
                     "--verbose",
                     "--include-partial-messages",
@@ -201,7 +253,7 @@ private final class InstalledCLITurnRunner {
                 var result = [
                     "-p",
                     "--model", model,
-                    "--input-format", "text",
+                    "--input-format", "stream-json",
                     "--output-format", "stream-json",
                     "--verbose",
                     "--include-partial-messages",
@@ -219,7 +271,7 @@ private final class InstalledCLITurnRunner {
             var result = [
                 "-p",
                 "--model", model,
-                "--input-format", "text",
+                "--input-format", "stream-json",
                 "--output-format", "stream-json",
                 "--verbose",
                 "--include-partial-messages",
@@ -307,7 +359,8 @@ private final class InstalledCLITurnRunner {
         guard
             request.messages.contains(where: {
                 $0.role == .user
-                    && !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && (!$0.images.isEmpty
+                        || !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             })
         else { return nil }
         // The "do not invoke tools" instruction is dropped once tools are the point of the turn.
@@ -317,8 +370,14 @@ private final class InstalledCLITurnRunner {
         {
             sections.append("Instructions:\n" + instructions)
         }
-        for message in request.messages {
-            let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let latestUser = request.messages.lastIndex { $0.role == .user }
+        for (index, message) in request.messages.enumerated() {
+            var text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let note = InstalledAIImageInput.note(
+                imageCount: message.images.count, isLatest: index == latestUser)
+            {
+                text = text.isEmpty ? note : text + "\n" + note
+            }
             guard !text.isEmpty else { continue }
             let role: String
             switch message.role {
@@ -394,6 +453,14 @@ private final class InstalledCLITurnRunner {
         continuation?.finish(throwing: CancellationError())
         continuation = nil
         process?.terminate()
+        removeAttachments()
+    }
+
+    /// Also on replacement, since a replaced turn's exit no longer reaches `cleanup`.
+    private func removeAttachments() {
+        guard let attachmentDirectory else { return }
+        self.attachmentDirectory = nil
+        Self.remove(attachmentDirectory)
     }
 
     private func deleteOpenCodeSession() {
@@ -426,5 +493,6 @@ private final class InstalledCLITurnRunner {
         errorBuffer.removeAll(keepingCapacity: false)
         openCodeSessionID = nil
         activeExecutable = nil
+        removeAttachments()
     }
 }

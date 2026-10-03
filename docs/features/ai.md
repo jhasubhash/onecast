@@ -97,7 +97,10 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   servers, browser integration, slash commands or persisted session — but never `--bare`, which reads
   neither OAuth nor the keychain and so refuses the very sign-in this route reuses. OpenCode runs `--pure` with
   deny-all permissions, disabled sharing and a private working directory; Onecast deletes the session
-  recorded in its JSON stream after each turn. Neither route offers images or web search.
+  recorded in its JSON stream after each turn. Neither offers web search. Both, and Copilot, take the
+  latest message's pictures and no earlier ones: Claude inline in its `stream-json` input, OpenCode
+  (`--file`) and Copilot (`--attachment`) as files written to a per-turn folder in the private
+  workspace and removed when the turn ends or is replaced.
 - **Computer use rides an injected MCP server on a CLI route.** An installed CLI (Claude, Copilot,
   Codex) runs its own tool loop in a child process and reaches a tool only through an MCP server it
   spawns, so a screen-capturing helper of its own would need a second Screen Recording and Accessibility
@@ -574,8 +577,9 @@ transport code at all.
 | --- | --- | --- | --- | --- |
 | Apple Intelligence | never — it reaches nothing | never — the model is text-only | never | never |
 | Codex | thread-scoped `web_search` config | `image` input part | never — the app-server takes no document part | never — its tools are disabled by design |
-| Claude command | never | never | never | never |
-| OpenCode command | never | never | never | never |
+| Claude command | never | base64 `image` block in its `stream-json` input, latest message only | never | never |
+| OpenCode command | never | `--file` naming a temporary copy, latest message only | never | never |
+| Copilot command | never | `--attachment` naming a temporary copy, latest message only | never | never |
 | OpenRouter | `plugins: [{id: "web"}]` — OpenRouter's own layer, any model | `image_url` part, only for models whose catalog lists the `image` modality | never yet — its catalog publishes a `file` modality Onecast does not read | `tools` + `role: "tool"` turns |
 | OpenAI | not offered | `image_url` part, assumed supported | `file` part with `filename` and a `file_data` data URL | `tools` + `role: "tool"` turns |
 | Gemini / compatible | not offered | `image_url` part, assumed supported | never — a gateway that has not implemented the part bills the upload before rejecting it | `tools` + `role: "tool"` turns |

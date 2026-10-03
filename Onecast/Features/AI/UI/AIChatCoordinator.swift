@@ -640,9 +640,7 @@ final class AIChatCoordinator {
         switch effectiveModel {
         case .appleIntelligence?: return .appleIntelligence
         case .codex?: return .codex
-        case .claude?, .openCode?, .copilot?:
-            return AIModelCapabilities(
-                images: false, documents: false, webSearch: false, tools: false)
+        case .claude?, .openCode?, .copilot?: return .installedCLI
         case .api(let connection, let model, _)?:
             return core.aiSettings.connection(id: connection)?.capabilities(for: model)
                 ?? AIModelCapabilities.none

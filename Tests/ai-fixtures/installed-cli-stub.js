@@ -19,6 +19,10 @@ if (command === "opencode" && process.argv.slice(2, 4).join(" ") === "session de
 
 const prompt = fs.readFileSync(0, "utf8");
 record(command + "-prompt.log", prompt);
+const argv = process.argv.slice(2);
+const attached = argv.flatMap((value, index) =>
+  ["--file", "--attachment"].includes(argv[index - 1]) ? [{ path: value, size: fs.statSync(value).size }] : []);
+record(command + "-attachments.log", JSON.stringify(attached));
 record(command + "-environment.log", process.env.OPENCODE_CONFIG_CONTENT ?? "");
 record(command + "-env.log", JSON.stringify({ COPILOT_ALLOW_ALL: process.env.COPILOT_ALLOW_ALL ?? "" }));
 
