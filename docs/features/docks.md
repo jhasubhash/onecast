@@ -134,7 +134,7 @@ protocol in-process:
 | Time | Clock, World Clock, Focus Timer, Stopwatch, Countdown, Alarm, Time Progress |
 | Productivity | Calendar, Reminders, Sticky Note, Shortcut, AirDrop |
 | System | Now Playing (Spotify and Music over Apple Events), Battery, System Activity, Network Activity |
-| Personal | Hydration, Weather (Open-Meteo), AI Usage (Codex limits, Claude and Codex local logs), Stock, Watchlist |
+| Personal | Hydration, Weather (Open-Meteo), AI Usage (Codex limits, or GitHub Copilot quotas through the signed-in `gh`; Claude and Codex local logs), Stock, Watchlist |
 
 Networked widgets use private `.ephemeral` sessions with no URL cache. Business integrations (Stripe,
 Paddle, Shopify) are deliberately left to third-party DockWidgets.

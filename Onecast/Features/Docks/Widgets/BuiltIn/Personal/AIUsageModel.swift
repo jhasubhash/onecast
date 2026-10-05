@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import OnecastPluginKit
 
-/// One AI Usage widget's live state: Codex's limits from the app, and token activity from logs.
+/// One AI Usage widget's live state: Codex's or Copilot's limits, and token activity from logs.
 @MainActor
 @Observable
 final class AIUsageModel {
@@ -19,6 +19,7 @@ final class AIUsageModel {
 
     struct LimitRow: Identifiable, Equatable {
         let id: String
+        let source: PersonalAIUsageLimitsSource
         let fallbackTitle: String
         let window: PersonalAIUsageLimitWindow
     }
@@ -33,19 +34,35 @@ final class AIUsageModel {
         case failed(String)
     }
 
+    /// Where Copilot's quotas stand, for the tile and the popover to explain.
+    enum CopilotStatus: Equatable {
+        case checking
+        case ready(PersonalCopilotQuota)
+        case failed(PersonalCopilotUsageClient.Failure)
+    }
+
     private(set) var settings = PersonalAIUsageSettings()
     private(set) var activity: Activity?
     private(set) var isScanning = false
-    /// When this widget last asked the Codex manager to check, which is when limits were fetched.
+    /// When this widget last asked its limits source to check, which is when limits were fetched.
     private(set) var limitsRequestedAt: Date?
+    private(set) var copilotStatus = CopilotStatus.checking
+    private var isCheckingCopilot = false
 
     @ObservationIgnored private var fileCache = PersonalAIUsageFileCache()
     @ObservationIgnored private var wake: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var runGeneration = 0
     @ObservationIgnored private var isForcingLimits = false
 
-    /// Codex's rate-limit windows, primary first; nil when there are none to show.
+    /// The chosen source's limit windows, the tightest first; nil when there are none to show.
     var limits: [LimitRow]? {
+        switch settings.limitsSource {
+        case .codex: codexLimits
+        case .copilot: copilotLimits
+        }
+    }
+
+    private var codexLimits: [LimitRow]? {
         guard let rateLimits = AppCore.shared.chatGPTSubscription.rateLimits else { return nil }
         var rows: [LimitRow] = []
         if let window = rateLimits.primary {
@@ -55,6 +72,16 @@ final class AIUsageModel {
             rows.append(Self.row("secondary", "Secondary", window))
         }
         return rows.isEmpty ? nil : rows
+    }
+
+    private var copilotLimits: [LimitRow]? {
+        guard case .ready(let quota) = copilotStatus, !quota.buckets.isEmpty else { return nil }
+        return quota.buckets.map {
+            LimitRow(
+                id: $0.id, source: .copilot, fallbackTitle: $0.title,
+                window: PersonalAIUsageLimitWindow(
+                    usedPercent: $0.usedPercent, durationMinutes: nil, resetsAt: quota.resetsAt))
+        }
     }
 
     var codexStatus: CodexStatus {
@@ -69,12 +96,23 @@ final class AIUsageModel {
         }
     }
 
-    var codexPlan: String? { AppCore.shared.chatGPTSubscription.account?.planTitle }
+    /// The plan of whichever account the limits come from: "Plus", "Business".
+    var limitsPlan: String? {
+        switch settings.limitsSource {
+        case .codex: AppCore.shared.chatGPTSubscription.account?.planTitle
+        case .copilot:
+            if case .ready(let quota) = copilotStatus { quota.plan } else { nil }
+        }
+    }
 
     /// The newest of the last scan and the last limits check.
     var updatedAt: Date? { [activity?.updatedAt, limitsRequestedAt].compactMap { $0 }.max() }
 
-    var isRefreshing: Bool { isScanning || AppCore.shared.chatGPTSubscription.phase == .starting }
+    var isRefreshing: Bool {
+        isScanning || isCheckingCopilot
+            || (settings.limitsSource == .codex
+                && AppCore.shared.chatGPTSubscription.phase == .starting)
+    }
 
     /// Drives the widget while its tile is on screen: scans now, on a beat, and on a new range.
     func run(_ context: DockWidgetContext) async {
@@ -140,15 +178,19 @@ final class AIUsageModel {
     /// True when the change calls for a fresh scan: a new range or a different kind of content.
     @discardableResult
     private func adopt(_ next: PersonalAIUsageSettings) -> Bool {
-        let rescans = next.range != settings.range || next.content != settings.content
+        let rescans =
+            next.range != settings.range || next.content != settings.content
+            || next.limitsSource != settings.limitsSource
+        if next.limitsSource != settings.limitsSource { isForcingLimits = true }
         if next != settings { settings = next }
         return rescans
     }
 
-    /// Never asks while a check is under way, and never touches the manager otherwise.
+    /// Never asks while a check is under way, and never touches a source the widget is not showing.
     private func refreshLimits() {
         let force = isForcingLimits
         isForcingLimits = false
+        guard settings.limitsSource == .codex else { return refreshCopilot(force: force) }
         let core = AppCore.shared
         guard Self.isCodexEnabled(core) else { return }
         let subscription = core.chatGPTSubscription
@@ -160,6 +202,25 @@ final class AIUsageModel {
         guard isDue else { return }
         limitsRequestedAt = now
         subscription.refresh()
+    }
+
+    private func refreshCopilot(force: Bool) {
+        guard !isCheckingCopilot else { return }
+        let now = Date()
+        guard force || PersonalAIUsageSchedule.isStale(since: limitsRequestedAt, now: now) else {
+            return
+        }
+        limitsRequestedAt = now
+        isCheckingCopilot = true
+        Task { [weak self] in
+            let result = await PersonalCopilotUsageClient.fetch()
+            guard let self else { return }
+            isCheckingCopilot = false
+            switch result {
+            case .success(let quota): copilotStatus = .ready(quota)
+            case .failure(let failure): copilotStatus = .failed(failure)
+            }
+        }
     }
 
     private func rescan() async {
@@ -201,7 +262,7 @@ final class AIUsageModel {
         _ id: String, _ fallback: String, _ window: ChatGPTSubscription.UsageWindow
     ) -> LimitRow {
         LimitRow(
-            id: id, fallbackTitle: fallback,
+            id: id, source: .codex, fallbackTitle: fallback,
             window: PersonalAIUsageLimitWindow(
                 usedPercent: window.usedPercent, durationMinutes: window.durationMinutes,
                 resetsAt: window.resetsAt))
@@ -218,7 +279,8 @@ final class AIUsageModel {
             content: preferences.string(PersonalAIUsageSettings.Name.content),
             range: preferences.string(PersonalAIUsageSettings.Name.range),
             display: preferences.string(PersonalAIUsageSettings.Name.display),
-            measure: preferences.string(PersonalAIUsageSettings.Name.measure))
+            measure: preferences.string(PersonalAIUsageSettings.Name.measure),
+            limitsSource: preferences.string(PersonalAIUsageSettings.Name.limitsSource))
     }
 }
 

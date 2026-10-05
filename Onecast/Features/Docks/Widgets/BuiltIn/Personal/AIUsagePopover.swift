@@ -81,9 +81,10 @@ struct AIUsagePopover: View {
         _ rows: [AIUsageModel.LimitRow]?, measure: PersonalAIUsageMeasure, now: Date
     ) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            let source = stored.value.limitsSource
             sectionHeader(
-                mark: PersonalAIUsageProvider.codex.markName, title: "Codex limits",
-                trailing: model.codexPlan)
+                mark: source == .codex ? PersonalAIUsageProvider.codex.markName : "BrandGitHub",
+                title: "\(source.title) limits", trailing: model.limitsPlan)
             if let rows {
                 ForEach(rows) { limitRow($0, measure: measure, now: now) }
             } else {
@@ -126,6 +127,53 @@ struct AIUsagePopover: View {
 
     @ViewBuilder
     private var limitsStatus: some View {
+        if stored.value.limitsSource == .copilot {
+            copilotStatus
+        } else {
+            codexStatus
+        }
+    }
+
+    @ViewBuilder
+    private var copilotStatus: some View {
+        switch model.copilotStatus {
+        case .checking:
+            statusText("Checking GitHub Copilot…")
+        case .ready:
+            statusText("Copilot reports no metered quota for this account; it is unlimited.")
+        case .failed(.ghMissing):
+            statusText("Install the GitHub CLI (gh) and sign in to read Copilot's quota.")
+        case .failed(.signedOut):
+            statusText("Sign in with gh auth login on github.com, then try again.")
+            retryButton
+        case .failed(.noCopilot):
+            statusText("The account gh is signed in to has no Copilot subscription.")
+        case .failed(let failure):
+            statusText(Self.copilotMessage(failure), tint: Theme.Colors.destructive)
+            retryButton
+        }
+    }
+
+    private static func copilotMessage(_ failure: PersonalCopilotUsageClient.Failure) -> String {
+        switch failure {
+        case .server(let status): "GitHub answered with an error (\(status))."
+        case .network(let message): message
+        case .unreadable: "GitHub's answer could not be read."
+        case .ghMissing, .signedOut, .noCopilot: "Copilot's quota is unavailable."
+        }
+    }
+
+    private var retryButton: some View {
+        BarButton(chrome: .rounded, action: { model.requestRefresh() }) {
+            Text("Try again")
+                .font(Theme.Typography.bar)
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .padding(.leading, -Theme.Spacing.md)
+    }
+
+    @ViewBuilder
+    private var codexStatus: some View {
         switch model.codexStatus {
         case .connected:
             statusText("Codex did not report any rate limits for this account.")
@@ -142,12 +190,7 @@ struct AIUsagePopover: View {
                 .fixedSize(horizontal: false, vertical: true)
         case .failed(let message):
             statusText(message, tint: Theme.Colors.destructive)
-            BarButton(chrome: .rounded, action: { model.requestRefresh() }) {
-                Text("Try again")
-                    .font(Theme.Typography.bar)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            .padding(.leading, -Theme.Spacing.md)
+            retryButton
         }
     }
 

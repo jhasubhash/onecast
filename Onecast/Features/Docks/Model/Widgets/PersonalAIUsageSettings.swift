@@ -62,19 +62,26 @@ struct PersonalAIUsageSettings: Sendable, Equatable {
         static let range = "range"
         static let display = "display"
         static let measure = "measure"
+        static let limitsSource = "limitsSource"
     }
 
     var content = PersonalAIUsageContent.standard
     var range = PersonalAIUsageRange.standard
     var display = PersonalAIUsageDisplay.standard
     var measure = PersonalAIUsageMeasure.standard
+    var limitsSource = PersonalAIUsageLimitsSource.standard
 
     init() {}
 
-    init(content: String?, range: String?, display: String?, measure: String?) {
+    init(
+        content: String?, range: String?, display: String?, measure: String?,
+        limitsSource: String? = nil
+    ) {
         self.content = content.flatMap(PersonalAIUsageContent.init(rawValue:)) ?? .standard
         self.range = range.flatMap(PersonalAIUsageRange.init(rawValue:)) ?? .standard
         self.display = display.flatMap(PersonalAIUsageDisplay.init(rawValue:)) ?? .standard
         self.measure = measure.flatMap(PersonalAIUsageMeasure.init(rawValue:)) ?? .standard
+        self.limitsSource =
+            limitsSource.flatMap(PersonalAIUsageLimitsSource.init(rawValue:)) ?? .standard
     }
 }

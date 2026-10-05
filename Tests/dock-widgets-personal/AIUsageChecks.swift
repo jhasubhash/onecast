@@ -16,6 +16,58 @@ enum AIUsageChecks {
         formatting()
         settingsAndContent()
         scanner()
+        copilotQuota()
+    }
+
+    // MARK: - Copilot
+
+    /// The shape `copilot_internal/user` returns: unlimited quotas carry no meter, premium leads.
+    private static func copilotQuota() {
+        let body = #"""
+            {"copilot_plan":"business","quota_reset_date":"2026-11-01",
+             "quota_reset_date_utc":"2026-11-01T00:00:00.000Z",
+             "quota_snapshots":{
+               "chat":{"unlimited":true,"percent_remaining":100.0,"remaining":0,"entitlement":0},
+               "completions":{"unlimited":false,"percent_remaining":40,"remaining":800,"entitlement":2000},
+               "premium_interactions":{"unlimited":false,"percent_remaining":75.7,
+                 "remaining":302940,"entitlement":400000}}}
+            """#
+        guard let quota = PersonalCopilotQuota.parse(Data(body.utf8)) else {
+            return t.expect(false, "a Copilot quota response parses")
+        }
+        t.expect(quota.plan == "Business", "the plan reads capitalised")
+        t.expect(
+            quota.buckets.map(\.id) == ["premium_interactions", "completions"],
+            "unlimited quotas are dropped and premium requests come first")
+        t.expect(quota.buckets.first?.title == "Premium requests", "premium requests are named")
+        t.expect(quota.buckets.first?.usedPercent == 24, "75.7% left reads as 24% used")
+        t.expect(quota.buckets.last?.usedPercent == 60, "an integer percent reads too")
+        t.expect(
+            quota.resetsAt == date("2026-11-01T00:00:00.000Z"), "the exact UTC reset instant is used")
+
+        let dateOnly = #"{"quota_reset_date":"2026-12-01","quota_snapshots":{}}"#
+        let plain = PersonalCopilotQuota.parse(Data(dateOnly.utf8))
+        t.expect(
+            plain?.resetsAt == date("2026-12-01T00:00:00Z") && plain?.buckets.isEmpty == true
+                && plain?.plan == nil,
+            "a bare reset date reads as UTC midnight, and no snapshots means nothing metered")
+        t.expect(
+            PersonalCopilotQuota.parse(Data(#"{"message":"Not Found"}"#.utf8)) == nil,
+            "an answer without quota snapshots is not a quota")
+        let over = #"{"quota_snapshots":{"x_y":{"percent_remaining":-5}}}"#
+        let clamped = PersonalCopilotQuota.parse(Data(over.utf8))?.buckets.first
+        t.expect(
+            clamped?.usedPercent == 100 && clamped?.title == "X Y",
+            "an overdrawn quota reads fully used and an unknown id is titled from itself")
+
+        let source = PersonalAIUsageSettings(
+            content: nil, range: nil, display: nil, measure: nil, limitsSource: "copilot")
+        t.expect(source.limitsSource == .copilot, "the limits source reads back")
+        t.expect(
+            PersonalAIUsageSettings(
+                content: nil, range: nil, display: nil, measure: nil, limitsSource: "gemini"
+            ).limitsSource == .codex,
+            "an unknown limits source falls back to Codex")
     }
 
     // MARK: - Fixtures

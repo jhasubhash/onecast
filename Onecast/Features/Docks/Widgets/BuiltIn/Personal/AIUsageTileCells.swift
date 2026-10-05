@@ -121,6 +121,7 @@ extension AIUsageCell {
         _ row: AIUsageModel.LimitRow, measure: PersonalAIUsageMeasure, now: Date, calendar: Calendar
     ) -> AIUsageCell {
         let window = row.window
+        let source = row.source.shortTitle
         let title = window.title(fallback: row.fallbackTitle)
         let short = window.shortTitle(fallback: row.fallbackTitle)
         let phrase = window.resetsAt.map {
@@ -128,11 +129,11 @@ extension AIUsageCell {
         }
         let reset = phrase.map { ["resets \($0)", $0, $0.replacingOccurrences(of: "in ", with: "")] }
         return AIUsageCell(
-            id: "codex.\(row.id)",
-            labels: ["Codex · \(title)", "Codex \(short)", title, short],
+            id: "\(row.source.rawValue).\(row.id)",
+            labels: ["\(source) · \(title)", "\(source) \(short)", title, short],
             figure: "\(window.percent(measure))%", caption: measure.suffix, bottoms: reset ?? [],
             progress: window.fraction(measure), days: nil, tint: limitTint(window),
-            spoken: "Codex \(title) limit, \(window.caption(measure))"
+            spoken: "\(source) \(title) limit, \(window.caption(measure))"
                 + (reset.map { ", \($0[0])" } ?? ""))
     }
 
