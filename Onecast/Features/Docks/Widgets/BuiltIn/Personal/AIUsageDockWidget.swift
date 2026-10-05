@@ -19,11 +19,12 @@ final class AIUsageDockWidget: OnecastDockWidget {
             },
             defaultValue: .string(PersonalAIUsageContent.standard.rawValue)),
         PluginPreference(
-            name: PersonalAIUsageSettings.Name.limitsSource, title: "Limits from",
+            name: PersonalAIUsageSettings.Name.limitsSource, title: "Service",
             description:
-                "Codex reads its rate limits through Onecast's AI. Claude Code reads its session "
-                + "and weekly limits with Claude Code's own sign-in. GitHub Copilot reads the "
-                + "monthly quota of the account the GitHub CLI (gh) is signed in to.",
+                "The one service the widget follows, limits and activity alike. Codex reads its "
+                + "rate limits through Onecast's AI; Claude Code reads its limits with Claude "
+                + "Code's own sign-in; GitHub Copilot reads the account gh is signed in to and "
+                + "keeps no local logs, so it shows limits only.",
             kind: .dropdown,
             options: PersonalAIUsageLimitsSource.allCases.map {
                 PluginPreference.Option(title: $0.title, value: $0.rawValue)

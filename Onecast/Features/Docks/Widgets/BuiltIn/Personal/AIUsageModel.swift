@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import OnecastPluginKit
 
-/// One AI Usage widget's live state: Codex's or Copilot's limits, and token activity from logs.
+/// One AI Usage widget's live state: the chosen service's limits, and its token activity from logs.
 @MainActor
 @Observable
 final class AIUsageModel {
@@ -13,8 +13,6 @@ final class AIUsageModel {
         let summaries: [PersonalAIUsageSummary]
         let foundFolders: Set<PersonalAIUsageProvider>
         let updatedAt: Date
-
-        var combined: PersonalAIUsageSeries { .merged(summaries.map(\.series)) }
     }
 
     struct LimitRow: Identifiable, Equatable {
@@ -42,7 +40,20 @@ final class AIUsageModel {
     }
 
     private(set) var settings = PersonalAIUsageSettings()
-    private(set) var activity: Activity?
+    /// Every provider's logs, as the last scan found them; `activity` narrows it to the chosen one.
+    private var scannedActivity: Activity?
+
+    /// The chosen service's activity: empty for Copilot, which keeps no logs; nil until a scan lands.
+    var activity: Activity? {
+        guard let scannedActivity else { return nil }
+        let provider = settings.limitsSource.activityProvider
+        return Activity(
+            range: scannedActivity.range,
+            summaries: scannedActivity.summaries.filter { $0.provider == provider },
+            foundFolders: scannedActivity.foundFolders.filter { $0 == provider },
+            updatedAt: scannedActivity.updatedAt)
+    }
+
     private(set) var isScanning = false
     /// When this widget last asked its limits source to check, which is when limits were fetched.
     private(set) var limitsRequestedAt: Date?
@@ -160,7 +171,7 @@ final class AIUsageModel {
 
     /// A tile that comes back on screen shows what the last scan found rather than scanning again.
     private var hasFreshActivity: Bool {
-        guard let activity, activity.range == settings.range else { return false }
+        guard let activity = scannedActivity, activity.range == settings.range else { return false }
         let now = Date()
         return !PersonalAIUsageSchedule.isStale(since: activity.updatedAt, now: now)
             && Calendar.autoupdatingCurrent.isDate(activity.updatedAt, inSameDayAs: now)
@@ -259,7 +270,7 @@ final class AIUsageModel {
         }
         fileCache = outcome.cache
         guard outcome.isComplete, range == settings.range else { return }
-        activity = Activity(
+        scannedActivity = Activity(
             range: range, summaries: outcome.summaries, foundFolders: outcome.foundFolders,
             updatedAt: Date())
     }

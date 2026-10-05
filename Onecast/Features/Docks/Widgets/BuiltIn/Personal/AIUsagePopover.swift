@@ -31,7 +31,7 @@ struct AIUsagePopover: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 header
                 if let resolution, resolution.isFallback {
-                    fallbackNote(settings.content, showing: resolution.content)
+                    fallbackNote(settings, showing: resolution.content)
                 }
                 ForEach([settings.content, settings.content.other], id: \.self) { kind in
                     switch kind {
@@ -45,7 +45,9 @@ struct AIUsagePopover: View {
                         }
                     }
                 }
-                if !hasActivity { emptyActivity(activity) }
+                if !hasActivity, let provider = settings.limitsSource.activityProvider {
+                    emptyActivity(activity, provider: provider)
+                }
                 footer
             }
             .padding(PersonalPopover.padding)
@@ -64,12 +66,17 @@ struct AIUsagePopover: View {
         }
     }
 
-    private func fallbackNote(_ chosen: PersonalAIUsageContent, showing shown: PersonalAIUsageContent)
+    private func fallbackNote(_ settings: PersonalAIUsageSettings, showing shown: PersonalAIUsageContent)
         -> some View
     {
-        HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
+        let source = settings.limitsSource
+        let note =
+            source.activityProvider == nil && settings.content == .activity
+            ? "\(source.title) keeps no local logs, so only its limits are shown."
+            : "\(settings.content.title) has no data yet, so \(shown.title) is shown instead."
+        return HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
             SymbolImage(name: "info.circle", size: Self.markSize)
-            Text("\(chosen.title) has no data yet, so \(shown.title) is shown instead.")
+            Text(note)
                 .font(Theme.Typography.rowTrailing)
         }
         .foregroundStyle(Theme.Colors.textSecondary)
@@ -297,20 +304,18 @@ struct AIUsagePopover: View {
     }
 
     @ViewBuilder
-    private func emptyActivity(_ activity: AIUsageModel.Activity?) -> some View {
+    private func emptyActivity(_ activity: AIUsageModel.Activity?, provider: PersonalAIUsageProvider)
+        -> some View
+    {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text(activity == nil ? "Reading local logs…" : "No Claude Code or Codex activity found")
+            Text(activity == nil ? "Reading local logs…" : "No \(provider.title) activity found")
                 .font(Theme.Typography.sectionHeader)
                 .foregroundStyle(Theme.Colors.textSecondary)
             if let activity {
-                ForEach(PersonalAIUsageProvider.allCases) { provider in
-                    let found = activity.foundFolders.contains(provider)
-                    let range = activity.range.title.lowercased()
-                    statusText(
-                        found
-                            ? "\(provider.title): nothing in the logs for \(range)."
-                            : "\(provider.title): no logs found in \(provider.logFolder).")
-                }
+                statusText(
+                    activity.foundFolders.contains(provider)
+                        ? "Nothing in the logs for \(activity.range.title.lowercased())."
+                        : "No logs found in \(provider.logFolder).")
             }
         }
     }
@@ -340,7 +345,7 @@ struct AIUsagePopover: View {
                 }
                 .foregroundStyle(Theme.Colors.textSecondary)
             }
-            .tooltip("Rescan the logs and check Codex again")
+            .tooltip("Check the limits and rescan the logs again")
             .accessibilityLabel("Refresh AI usage")
         }
     }

@@ -22,19 +22,6 @@ struct PersonalAIUsageSeries: Sendable, Equatable {
         guard busiest > 0 else { return 0 }
         return min(max(Double(today.total) / Double(busiest), 0), 1)
     }
-
-    /// Day totals added together; the series must cover the same days, as one range's do.
-    static func merged(_ series: [PersonalAIUsageSeries]) -> PersonalAIUsageSeries {
-        guard let first = series.first else { return PersonalAIUsageSeries(days: []) }
-        let days = first.days.enumerated().map { index, day in
-            var sum = day
-            for other in series.dropFirst() where index < other.days.count {
-                sum.tokens += other.days[index].tokens
-            }
-            return sum
-        }
-        return PersonalAIUsageSeries(days: days)
-    }
 }
 
 struct PersonalAIUsageSummary: Sendable, Equatable, Identifiable {

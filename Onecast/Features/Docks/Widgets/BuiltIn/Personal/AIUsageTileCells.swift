@@ -87,7 +87,7 @@ extension AIUsageModel {
         guard
             let resolution = PersonalAIUsageContent.resolve(
                 preferred: settings.content, hasLimits: limits != nil, hasActivity: hasActivity)
-        else { return .empty(isChecking: activity == nil && limits == nil) }
+        else { return .empty(isChecking: limits == nil && (activity == nil || isRefreshing)) }
 
         switch resolution.content {
         case .limits:
@@ -104,15 +104,8 @@ extension AIUsageModel {
                     spokenTitle: $0.provider.title, tint: $0.provider.accent,
                     series: $0.series, range: activity.range, display: settings.display)
             }
-            let summary =
-                cells.count == 1
-                ? cells.first
-                : AIUsageCell.activity(
-                    labels: ["All providers", "All"], spokenTitle: "All providers",
-                    tint: Color.accentColor, series: activity.combined, range: activity.range,
-                    display: settings.display)
             return AIUsagePlan(
-                resolution: resolution, cells: cells, summary: summary, isChecking: false)
+                resolution: resolution, cells: cells, summary: cells.first, isChecking: false)
         }
     }
 }

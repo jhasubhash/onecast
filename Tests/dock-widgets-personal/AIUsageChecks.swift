@@ -543,12 +543,6 @@ enum AIUsageChecks {
         ])
         t.expect(quiet.todayShare == 0 && !quiet.hasActivity, "no tokens is no activity and an empty ring")
         t.expect(!PersonalAIUsageSeries(days: []).hasActivity, "an empty series has no activity")
-
-        let merged = PersonalAIUsageSeries.merged([shape, peak])
-        t.expect(
-            merged.days.map(\.tokens.total) == [105, 100],
-            "providers add up day by day")
-        t.expect(PersonalAIUsageSeries.merged([]).days.isEmpty, "nothing merged is an empty series")
     }
 
     // MARK: - Limits

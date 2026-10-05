@@ -1,6 +1,6 @@
 import Foundation
 
-/// Where an AI Usage widget's limits come from.
+/// The service an AI Usage widget follows: its limits, and its token activity where it keeps logs.
 enum PersonalAIUsageLimitsSource: String, Sendable, CaseIterable {
     case codex
     case claude
@@ -22,6 +22,15 @@ enum PersonalAIUsageLimitsSource: String, Sendable, CaseIterable {
         case .codex: "Codex"
         case .claude: "Claude"
         case .copilot: "Copilot"
+        }
+    }
+
+    /// Whose local logs the widget adds up; Copilot keeps none.
+    var activityProvider: PersonalAIUsageProvider? {
+        switch self {
+        case .codex: .codex
+        case .claude: .claudeCode
+        case .copilot: nil
         }
     }
 }
