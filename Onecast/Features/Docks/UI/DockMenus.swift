@@ -52,7 +52,15 @@ enum DockMenus {
                 title: "Add Widget…", systemImage: "square.grid.2x2",
                 action: { context.core.settingsCoordinator.showSettings(tab: .docks) }),
             PopoverMenuItem(
-                title: "Hide Dock", systemImage: "eye.slash", startsSection: true,
+                title: dock.appearance.autoHides ? "Turn Auto-hide Off" : "Turn Auto-hide On",
+                systemImage: dock.appearance.autoHides
+                    ? "rectangle.bottomhalf.inset.filled" : "rectangle.dashed",
+                startsSection: true,
+                action: {
+                    coordinator.updateAppearance(dockID: dock.id) { $0.autoHides.toggle() }
+                }),
+            PopoverMenuItem(
+                title: "Hide Dock", systemImage: "eye.slash",
                 action: { coordinator.setDockVisible(id: dock.id, false) }),
             PopoverMenuItem(
                 title: "Dock Settings…", systemImage: "gearshape",

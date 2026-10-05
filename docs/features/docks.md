@@ -104,7 +104,8 @@ switches nothing back. `HotKeyAction.dockVisibility` shows or hides one dock. Se
 - **The lens is anchored to the pointer**: the point under it stays put and the strip grows around it.
 - **Auto-hide slides the plate inside its window, then fits the window**, leaving a `handleThickness`
   strip, never a window parked off screen. Reveal is a global pointer monitor on the reveal zone,
-  armed only while some dock hides; in a full-screen Space the pointer must rest there first.
+  armed only while some dock hides; in a full-screen Space the pointer must rest there first. It is
+  set per dock in Settings › Docks › Appearance, or from the dock's own right-click menu.
 - **Yielding to the macOS Dock is detected, not assumed**: its window is looked for at the Dock level
   only while the pointer is near its edge.
 - **Popups are panels**, one at a time; Escape, a click elsewhere and losing key close them.
