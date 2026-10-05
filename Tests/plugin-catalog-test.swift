@@ -18,6 +18,8 @@ struct PluginCatalogTests {
     static func main() {
         manifestRoundTripsThroughCodable()
         manifestDecodesWithoutOptionalKeys()
+        preferencesDecodeWithTypedDefaults()
+        preferenceTypeFallsBackToTextField()
         installDerivesEntryIDAndModuleName()
         moduleNameSanitizesDisplayName()
         moduleNameFromManifestWins()
@@ -56,6 +58,39 @@ struct PluginCatalogTests {
         expect(decoded.icon == nil, "an absent icon decodes as nil")
         expect(decoded.module == nil, "an absent module decodes as nil")
         expect(decoded.name == "Bare", "the required keys decode")
+    }
+
+    /// What a plugin reads is what the host registers: a number default as its text, a checkbox's
+    /// as a Bool, a dropdown's options in order.
+    static func preferencesDecodeWithTypedDefaults() {
+        let json = Data(#"""
+            {"name":"Svc","identifier":"com.acme.svc","preferences":[
+              {"name":"port","title":"Port","type":"textfield","default":8799},
+              {"name":"verbose","title":"Verbose","type":"checkbox","default":true},
+              {"name":"mode","title":"Mode","type":"dropdown","default":"fast",
+               "options":[{"title":"Fast","value":"fast"},{"title":"Careful","value":"careful"}]}]}
+            """#.utf8)
+        guard let prefs = (try? JSONDecoder().decode(PluginManifest.self, from: json))?.preferences else {
+            return expect(false, "a manifest with preferences failed to decode")
+        }
+        expect(prefs.map(\.name) == ["port", "verbose", "mode"], "preferences keep manifest order")
+        expect(prefs[0].registeredDefault as? String == "8799", "a number default registers as its text")
+        expect(prefs[1].registeredDefault as? Bool == true, "a checkbox default registers as a Bool")
+        expect(prefs[2].options.map(\.value) == ["fast", "careful"], "dropdown options keep their order")
+    }
+
+    /// A typo in `type` must not drop the plugin's manifest, and a bare entry reads as a text field.
+    static func preferenceTypeFallsBackToTextField() {
+        let json = Data(#"""
+            {"name":"Svc","identifier":"com.acme.svc","preferences":[
+              {"name":"host","type":"txtfield"},{"name":"dir"}]}
+            """#.utf8)
+        guard let prefs = (try? JSONDecoder().decode(PluginManifest.self, from: json))?.preferences else {
+            return expect(false, "an unknown preference type failed the whole manifest")
+        }
+        expect(prefs.allSatisfy { $0.kind == .textfield }, "unknown and absent types are text fields")
+        expect(prefs[0].title == "host", "a missing title shows the preference's name")
+        expect(prefs[1].registeredDefault == nil, "no default registers nothing")
     }
 
     // MARK: - Install identity

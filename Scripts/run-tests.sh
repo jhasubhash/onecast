@@ -631,6 +631,7 @@ run assistant-store-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/AI/Service/AssistantStore.swift \
                            Onecast/Features/AI/Service/SkillStore.swift
 run plugin-catalog-test    Onecast/Platform/AppPaths.swift \
+                           Onecast/Features/Plugins/Model/PluginPreference.swift \
                            Onecast/Features/Plugins/Service/PluginCatalog.swift
 
 if [ "$emit_db" -eq 1 ]; then

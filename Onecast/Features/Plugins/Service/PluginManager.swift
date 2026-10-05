@@ -139,11 +139,24 @@ final class PluginManager {
             guard let self, found != self.installed else { return }
             let vanished = Set(self.installed.map(\.entryID)).subtracting(found.map(\.entryID))
             self.installed = found
+            Self.registerPreferenceDefaults(found)
             self.publishLauncherEntries()
             self.onDidRefresh?()
             self.prewarm(found)
             if !vanished.isEmpty { self.confirmRemoval(of: vanished) }
         }
+    }
+
+    /// An unset preference reads as its manifest default, through `PluginPreferences` and the pane.
+    private static func registerPreferenceDefaults(_ installs: [PluginInstall]) {
+        var defaults: [String: Any] = [:]
+        for install in installs {
+            for preference in install.manifest.preferences ?? [] {
+                guard let value = preference.registeredDefault else { continue }
+                defaults[PluginPreferences.key(pluginID: install.manifest.identifier, name: preference.name)] = value
+            }
+        }
+        UserDefaults.standard.register(defaults: defaults)
     }
 
     /// A plugin gone from a scan is uninstalled only if a later scan still misses it, so replacing

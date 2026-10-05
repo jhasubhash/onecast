@@ -90,6 +90,11 @@ never shares plugins with a release build. Built dylibs are cached separately un
     - `.openURL(URL)` → the host opens it and closes the launcher.
     - `.none` → inert.
 
+- `PluginPreferences(pluginID:)` — the plugin's own settings (manifest `preferences`, below):
+  `string(_:)`, `integer(_:)`, `bool(_:)` by name, and `set(_:for:)` for a value the plugin itself
+  changes (a ⌘K switch). Read one when it is used, never once at launch: an edit in Settings ›
+  Plugins then applies to the very next use. An unset one reads as its manifest `default`.
+
 `results(for:)` is re-asked on every keystroke — filter on `context.query` yourself. Pushed child
 lists are filtered by the host. A surface owns the entire panel and its own keyboard: wrap it in a
 `PluginScaffold` (below), which claims Escape, ⌘K and the list keys through a local monitor ahead of
@@ -205,6 +210,22 @@ the contract above — see `hello`.
 
 `name` and `identifier` are required; `subtitle`, `icon` (an SF Symbol) and `module` (the Swift
 `-module-name`, derived from `name` when omitted) are optional.
+
+**Settings** — a manifest may declare `preferences`; Settings › Plugins then gives the plugin's row
+a **Settings** button that opens one control per entry, and the plugin reads them through
+`PluginPreferences`. The schema is a subset of an extension's: `name` (required), `title`,
+`description`, `placeholder`, `type` (`textfield` — the default, also for an unknown type —
+`checkbox`, `dropdown` with `options: [{"title", "value"}]`, `directory`) and `default` (a number is
+stored as its text, so `"default": 8799` reads back through `integer("port")`). Values live in the
+host's defaults under `plugin.<identifier>.<name>`; clearing a text field returns it to the default.
+
+```json
+"preferences": [
+  {"name": "port", "title": "Server port", "type": "textfield", "default": 8799,
+   "description": "Where the local server listens."},
+  {"name": "verbose", "title": "Verbose log", "type": "checkbox", "default": false}
+]
+```
 
 **Install, enable, run.** Copy the folder's contents into the per-channel plugins directory:
 

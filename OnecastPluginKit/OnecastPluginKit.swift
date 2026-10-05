@@ -18,6 +18,51 @@ public struct PluginMetadata: Sendable, Equatable {
     }
 }
 
+// MARK: - Preferences
+
+/// A plugin's own settings, declared in its `manifest.json` `preferences` and edited under
+/// Settings › Plugins. Read one by name when it is needed, not once at launch, so an edit applies at
+/// once. The host registers each manifest default, so an unset preference reads as that default.
+public struct PluginPreferences: Sendable {
+    public let pluginID: String
+
+    /// `pluginID` is the manifest's `identifier`.
+    public init(pluginID: String) {
+        self.pluginID = pluginID
+    }
+
+    /// Where the host keeps one preference in its defaults; the settings pane writes the same key.
+    public static func key(pluginID: String, name: String) -> String {
+        "plugin.\(pluginID).\(name)"
+    }
+
+    /// A text, dropdown or directory preference; nil when it is empty.
+    public func string(_ name: String) -> String? {
+        guard let value = UserDefaults.standard.string(forKey: key(name)), !value.isEmpty else { return nil }
+        return value
+    }
+
+    /// A text preference holding a whole number; nil when it is empty or not a number.
+    public func integer(_ name: String) -> Int? {
+        string(name).flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+    }
+
+    public func bool(_ name: String) -> Bool {
+        UserDefaults.standard.bool(forKey: key(name))
+    }
+
+    /// Sets a text preference from the plugin itself (e.g. a ⌘K switch); the pane shows it next open.
+    public func set(_ value: String?, for name: String) {
+        UserDefaults.standard.set(value, forKey: key(name))
+    }
+
+    public func set(_ value: Bool, for name: String) {
+        UserDefaults.standard.set(value, forKey: key(name))
+    }
+
+    private func key(_ name: String) -> String { Self.key(pluginID: pluginID, name: name) }
+}
+
 // MARK: - Context
 
 /// How a surface is being shown: inside the palette, or as a standalone pop-out window. A plugin

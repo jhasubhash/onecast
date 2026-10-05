@@ -11,6 +11,8 @@ struct PluginManifest: Codable, Sendable, Hashable {
     /// The Swift `-module-name` to compile under. Absent: derived from `name`, which is all a plugin
     /// needs, since the loader entry point is `@_cdecl` and module-independent.
     var module: String?
+    /// Settings the plugin reads through `PluginPreferences`; Settings › Plugins edits them.
+    var preferences: [PluginPreference]?
 }
 
 /// An installed plugin: its manifest, where its sources live, and a cheap fingerprint of those
