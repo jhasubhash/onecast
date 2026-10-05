@@ -149,8 +149,9 @@ public func onecastDockWidgetCreate() -> UnsafeMutableRawPointer {
 
 ### Sizes and edges
 
-The host frames `tile(context:)` to its slot and clips it to the tile's rounded rectangle, **drawing
-no background or chrome of its own** — fill the proposed frame and draw whatever surface you want.
+The host frames `tile(context:)` to its slot and draws the **card** behind it — a translucent fill
+whose corners run parallel to the dock's — then clips your view to it. Draw content only: no
+background, border or corner of your own, so every widget sits in the dock alike.
 
 | `size` | Slot along the dock | Across the dock |
 |---|---|---|
@@ -298,6 +299,9 @@ and actions.
    DEST="$HOME/Library/Application Support/com.onecast.app.dev/dockwidgets/wave"
    mkdir -p "$DEST" && cp manifest.json WaveWidget.swift "$DEST/"
    ```
+
+   Widgets kept in `onecast_addons/dockwidgets/` install the same way through that repo's **Reload
+   DockWidgets** extension, which copies one or all of them into the running channel's folder.
 
 2. In **Settings → Docks**, turn Docks on, then allow third-party DockWidgets (it confirms the first
    time). The installed list shows the widget, a spinner while it builds, and the compiler's output
