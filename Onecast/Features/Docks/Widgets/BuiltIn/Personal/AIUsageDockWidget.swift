@@ -1,10 +1,10 @@
 import OnecastPluginKit
 import SwiftUI
 
-/// Codex's or GitHub Copilot's limits, and the tokens Claude Code and Codex used, from local logs.
+/// Codex's, Claude Code's or GitHub Copilot's limits, and Claude Code and Codex token activity.
 final class AIUsageDockWidget: OnecastDockWidget {
     static let metadata = DockWidgetMetadata(
-        name: "AI Usage", subtitle: "Codex or Copilot limits, and Claude Code and Codex activity",
+        name: "AI Usage", subtitle: "Codex, Claude or Copilot limits, and token activity",
         icon: AIUsageGlyph.widget, category: "Personal", sizes: [.compact, .wide, .expanded])
 
     static let preferences: [PluginPreference] = [
@@ -21,8 +21,9 @@ final class AIUsageDockWidget: OnecastDockWidget {
         PluginPreference(
             name: PersonalAIUsageSettings.Name.limitsSource, title: "Limits from",
             description:
-                "Codex reads its rate limits through Onecast's AI. GitHub Copilot reads the monthly "
-                + "quota of the account the GitHub CLI (gh) is signed in to.",
+                "Codex reads its rate limits through Onecast's AI. Claude Code reads its session "
+                + "and weekly limits with Claude Code's own sign-in. GitHub Copilot reads the "
+                + "monthly quota of the account the GitHub CLI (gh) is signed in to.",
             kind: .dropdown,
             options: PersonalAIUsageLimitsSource.allCases.map {
                 PluginPreference.Option(title: $0.title, value: $0.rawValue)

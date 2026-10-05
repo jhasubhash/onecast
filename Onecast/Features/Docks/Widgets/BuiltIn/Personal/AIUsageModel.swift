@@ -34,11 +34,11 @@ final class AIUsageModel {
         case failed(String)
     }
 
-    /// Where Copilot's quotas stand, for the tile and the popover to explain.
-    enum CopilotStatus: Equatable {
+    /// Where a remote source's limits stand (Claude, Copilot), for the tile and popover to explain.
+    enum RemoteStatus: Equatable {
         case checking
-        case ready(PersonalCopilotQuota)
-        case failed(PersonalCopilotUsageClient.Failure)
+        case ready(PersonalAIUsageLimitsReport)
+        case failed(PersonalAIUsageLimitsProblem)
     }
 
     private(set) var settings = PersonalAIUsageSettings()
@@ -46,8 +46,8 @@ final class AIUsageModel {
     private(set) var isScanning = false
     /// When this widget last asked its limits source to check, which is when limits were fetched.
     private(set) var limitsRequestedAt: Date?
-    private(set) var copilotStatus = CopilotStatus.checking
-    private var isCheckingCopilot = false
+    private(set) var remoteStatus: [PersonalAIUsageLimitsSource: RemoteStatus] = [:]
+    private var checkingSources: Set<PersonalAIUsageLimitsSource> = []
 
     @ObservationIgnored private var fileCache = PersonalAIUsageFileCache()
     @ObservationIgnored private var wake: AsyncStream<Void>.Continuation?
@@ -56,10 +56,22 @@ final class AIUsageModel {
 
     /// The chosen source's limit windows, the tightest first; nil when there are none to show.
     var limits: [LimitRow]? {
-        switch settings.limitsSource {
-        case .codex: codexLimits
-        case .copilot: copilotLimits
+        guard settings.limitsSource != .codex else { return codexLimits }
+        guard case .ready(let report) = currentRemoteStatus, !report.windows.isEmpty else {
+            return nil
         }
+        return report.windows.map {
+            LimitRow(
+                id: $0.id, source: settings.limitsSource, fallbackTitle: $0.fallbackTitle,
+                window: PersonalAIUsageLimitWindow(
+                    usedPercent: $0.usedPercent, durationMinutes: $0.durationMinutes,
+                    resetsAt: $0.resetsAt))
+        }
+    }
+
+    /// The chosen remote source's state; Codex reports through `codexStatus` instead.
+    var currentRemoteStatus: RemoteStatus {
+        remoteStatus[settings.limitsSource] ?? .checking
     }
 
     private var codexLimits: [LimitRow]? {
@@ -72,16 +84,6 @@ final class AIUsageModel {
             rows.append(Self.row("secondary", "Secondary", window))
         }
         return rows.isEmpty ? nil : rows
-    }
-
-    private var copilotLimits: [LimitRow]? {
-        guard case .ready(let quota) = copilotStatus, !quota.buckets.isEmpty else { return nil }
-        return quota.buckets.map {
-            LimitRow(
-                id: $0.id, source: .copilot, fallbackTitle: $0.title,
-                window: PersonalAIUsageLimitWindow(
-                    usedPercent: $0.usedPercent, durationMinutes: nil, resetsAt: quota.resetsAt))
-        }
     }
 
     var codexStatus: CodexStatus {
@@ -98,18 +100,18 @@ final class AIUsageModel {
 
     /// The plan of whichever account the limits come from: "Plus", "Business".
     var limitsPlan: String? {
-        switch settings.limitsSource {
-        case .codex: AppCore.shared.chatGPTSubscription.account?.planTitle
-        case .copilot:
-            if case .ready(let quota) = copilotStatus { quota.plan } else { nil }
+        guard settings.limitsSource != .codex else {
+            return AppCore.shared.chatGPTSubscription.account?.planTitle
         }
+        if case .ready(let report) = currentRemoteStatus { return report.plan }
+        return nil
     }
 
     /// The newest of the last scan and the last limits check.
     var updatedAt: Date? { [activity?.updatedAt, limitsRequestedAt].compactMap { $0 }.max() }
 
     var isRefreshing: Bool {
-        isScanning || isCheckingCopilot
+        isScanning || checkingSources.contains(settings.limitsSource)
             || (settings.limitsSource == .codex
                 && AppCore.shared.chatGPTSubscription.phase == .starting)
     }
@@ -190,7 +192,9 @@ final class AIUsageModel {
     private func refreshLimits() {
         let force = isForcingLimits
         isForcingLimits = false
-        guard settings.limitsSource == .codex else { return refreshCopilot(force: force) }
+        guard settings.limitsSource == .codex else {
+            return refreshRemote(settings.limitsSource, force: force)
+        }
         let core = AppCore.shared
         guard Self.isCodexEnabled(core) else { return }
         let subscription = core.chatGPTSubscription
@@ -204,21 +208,23 @@ final class AIUsageModel {
         subscription.refresh()
     }
 
-    private func refreshCopilot(force: Bool) {
-        guard !isCheckingCopilot else { return }
+    private func refreshRemote(_ source: PersonalAIUsageLimitsSource, force: Bool) {
+        guard !checkingSources.contains(source) else { return }
         let now = Date()
         guard force || PersonalAIUsageSchedule.isStale(since: limitsRequestedAt, now: now) else {
             return
         }
         limitsRequestedAt = now
-        isCheckingCopilot = true
+        checkingSources.insert(source)
         Task { [weak self] in
-            let result = await PersonalCopilotUsageClient.fetch()
+            let result =
+                source == .claude
+                ? await PersonalClaudeUsageClient.fetch() : await PersonalCopilotUsageClient.fetch()
             guard let self else { return }
-            isCheckingCopilot = false
+            checkingSources.remove(source)
             switch result {
-            case .success(let quota): copilotStatus = .ready(quota)
-            case .failure(let failure): copilotStatus = .failed(failure)
+            case .success(let report): remoteStatus[source] = .ready(report)
+            case .failure(let problem): remoteStatus[source] = .failed(problem)
             }
         }
     }

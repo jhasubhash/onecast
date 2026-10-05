@@ -1,0 +1,32 @@
+import Foundation
+
+/// A service's limits, normalised so Copilot and Claude draw the way Codex does.
+struct PersonalAIUsageLimitsReport: Sendable, Equatable {
+    struct Window: Sendable, Equatable, Identifiable {
+        let id: String
+        let fallbackTitle: String
+        let usedPercent: Int
+        let durationMinutes: Int?
+        let resetsAt: Date?
+    }
+
+    /// "Business", "Max", "Enterprise"; nil when the account names none.
+    let plan: String?
+    let windows: [Window]
+}
+
+/// Why a service's limits could not be read, worded for the popover.
+struct PersonalAIUsageLimitsProblem: Error, Sendable, Equatable {
+    let message: String
+    /// Whether Try again can help, rather than something the user must change first.
+    let canRetry: Bool
+}
+
+enum PersonalAIUsageISODate {
+    /// With or without fractional seconds, and with an offset or a `Z`.
+    static func parse(_ text: String) -> Date? {
+        let precise = ISO8601DateFormatter()
+        precise.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return precise.date(from: text) ?? ISO8601DateFormatter().date(from: text)
+    }
+}

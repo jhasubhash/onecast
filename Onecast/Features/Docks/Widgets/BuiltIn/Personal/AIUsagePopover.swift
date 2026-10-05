@@ -83,8 +83,8 @@ struct AIUsagePopover: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             let source = stored.value.limitsSource
             sectionHeader(
-                mark: source == .codex ? PersonalAIUsageProvider.codex.markName : "BrandGitHub",
-                title: "\(source.title) limits", trailing: model.limitsPlan)
+                mark: source.markName, title: "\(source.title) limits",
+                trailing: model.limitsPlan)
             if let rows {
                 ForEach(rows) { limitRow($0, measure: measure, now: now) }
             } else {
@@ -127,39 +127,23 @@ struct AIUsagePopover: View {
 
     @ViewBuilder
     private var limitsStatus: some View {
-        if stored.value.limitsSource == .copilot {
-            copilotStatus
-        } else {
+        if stored.value.limitsSource == .codex {
             codexStatus
+        } else {
+            remoteStatus(stored.value.limitsSource)
         }
     }
 
     @ViewBuilder
-    private var copilotStatus: some View {
-        switch model.copilotStatus {
+    private func remoteStatus(_ source: PersonalAIUsageLimitsSource) -> some View {
+        switch model.currentRemoteStatus {
         case .checking:
-            statusText("Checking GitHub Copilot…")
+            statusText("Checking \(source.title)…")
         case .ready:
-            statusText("Copilot reports no metered quota for this account; it is unlimited.")
-        case .failed(.ghMissing):
-            statusText("Install the GitHub CLI (gh) and sign in to read Copilot's quota.")
-        case .failed(.signedOut):
-            statusText("Sign in with gh auth login on github.com, then try again.")
-            retryButton
-        case .failed(.noCopilot):
-            statusText("The account gh is signed in to has no Copilot subscription.")
-        case .failed(let failure):
-            statusText(Self.copilotMessage(failure), tint: Theme.Colors.destructive)
-            retryButton
-        }
-    }
-
-    private static func copilotMessage(_ failure: PersonalCopilotUsageClient.Failure) -> String {
-        switch failure {
-        case .server(let status): "GitHub answered with an error (\(status))."
-        case .network(let message): message
-        case .unreadable: "GitHub's answer could not be read."
-        case .ghMissing, .signedOut, .noCopilot: "Copilot's quota is unavailable."
+            statusText("\(source.title) reports no metered limit for this account.")
+        case .failed(let problem):
+            statusText(problem.message)
+            if problem.canRetry { retryButton }
         }
     }
 

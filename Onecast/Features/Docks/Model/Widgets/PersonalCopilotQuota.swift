@@ -3,6 +3,7 @@ import Foundation
 /// Where an AI Usage widget's limits come from.
 enum PersonalAIUsageLimitsSource: String, Sendable, CaseIterable {
     case codex
+    case claude
     case copilot
 
     static let standard = PersonalAIUsageLimitsSource.codex
@@ -10,6 +11,7 @@ enum PersonalAIUsageLimitsSource: String, Sendable, CaseIterable {
     var title: String {
         switch self {
         case .codex: "Codex"
+        case .claude: "Claude Code"
         case .copilot: "GitHub Copilot"
         }
     }
@@ -18,6 +20,7 @@ enum PersonalAIUsageLimitsSource: String, Sendable, CaseIterable {
     var shortTitle: String {
         switch self {
         case .codex: "Codex"
+        case .claude: "Claude"
         case .copilot: "Copilot"
         }
     }
@@ -33,6 +36,16 @@ struct PersonalCopilotQuota: Sendable, Equatable {
         let entitlement: Int
 
         var usedPercent: Int { Int((100 - min(max(percentRemaining, 0), 100)).rounded()) }
+    }
+
+    var report: PersonalAIUsageLimitsReport {
+        PersonalAIUsageLimitsReport(
+            plan: plan,
+            windows: buckets.map {
+                PersonalAIUsageLimitsReport.Window(
+                    id: $0.id, fallbackTitle: $0.title, usedPercent: $0.usedPercent,
+                    durationMinutes: nil, resetsAt: resetsAt)
+            })
     }
 
     /// "Business", "Pro", "Free"; nil when the account names none.
@@ -81,12 +94,10 @@ struct PersonalCopilotQuota: Sendable, Equatable {
 
     /// The exact UTC instant when present, else the plain date taken as UTC midnight.
     private static func resetDate(_ root: [String: Any]) -> Date? {
-        if let stamp = root["quota_reset_date_utc"] as? String {
-            let precise = ISO8601DateFormatter()
-            precise.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = precise.date(from: stamp) ?? ISO8601DateFormatter().date(from: stamp) {
-                return date
-            }
+        if let stamp = root["quota_reset_date_utc"] as? String,
+            let date = PersonalAIUsageISODate.parse(stamp)
+        {
+            return date
         }
         guard let day = root["quota_reset_date"] as? String else { return nil }
         let plain = ISO8601DateFormatter()

@@ -17,6 +17,7 @@ enum AIUsageChecks {
         settingsAndContent()
         scanner()
         copilotQuota()
+        claudeUsage()
     }
 
     // MARK: - Copilot
@@ -60,14 +61,59 @@ enum AIUsageChecks {
             clamped?.usedPercent == 100 && clamped?.title == "X Y",
             "an overdrawn quota reads fully used and an unknown id is titled from itself")
 
-        let source = PersonalAIUsageSettings(
-            content: nil, range: nil, display: nil, measure: nil, limitsSource: "copilot")
-        t.expect(source.limitsSource == .copilot, "the limits source reads back")
+        let report = quota.report
         t.expect(
-            PersonalAIUsageSettings(
-                content: nil, range: nil, display: nil, measure: nil, limitsSource: "gemini"
-            ).limitsSource == .codex,
-            "an unknown limits source falls back to Codex")
+            report.plan == "Business" && report.windows.map(\.usedPercent) == [24, 60]
+                && report.windows.allSatisfy { $0.resetsAt == quota.resetsAt && $0.durationMinutes == nil },
+            "a quota becomes a report whose windows share the monthly reset")
+    }
+
+    /// Anthropic's `api/oauth/usage` shape, and Claude Code's keychain sign-in.
+    private static func claudeUsage() {
+        let body = #"""
+            {"five_hour":{"utilization":33.0,"resets_at":"2026-04-11T07:00:00.528743+00:00"},
+             "seven_day":{"utilization":13,"resets_at":"2026-04-17T00:59:59.951713+00:00"},
+             "seven_day_opus":null,
+             "seven_day_sonnet":{"utilization":120.0,"resets_at":null},
+             "extra_usage":{"is_enabled":false}}
+            """#
+        guard let report = PersonalClaudeUsage.report(Data(body.utf8), plan: "max") else {
+            return t.expect(false, "a Claude usage response parses")
+        }
+        t.expect(report.plan == "Max", "the plan reads capitalised")
+        t.expect(
+            report.windows.map(\.id) == ["five_hour", "seven_day", "seven_day_sonnet"],
+            "session and week come first; a null per-model week is left out")
+        t.expect(
+            report.windows.map(\.usedPercent) == [33, 13, 100],
+            "utilization reads as percent used, held to 100")
+        t.expect(
+            report.windows.map(\.durationMinutes) == [300, 10_080, nil],
+            "the session and week name their length; a per-model week keeps its own title")
+        t.expect(
+            report.windows[0].resetsAt == date("2026-04-11T07:00:00.528Z"),
+            "a reset with microseconds and an offset parses")
+        t.expect(report.windows[2].resetsAt == nil, "a null reset stays unknown")
+        t.expect(
+            PersonalClaudeUsage.report(Data(#"{"error":"x"}"#.utf8), plan: nil) == nil,
+            "an answer with no windows is not a report")
+
+        let stored = #"""
+            {"claudeAiOauth":{"accessToken":"tok","refreshToken":"r","expiresAt":1760000000000,
+             "subscriptionType":"enterprise","scopes":["user:inference"]}}
+            """#
+        let credentials = PersonalClaudeCredentials.parse(Data(stored.utf8))
+        t.expect(
+            credentials?.accessToken == "tok" && credentials?.subscription == "enterprise",
+            "the keychain sign-in reads its token and plan")
+        let expiry = Date(timeIntervalSince1970: 1_760_000_000)
+        t.expect(
+            credentials?.isExpired(now: expiry.addingTimeInterval(-120)) == false
+                && credentials?.isExpired(now: expiry.addingTimeInterval(-30)) == true,
+            "a sign-in counts as expired a minute before its stated end")
+        t.expect(
+            PersonalClaudeCredentials.parse(Data(#"{"claudeAiOauth":{"accessToken":""}}"#.utf8)) == nil,
+            "an empty token is no sign-in")
     }
 
     // MARK: - Fixtures
@@ -581,19 +627,22 @@ enum AIUsageChecks {
     }
 
     private static func settingsAndContent() {
-        let standard = PersonalAIUsageSettings(content: nil, range: nil, display: nil, measure: nil)
+        let standard = PersonalAIUsageSettings(
+            content: nil, range: nil, display: nil, measure: nil, limitsSource: nil)
         t.expect(
             standard == PersonalAIUsageSettings() && standard.content == .limits
                 && standard.range == .last7Days && standard.display == .rings
-                && standard.measure == .remaining,
+                && standard.measure == .remaining && standard.limitsSource == .codex,
             "unset preferences are the documented defaults")
-        let garbage = PersonalAIUsageSettings(content: "", range: "yesterday", display: "3d", measure: "x")
+        let garbage = PersonalAIUsageSettings(
+            content: "", range: "yesterday", display: "3d", measure: "x", limitsSource: "gemini")
         t.expect(garbage == standard, "unrecognised preferences fall back to the defaults")
         let chosen = PersonalAIUsageSettings(
-            content: "activity", range: "monthToDate", display: "bars", measure: "used")
+            content: "activity", range: "monthToDate", display: "bars", measure: "used",
+            limitsSource: "claude")
         t.expect(
             chosen.content == .activity && chosen.range == .monthToDate && chosen.display == .bars
-                && chosen.measure == .used,
+                && chosen.measure == .used && chosen.limitsSource == .claude,
             "every preference value reads back")
 
         let both = PersonalAIUsageContent.resolve(preferred: .limits, hasLimits: true, hasActivity: true)

@@ -74,8 +74,7 @@ struct PersonalAIUsageSettings: Sendable, Equatable {
     init() {}
 
     init(
-        content: String?, range: String?, display: String?, measure: String?,
-        limitsSource: String? = nil
+        content: String?, range: String?, display: String?, measure: String?, limitsSource: String?
     ) {
         self.content = content.flatMap(PersonalAIUsageContent.init(rawValue:)) ?? .standard
         self.range = range.flatMap(PersonalAIUsageRange.init(rawValue:)) ?? .standard

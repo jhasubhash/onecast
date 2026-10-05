@@ -25,6 +25,17 @@ extension PersonalAIUsageProvider {
     }
 }
 
+extension PersonalAIUsageLimitsSource {
+    /// The brand mark beside the popover's limits heading.
+    var markName: String {
+        switch self {
+        case .codex: AIBrand.openAI.assetName
+        case .claude: AIBrand.claude.assetName
+        case .copilot: "BrandGitHub"
+        }
+    }
+}
+
 enum AIUsageGlyph {
     static let widget = "gauge.with.dots.needle.33percent"
 }
