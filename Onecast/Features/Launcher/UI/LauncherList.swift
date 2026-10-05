@@ -222,11 +222,13 @@ extension AppEntry.Kind {
         case .systemAction: 8
         case .windowLayout: 9
         case .windowCommand: 10
-        case .customCommand: 11
-        case .scheduledTask: 12
-        case .assistant: 13
-        case .quickAction: 14
-        case .command: 15
+        case .dockSetup: 11
+        case .dock: 12
+        case .customCommand: 13
+        case .scheduledTask: 14
+        case .assistant: 15
+        case .quickAction: 16
+        case .command: 17
         }
     }
 }

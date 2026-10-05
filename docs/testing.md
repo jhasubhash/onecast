@@ -108,12 +108,18 @@ If a change touches anything in the right column, the harness on the left is man
 | `callout-test` | `DesignSystem/Theme.swift`, `HotKeys/UI/CalloutPlacement.swift` |
 | `system-action-test` | `SystemActions/Model/SystemAction.swift` |
 | `volume-test` | `SystemActions/Model/VolumeLevel.swift` |
-| `window-command-test` | `WindowManagement/WindowCommand.swift`, `WindowPlacementEngine.swift`, `WindowActionMemory.swift` |
+| `window-command-test` | `WindowManagement/WindowCommand.swift`, `WindowPlacementEngine.swift`, `WindowActionMemory.swift`, `DockInsets.swift` |
 | `window-layout-test` | `WindowManagement/Model/WindowLayout*.swift` and `CustomWindowSize*.swift` — the layout record, its geometry and its inverse, the plan and the store; custom sizes' units, frames and store |
 | `custom-command-test` | `CustomCommands/Model/CustomCommand.swift`, `Service/ShellCommandRunner.swift` |
 | `uninstall-test` | all five pure files in `Uninstall/Model/` |
 | `quicklink-test` | all of `Quicklinks/Model/` |
+| `dock-badges-test` | `Docks/Model/DockBadges.swift` — mapping the macOS Dock's tiles to bundle ID → badge label |
 | `apple-shortcut-test` | all of `AppleShortcuts/Model/` — the `shortcuts list` parser and entry ids |
+| `docks-test` | `Docks/Model/{DockModels,DockGeometry,DockSlots,DockURL}.swift` — sanitizing a configuration, slot order, frames and the lens, layout stepping, `onecast://dock` links |
+| `native-dock-test` | `Docks/Model/{NativeDockPlist,NativeDockHidingPlan,NativeDockError}.swift` — `persistent-apps` round trips, what hiding writes and what a restore puts back |
+| `dock-strip-layout-test` | `Docks/Model/{DockStripLayout,DockPopupPlacement}.swift` — tile positions under the lens and where a popup hangs |
+| `dockwidget-catalog-test` | `Docks/Model/DockWidgetManifest.swift`, `Docks/Service/DockWidgetCatalog.swift` — manifest decoding and the folder scan |
+| `dock-widgets-time-test` / `-productivity-` / `-system-` / `-personal-` | `Docks/Model/Widgets/` — each built-in widget group's pure maths, parsing and formatting |
 | `snippets-test` | all of `Snippets/Model/` and `Snippets/Service/`, plus `Platform/HealthTicker.swift` |
 | `notes-test` | all of `Notes/Model/` and `Notes/Service/`, plus the real fuzzy matcher and signposts |
 | `notes-editor-test` | the literal Notes editor with real TextKit 2 and AppKit editing objects |

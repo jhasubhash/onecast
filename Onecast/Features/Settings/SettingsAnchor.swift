@@ -75,6 +75,18 @@ extension SettingsAnchor {
     static let windowManagementOptions = Self(tab: .windowManagement, title: "Options")
     static let windowManagementCustomSizes = Self(tab: .windowManagement, title: "Custom Sizes")
 
+    static let docksDocks = Self(tab: .docks, title: "Docks")
+    static let docksCommands = Self(tab: .docks, title: "Commands")
+    static let docksCustomDocks = Self(tab: .docks, title: "Custom Docks")
+    static let docksPlacement = Self(tab: .docks, title: "Placement")
+    static let docksAppearance = Self(tab: .docks, title: "Appearance")
+    static let docksContent = Self(tab: .docks, title: "Content")
+    static let docksLayouts = Self(tab: .docks, title: "Layouts")
+    static let docksItems = Self(tab: .docks, title: "Layout Items")
+    static let docksNativeLayouts = Self(tab: .docks, title: "macOS Dock Layouts")
+    static let docksSetups = Self(tab: .docks, title: "Setups")
+    static let docksDockWidgets = Self(tab: .docks, title: "DockWidgets")
+
     static let clipboardClipboard = Self(tab: .clipboard, title: "Clipboard")
     static let clipboardCommands = Self(tab: .clipboard, title: "Commands")
     static let clipboardHistory = Self(tab: .clipboard, title: "History")

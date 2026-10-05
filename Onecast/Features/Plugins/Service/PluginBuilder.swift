@@ -12,15 +12,67 @@ enum PluginBuildError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .toolchainMissing:
-            return "No Swift toolchain found — install Xcode or the Command Line Tools to build plugins."
+            return "No Swift toolchain found — install Xcode or the Command Line Tools to build plugins and DockWidgets."
         case .interfaceMissing:
             return "OnecastPluginKit's module interface is missing from this build — rebuild Onecast."
         case .noSources:
-            return "This plugin has no Swift sources to build."
+            return "This folder has no Swift sources to build."
         case .compileFailed(let log):
             return log
         }
     }
+}
+
+/// A folder of Swift sources the app compiles and loads: an installed plugin or a DockWidget.
+protocol PluginSource: Sendable {
+    var kind: PluginSourceKind { get }
+    /// The manifest identifier, which names the cache folder and the loaded copy.
+    var id: String { get }
+    /// The manifest's display name, for load errors.
+    var displayName: String { get }
+    var moduleName: String { get }
+    var sources: [URL] { get }
+    var sourceHash: String { get }
+}
+
+/// What differs between a plugin and a DockWidget build: where it lives and its entry symbol.
+enum PluginSourceKind: Sendable {
+    case plugin
+    case dockWidget
+
+    var cacheFolder: String {
+        switch self {
+        case .plugin: "PluginBuilds"
+        case .dockWidget: "DockWidgetBuilds"
+        }
+    }
+
+    /// Prefix of the loaded copy in the temp dir; distinct, so kinds never sweep each other's.
+    var stagedPrefix: String {
+        switch self {
+        case .plugin: "onecast-plugin-"
+        case .dockWidget: "onecast-dockwidget-"
+        }
+    }
+
+    var entrySymbol: String {
+        switch self {
+        case .plugin: "onecastPluginCreate"
+        case .dockWidget: "onecastDockWidgetCreate"
+        }
+    }
+
+    var protocolName: String {
+        switch self {
+        case .plugin: "OnecastPlugin"
+        case .dockWidget: "OnecastDockWidget"
+        }
+    }
+}
+
+extension PluginInstall: PluginSource {
+    var kind: PluginSourceKind { .plugin }
+    var displayName: String { manifest.name }
 }
 
 /// Compiles a source plugin's Swift files into a signed dylib the loader can `dlopen`, caching on the
@@ -29,7 +81,7 @@ enum PluginBuildError: LocalizedError, Sendable {
 enum PluginBuilder {
     /// The built, signed dylib for `install`, compiling only when the source or the framework ABI it
     /// links against has changed since the last build.
-    nonisolated static func build(_ install: PluginInstall) throws -> URL {
+    nonisolated static func build(_ install: some PluginSource) throws -> URL {
         guard !install.sources.isEmpty else { throw PluginBuildError.noSources }
         let dir = buildDirectory(for: install)
         let dylib = dir.appendingPathComponent("lib\(install.moduleName).dylib")
@@ -46,7 +98,7 @@ enum PluginBuilder {
 
     /// `build` wrapped as a `Sendable` result, so a caller can `await` it off-main and hop the
     /// outcome back to the main actor without an untyped `any Error` crossing the boundary.
-    nonisolated static func buildResult(_ install: PluginInstall) -> Result<URL, PluginBuildError> {
+    nonisolated static func buildResult(_ install: some PluginSource) -> Result<URL, PluginBuildError> {
         do {
             return .success(try build(install))
         } catch let error as PluginBuildError {
@@ -56,12 +108,12 @@ enum PluginBuilder {
         }
     }
 
-    private static func buildDirectory(for install: PluginInstall) -> URL {
-        let slug = install.manifest.identifier
+    private static func buildDirectory(for install: some PluginSource) -> URL {
+        let slug = install.id
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: " ", with: "_")
         let dir = AppPaths.caches()
-            .appendingPathComponent("PluginBuilds", isDirectory: true)
+            .appendingPathComponent(install.kind.cacheFolder, isDirectory: true)
             .appendingPathComponent(slug, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
@@ -69,7 +121,7 @@ enum PluginBuilder {
 
     /// The source fingerprint fused with the framework binary's own size and mtime, so a rebuilt app
     /// that changes the plugin ABI invalidates every cached dylib it once produced.
-    private static func cacheKey(for install: PluginInstall) throws -> String {
+    private static func cacheKey(for install: some PluginSource) throws -> String {
         let binary = try interfaceFramework().appendingPathComponent("Versions/A/OnecastPluginKit")
         let values = try? binary.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
         let size = values?.fileSize ?? 0
@@ -77,7 +129,7 @@ enum PluginBuilder {
         return "\(install.sourceHash)-\(size)-\(mtime)"
     }
 
-    private static func compile(_ install: PluginInstall, to dylib: URL) throws {
+    private static func compile(_ install: some PluginSource, to dylib: URL) throws {
         guard toolchainAvailable() else { throw PluginBuildError.toolchainMissing }
         let frameworks = try interfaceFramework().deletingLastPathComponent()
         let tmp = dylib.deletingLastPathComponent()

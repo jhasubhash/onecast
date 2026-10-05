@@ -34,10 +34,6 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
         var pinnedToDesktop: Bool?
     }
 
-    /// Above the desktop icons: unlike `.normal`, a space switch never draws it over app windows.
-    private static let desktopLevel = NSWindow.Level(
-        rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
-
     init(core: AppCore) {
         self.core = core
     }
@@ -155,7 +151,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
                 let install = core.plugins.install(forIdentifier: route.identifier)
             else { continue }
             var level = NSWindow.Level.normal
-            if saved.pinnedToDesktop == true { level = Self.desktopLevel }
+            if saved.pinnedToDesktop == true { level = .desktopWidget }
             if saved.keepInFront { level = .floating }
             open(
                 install: install, route: PluginRoute(payload: route.payload, title: ""),
@@ -170,7 +166,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
                 route: key,
                 allSpaces: entry.panel.collectionBehavior.contains(.canJoinAllSpaces),
                 keepInFront: entry.panel.level == .floating,
-                pinnedToDesktop: entry.panel.level == Self.desktopLevel)
+                pinnedToDesktop: entry.panel.level == .desktopWidget)
         }
         UserDefaults.standard.set(try? JSONEncoder().encode(items), forKey: Self.persistenceKey)
     }
@@ -189,7 +185,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
         guard let panel = windows[key]?.panel else { return [] }
         let allSpaces = panel.collectionBehavior.contains(.canJoinAllSpaces)
         let inFront = panel.level == .floating
-        let pinned = panel.level == Self.desktopLevel
+        let pinned = panel.level == .desktopWidget
         return [
             PopOutWindowCommand(
                 title: allSpaces ? "Show on This Space Only" : "Show on All Spaces",
@@ -206,7 +202,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
                 systemImage: pinned ? "macwindow" : "menubar.dock.rectangle",
                 shortcut: "d",
                 action: { [weak self] in
-                    self?.setLevel(pinned ? .normal : Self.desktopLevel, key: key)
+                    self?.setLevel(pinned ? .normal : .desktopWidget, key: key)
                 }),
             PopOutWindowCommand(
                 title: "Close Window", systemImage: "xmark", isDestructive: true,

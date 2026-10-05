@@ -4,17 +4,17 @@ import OnecastPluginKit
 
 enum PluginLoadError: LocalizedError {
     case openFailed(String)
-    case missingEntry(String)
-    case wrongType(String)
+    case missingEntry(name: String, symbol: String)
+    case wrongType(name: String, protocolName: String)
 
     var errorDescription: String? {
         switch self {
         case .openFailed(let message):
             return "Couldn't load the plugin: \(message)"
-        case .missingEntry(let name):
-            return "\(name) has no onecastPluginCreate entry point — rebuild it against OnecastPluginKit."
-        case .wrongType(let name):
-            return "\(name) doesn't conform to OnecastPlugin — check it's linked against this app's framework."
+        case .missingEntry(let name, let symbol):
+            return "\(name) has no \(symbol) entry point — rebuild it against OnecastPluginKit."
+        case .wrongType(let name, let protocolName):
+            return "\(name) doesn't conform to \(protocolName) — check it's linked against this app's framework."
         }
     }
 }
@@ -31,18 +31,35 @@ enum PluginLoadError: LocalizedError {
 enum PluginLoader {
     @MainActor
     static func load(_ install: PluginInstall, builtDylib: URL) throws -> any OnecastPlugin {
-        let path = stagedCopy(install, dylib: builtDylib) ?? builtDylib.path
+        let symbol = try entry(of: install, dylib: builtDylib)
+        let create = unsafeBitCast(symbol, to: OnecastPluginCreate.self)
+        guard let plugin = OnecastPluginRuntime.consume(create()) else {
+            throw PluginLoadError.wrongType(
+                name: install.displayName, protocolName: install.kind.protocolName)
+        }
+        return plugin
+    }
+
+    /// A DockWidget dylib's entry point, mapped once per build; the host calls it per instance.
+    @MainActor
+    static func dockWidgetFactory(
+        _ install: DockWidgetInstall, builtDylib: URL
+    ) throws -> DockWidgetFactory {
+        let symbol = try entry(of: install, dylib: builtDylib)
+        return DockWidgetFactory(
+            name: install.manifest.name, create: unsafeBitCast(symbol, to: OnecastDockWidgetCreate.self))
+    }
+
+    /// Maps the dylib and looks up the kind's `@_cdecl` symbol.
+    private static func entry(of source: some PluginSource, dylib: URL) throws -> UnsafeMutableRawPointer {
+        let path = stagedCopy(source, dylib: dylib) ?? dylib.path
         guard let handle = dlopen(path, RTLD_NOW | RTLD_LOCAL) else {
             throw PluginLoadError.openFailed(dlerror().map { String(cString: $0) } ?? "unknown error")
         }
-        guard let symbol = dlsym(handle, "onecastPluginCreate") else {
-            throw PluginLoadError.missingEntry(install.manifest.name)
+        guard let symbol = dlsym(handle, source.kind.entrySymbol) else {
+            throw PluginLoadError.missingEntry(name: source.displayName, symbol: source.kind.entrySymbol)
         }
-        let create = unsafeBitCast(symbol, to: OnecastPluginCreate.self)
-        guard let plugin = OnecastPluginRuntime.consume(create()) else {
-            throw PluginLoadError.wrongType(install.manifest.name)
-        }
-        return plugin
+        return symbol
     }
 
     /// Copies the built dylib to `…/onecast-plugin-<identifier>-<sha>.dylib`, reusing an identical
@@ -50,17 +67,17 @@ enum PluginLoader {
     /// the caller falls back to the canonical path. The ad-hoc signature is content-based, so the
     /// copy stays valid, and `@rpath/OnecastPluginKit.framework` resolves via the host executable
     /// regardless of where the dylib sits.
-    private static func stagedCopy(_ install: PluginInstall, dylib: URL) -> String? {
+    private static func stagedCopy(_ source: some PluginSource, dylib: URL) -> String? {
         let fm = FileManager.default
         guard let data = try? Data(contentsOf: dylib) else { return nil }
         let sha = SHA256.hash(data: data).prefix(8)
             .map { String(format: "%02x", $0) }.joined()
         let slug =
-            install.manifest.identifier
+            source.id
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: " ", with: "_")
         let dir = fm.temporaryDirectory
-        let prefix = "onecast-plugin-\(slug)-"
+        let prefix = "\(source.kind.stagedPrefix)\(slug)-"
         let dest = dir.appendingPathComponent("\(prefix)\(sha).dylib")
 
         if !fm.fileExists(atPath: dest.path) {

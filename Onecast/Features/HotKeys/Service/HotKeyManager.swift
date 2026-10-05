@@ -21,6 +21,8 @@ final class HotKeyManager {
     var onRunExtensionCommand: ((String) -> Void)?
     var onRunPluginCommand: ((String) -> Void)?
     var onRunScheduledTask: ((UUID) -> Void)?
+    var onRunDockSetup: ((UUID) -> Void)?
+    var onToggleDockVisibility: ((UUID) -> Void)?
     /// Names what only the stores know; the fixed catalogs resolve here. Set in `AppCore.start()`.
     var displayName: ((HotKeyAction) -> String?)?
     /// Whether the action's launcher category is switched on. Set in `AppCore.start()`.
@@ -68,11 +70,13 @@ final class HotKeyManager {
     private let boundExtensionCommandKey = "boundExtensionCommandEntryIDs"
     private let boundPluginCommandKey = "boundPluginCommandEntryIDs"
     private let boundScheduledTaskKey = "boundScheduledTaskIDs"
+    private let boundDockSetupKey = "boundDockSetupIDs"
+    private let boundDockVisibilityKey = "boundDockVisibilityIDs"
 
     func start(
         customCommandIDs: Set<UUID>, quicklinkIDs: Set<UUID>, windowLayoutIDs: Set<UUID>,
         customWindowSizeIDs: Set<UUID>, quickActionIDs: Set<UUID>, assistantIDs: Set<UUID>,
-        scheduledTaskIDs: Set<UUID>
+        scheduledTaskIDs: Set<UUID>, dockSetupIDs: Set<UUID>, dockIDs: Set<UUID>
     ) {
         prune(key: boundCustomCommandKey, live: customCommandIDs) { .customCommand(id: $0) }
         prune(key: boundAssistantKey, live: assistantIDs) { .assistant(id: $0) }
@@ -83,6 +87,8 @@ final class HotKeyManager {
         }
         prune(key: boundQuickActionKey, live: quickActionIDs) { .quickAction(id: $0) }
         prune(key: boundScheduledTaskKey, live: scheduledTaskIDs) { .scheduledTask(id: $0) }
+        prune(key: boundDockSetupKey, live: dockSetupIDs) { .dockSetup($0) }
+        prune(key: boundDockVisibilityKey, live: dockIDs) { .dockVisibility($0) }
         // After the prunes, so a dropped record can't survive in memory this session.
         for action in candidateActions { bindings[action] = storedBinding(for: action) }
         revision &+= 1
@@ -138,6 +144,12 @@ final class HotKeyManager {
 
     /// Scheduled-task UUIDs with a binding — its own namespace, pruned at start like the rest.
     var boundScheduledTaskIDs: [UUID] { boundIDs(key: boundScheduledTaskKey) }
+
+    /// Setup UUIDs with a binding; authored records, pruned at start and on a setup's deletion.
+    var boundDockSetupIDs: [UUID] { boundIDs(key: boundDockSetupKey) }
+
+    /// Custom-dock UUIDs with a show/hide binding, kept apart from the setups' own namespace.
+    var boundDockIDs: [UUID] { boundIDs(key: boundDockVisibilityKey) }
 
     /// Pruned by `AppleShortcutCoordinator` after a successful read, never here at launch.
     var boundAppleShortcutIDs: [UUID] { boundIDs(key: boundAppleShortcutKey) }
@@ -229,6 +241,10 @@ final class HotKeyManager {
             UserDefaults.standard.set(Array(set), forKey: boundPluginCommandKey)
         case .scheduledTask(let id):
             index(id, bound: binding != nil, key: boundScheduledTaskKey)
+        case .dockSetup(let id):
+            index(id, bound: binding != nil, key: boundDockSetupKey)
+        case .dockVisibility(let id):
+            index(id, bound: binding != nil, key: boundDockVisibilityKey)
         case .togglePalette, .toggleAIBar, .command, .systemAction, .windowCommand:
             break
         }
@@ -278,6 +294,8 @@ final class HotKeyManager {
         actions += boundExtensionCommandEntryIDs.map { .extensionCommand(entryID: $0) }
         actions += boundPluginCommandEntryIDs.map { .pluginCommand(entryID: $0) }
         actions += boundScheduledTaskIDs.map { .scheduledTask(id: $0) }
+        actions += boundDockSetupIDs.map { .dockSetup($0) }
+        actions += boundDockIDs.map { .dockVisibility($0) }
         actions += SystemAction.ID.allCases.map { .systemAction(id: $0) }
         actions += WindowCommand.ID.allCases.map { .windowCommand(id: $0) }
         candidateActionsCache = actions
@@ -320,6 +338,10 @@ final class HotKeyManager {
             return displayName?(action) ?? "Plugin Command"
         case .scheduledTask:
             return displayName?(action) ?? "Scheduled Task"
+        case .dockSetup:
+            return displayName?(action) ?? "Dock Setup"
+        case .dockVisibility:
+            return displayName?(action) ?? "Dock"
         }
     }
 
@@ -363,6 +385,8 @@ final class HotKeyManager {
         case .extensionCommand(let entryID): onRunExtensionCommand?(entryID)
         case .pluginCommand(let entryID): onRunPluginCommand?(entryID)
         case .scheduledTask(let id): onRunScheduledTask?(id)
+        case .dockSetup(let id): onRunDockSetup?(id)
+        case .dockVisibility(let id): onToggleDockVisibility?(id)
         }
     }
 

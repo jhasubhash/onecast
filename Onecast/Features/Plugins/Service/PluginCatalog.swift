@@ -85,9 +85,9 @@ enum PluginCatalog {
             sources: sources, sourceHash: fingerprint(of: sources, base: dir))
     }
 
-    /// Every `.swift` under the plugin folder, sorted for a stable module order. `build`/`.build`
-    /// holds the compiler's own output and is never a source.
-    private static func swiftSources(in dir: URL) -> [URL] {
+    /// Every `.swift` under an install folder, sorted for a stable module order. `build`/`.build`
+    /// holds the compiler's own output and is never a source. DockWidgets scan by the same rule.
+    nonisolated static func swiftSources(in dir: URL) -> [URL] {
         let fm = FileManager.default
         guard
             let walker = fm.enumerator(
@@ -102,9 +102,9 @@ enum PluginCatalog {
         return found.sorted { $0.path < $1.path }
     }
 
-    /// A cheap change token: each source's path relative to the plugin, its byte size and its mtime.
+    /// A cheap change token: each source's path relative to the install, its byte size and its mtime.
     /// A content edit bumps the mtime, an added or removed file changes the set — either reshapes it.
-    private static func fingerprint(of sources: [URL], base: URL) -> String {
+    nonisolated static func fingerprint(of sources: [URL], base: URL) -> String {
         let prefix = base.path.hasSuffix("/") ? base.path : base.path + "/"
         let lines = sources.map { url -> String in
             let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])

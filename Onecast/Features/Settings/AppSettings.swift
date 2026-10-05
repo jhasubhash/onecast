@@ -471,6 +471,16 @@ final class AppSettings {
         }
     }
 
+    /// Custom docks on screen; off until asked for, since a dock can take over the macOS Dock.
+    var docksEnabled: Bool {
+        didSet { defaults.set(docksEnabled, forKey: Key.docksEnabled.rawValue) }
+    }
+
+    /// Consent to load third-party DockWidgets, native code with the app's full privileges.
+    var dockWidgetsEnabled: Bool {
+        didSet { defaults.set(dockWidgetsEnabled, forKey: Key.dockWidgetsEnabled.rawValue) }
+    }
+
     /// Only an install from GitHub needs one — the store serves extensions already built.
     var extensionPackageManager: ExtensionPackageManager {
         didSet {
@@ -769,6 +779,8 @@ final class AppSettings {
         pluginsShowInLauncher =
             defaults.object(forKey: Key.pluginsShowInLauncher.rawValue) == nil
             || defaults.bool(forKey: Key.pluginsShowInLauncher.rawValue)
+        docksEnabled = defaults.bool(forKey: Key.docksEnabled.rawValue)
+        dockWidgetsEnabled = defaults.bool(forKey: Key.dockWidgetsEnabled.rawValue)
         extensionPackageManager =
             defaults.string(forKey: Key.extensionPackageManager.rawValue)
             .flatMap(ExtensionPackageManager.init(rawValue:)) ?? .automatic

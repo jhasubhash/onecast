@@ -20,7 +20,7 @@ struct CustomWindowSizeEditorSheet: View {
 
     init(request: CustomWindowSizeEditRequest) {
         isNew = request.size == nil
-        reference = NSScreen.main?.visibleFrame.size ?? .zero
+        reference = NSScreen.main.map(AXScreens.usableFrame(of:))?.size ?? .zero
         _size = State(initialValue: request.size ?? CustomWindowSize(name: ""))
     }
 

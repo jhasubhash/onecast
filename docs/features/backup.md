@@ -32,6 +32,12 @@ A backup carries five independently selectable categories, ticked on export and 
 - **Extensions, AI chat history, Keychain material and anything in `Caches` never travel.** An
   extension is third-party code and third-party data; chat history and API keys stay on the Mac that
   had them; a cache regenerates on its own.
+- **The Docks library rides in `settings.json` as `docks`, and the two switches never do.** The whole
+  `DockConfiguration` travels, shortcuts for its setups and docks with it, and an import replaces it
+  through `DockSwitchCoordinator.replaceConfiguration`, which also drops the widget instances the swap
+  orphans. `docksEnabled` and `dockWidgetsEnabled` are excluded in `SettingsBackupCoverage`: one hides the
+  macOS Dock, the other consents to native widget code. Pinned items keep their absolute paths, which
+  `BackupClipboardItem`'s rule would forbid for a clip; a bundle ID still resolves an app that moved.
 - **`BackupCategory` names every category, and its `descriptor` switch is exhaustive.** A new case
   fails to build until it names a label, a symbol, a bundle subpath and a count noun — the same
   bargain `AppEntry.Kind` makes, and why the bundle layout is never spelled out twice.

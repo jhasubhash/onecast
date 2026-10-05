@@ -79,7 +79,7 @@ final class VisibilityStore {
         case .togglePalette, .toggleAIBar, .assistant, .quickAction, .customCommand, .windowCommand,
             .customWindowSize, .windowLayout,
             .quicklink, .appleShortcut, .snippet, .extensionCommand, .pluginCommand,
-            .scheduledTask:
+            .scheduledTask, .dockSetup, .dockVisibility:
             true
         }
     }

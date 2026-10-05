@@ -69,7 +69,9 @@ private struct PluginRowView: View {
             summary
             if isExpanded {
                 ForEach(preferences, id: \.name) { preference in
-                    PluginPreferenceRow(pluginID: install.manifest.identifier, preference: preference)
+                    PreferenceRow(
+                        preference: preference,
+                        key: { PluginPreferences.key(pluginID: install.manifest.identifier, name: $0) })
                 }
                 .padding(.leading, 20 + Theme.Spacing.sm)
             }
@@ -108,84 +110,5 @@ private struct PluginRowView: View {
                 core.pluginCoordinator.confirmUninstall(install)
             }
         }
-    }
-}
-
-/// One manifest preference, stored where the plugin reads it through `PluginPreferences`.
-private struct PluginPreferenceRow: View {
-    let pluginID: String
-    let preference: PluginPreference
-    @State private var text = ""
-    @State private var flag = false
-
-    private var store: PluginPreferences { PluginPreferences(pluginID: pluginID) }
-
-    var body: some View {
-        LabeledContent {
-            control
-        } label: {
-            Text(preference.title)
-            if let description = preference.description {
-                Text(description)
-            }
-        }
-        .onAppear(perform: load)
-    }
-
-    @ViewBuilder
-    private var control: some View {
-        switch preference.kind {
-        case .checkbox:
-            Toggle("", isOn: $flag)
-                .labelsHidden()
-                .onChange(of: flag) { _, value in
-                    if value != store.bool(preference.name) { store.set(value, for: preference.name) }
-                }
-        case .dropdown:
-            Picker("", selection: $text) {
-                ForEach(preference.options, id: \.value) { option in
-                    Text(option.title).tag(option.value)
-                }
-            }
-            .labelsHidden()
-            .onChange(of: text) { _, value in save(value) }
-        case .directory:
-            HStack {
-                Text(text.isEmpty ? "Not set" : (text as NSString).abbreviatingWithTildeInPath)
-                    .foregroundStyle(text.isEmpty ? .secondary : .primary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Button("Choose…", action: chooseDirectory)
-            }
-        case .textfield:
-            TextField("", text: $text, prompt: preference.placeholder.map(Text.init))
-                .textFieldStyle(.roundedBorder)
-                .labelsHidden()
-                .frame(maxWidth: 300)
-                .pointerStyle(.horizontalText)
-                .onChange(of: text) { _, value in save(value) }
-        }
-    }
-
-    private func load() {
-        text = store.string(preference.name) ?? ""
-        flag = store.bool(preference.name)
-    }
-
-    /// Empty clears the user's value, so the manifest default applies again; an unchanged value
-    /// (the default the pane just loaded) is never written, so a later default still reaches it.
-    private func save(_ value: String) {
-        guard value != (store.string(preference.name) ?? "") else { return }
-        store.set(value.isEmpty ? nil : value, for: preference.name)
-    }
-
-    private func chooseDirectory() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        if !text.isEmpty { panel.directoryURL = URL(fileURLWithPath: text) }
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        text = url.path
-        save(url.path)
     }
 }

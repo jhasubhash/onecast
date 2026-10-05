@@ -276,7 +276,7 @@ enum CalcTimeZone {
         return (meridiem == "pm" ? (hour % 12) + 12 : hour % 12, minute)
     }
 
-    private static func zone(named words: [String]) -> TimeZone? {
+    static func zone(named words: [String]) -> TimeZone? {
         // `são paulo` and `zürich` are how the cities are spelled; the identifiers are not.
         let phrase = words.joined(separator: " ")
             .folding(options: [.diacriticInsensitive], locale: nil)

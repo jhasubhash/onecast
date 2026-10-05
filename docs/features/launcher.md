@@ -511,6 +511,32 @@ and launcher checkbox live in Settings › Window Management beside the commands
 `windowLayoutsShowInLauncher` takes the section and its two commands out together. See
 [window-layouts.md](window-layouts.md).
 
+## Docks
+
+`DockSwitchCoordinator.applyLauncherPresence()` pushes one slice through `AppIndex.setDocks`, called
+from `DockCoordinator.applyEnabled()`, so a store change and the feature switch share one path.
+Setups come first (kind `.dockSetup`, "Switch to Work", the colour as a tinted `dock.rectangle`),
+then one row per custom dock (kind `.dock`, "Hide Main" or "Show Main", following its visibility).
+Both kinds carry `canHideFromSearch: false`: no Settings pane lists a launcher checkbox for them.
+The slice is empty while `docksEnabled` is off. **Manage Docks** leaves the Commands slice with it;
+**Toggle Docks** deliberately stays, because it is the only launcher route back once Docks is off,
+and its shortcut would otherwise die with the command.
+
+Every way of switching funnels through `DockSwitchCoordinator` — launcher rows, the shortcuts, the
+menu-bar submenu, `onecast://dock/…` links and the Focus filter — and each switch re-checks
+`docksEnabled` (Toggle Docks is the one exception). `DockURL` is the pure parser: `setup/<ref>`,
+`toggle/<ref>` and `layout/<dock>/<layout>`, where `<ref>` is a UUID or a name matched ignoring
+case and accents. A segment is split before it is decoded, so `%2F` stays inside a name.
+
+The Focus filter is `SwitchDockFocusFilter` in `Features/Docks/Intents/`. It needs no extension or
+project setting: importing `AppIntents` is what puts the framework in the link's dependency info,
+which is what Xcode's metadata extraction looks for. A user adds it under System Settings › Focus ›
+(a Focus) › Focus Filters › Add Filter › Onecast › Switch Dock, and picks a setup. Turning the
+Focus off runs the filter again with no setup, which switches nothing back.
+
+A deleted setup or dock takes its shortcut, favorite, alias, hidden flag and learned rank with it,
+the way `removePluginReferences` does, by diffing the IDs the coordinator saw last time.
+
 ## Quicklinks
 
 `QuicklinkStore` supplies its slice the same way custom commands do, sorted pinned-first then
@@ -686,9 +712,9 @@ favorite, alias and learned ranking survive the round trip, and its shortcut kee
 The row is offered only where Settings can undo it, and `KindDescriptor.canHideFromSearch` is that
 rule — per kind, and a new `Kind` case has to answer it to compile. Applications, System Settings,
 Commands, Quick Actions, System Actions, Window Commands, Window Layouts and extension commands each
-draw a per-row checkbox in their pane, so they carry it. Custom commands, quicklinks and snippets do
-not: their panes list a record with its own switches, not a launcher checkbox — a hide nothing in
-Settings can visibly undo is a trap, not a shortcut.
+draw a per-row checkbox in their pane, so they carry it. Custom commands, quicklinks, snippets and
+the dock setup and dock rows do not: their panes list a record with its own switches, not a launcher
+checkbox — a hide nothing in Settings can visibly undo is a trap, not a shortcut.
 `AppActionsMenu` adds the query-driven guard the favorites row already uses: a typed URL lives only
 for its query and has no preference to write.
 

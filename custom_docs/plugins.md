@@ -16,6 +16,10 @@ can load under the hardened runtime.
 > This is a fork-local feature. See [CUSTOM.md](CUSTOM.md) for how it is carried and where
 > plugin sources live.
 
+> **DockWidgets** — live SwiftUI tiles in a custom dock — are compiled and loaded by this same
+> machinery (`PluginBuilder`, `PluginLoader`, parameterized by a `PluginSourceKind`), with their own
+> manifest, entry point and consent switch. See [dockwidgets.md](dockwidgets.md).
+
 ## Invariants
 
 - **The contract is the framework, and there is exactly one copy.** `OnecastPluginKit.framework`

@@ -67,6 +67,8 @@ enum AppSettingsKey: String, CaseIterable {
     case extensionCustomSearchPaths = "extensionCustomSearchPaths"
     case pluginsEnabled = "pluginsEnabled"
     case pluginsShowInLauncher = "pluginsShowInLauncher"
+    case docksEnabled = "docksEnabled"
+    case dockWidgetsEnabled = "dockWidgetsEnabled"
     case calendarEnabled = "calendarEnabled"
     case calendarShowInLauncher = "calendarShowInLauncher"
     case calendarLauncherLimit = "calendarLauncherLimit"

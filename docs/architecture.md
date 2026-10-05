@@ -155,6 +155,10 @@ driven imperatively from AppKit. Extension menu extras are dynamic `NSStatusItem
   join and doubles as auto join's confirmation; `CameraCoordinator`, owned by `AppCore`, is the
   standalone `Open Camera` command. See [features/camera.md](features/camera.md) and
   [features/calendar.md](features/calendar.md).
+- **Custom docks** — one borderless, non-activating `DockPanel` per visible dock, at the system
+  Dock's level or just above the desktop, owned by `DockPanelController` on `DockCoordinator`. Never
+  key and never registered with `ActivationPolicy`; menus, folder popouts and widget popovers are
+  panels of their own. See [features/docks.md](features/docks.md).
 - **HUDs** are separate, because a dialog asks and a HUD reports: `MessageHUDController` (the pill) and
   `VolumeHUDController` (the level box), both over a shared `HUDPresenter` that owns the
   one-at-a-time, auto-dismiss and fade policy. See [ui.md](ui.md#dialogs--hud).
@@ -227,6 +231,8 @@ Onecast/
     WindowManagement/ Onboarding/ Updates/ Support/ AI/ Settings/
     Plugins/        native Swift plugins: Service/ UI/ Settings/ (the public contract is the
                     top-level OnecastPluginKit/ framework, embedded in the app)
+    Docks/          custom docks, macOS Dock layouts, setups and DockWidgets (the DockWidget
+                    contract also lives in OnecastPluginKit/)
     Extensions/
         Model/      pure — the harness inputs
         Service/    effects — stores, monitors, runners, AppKit glue

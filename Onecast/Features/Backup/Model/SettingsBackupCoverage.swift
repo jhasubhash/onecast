@@ -87,6 +87,12 @@ enum SettingsBackupCoverage {
         AppSettingsKey.pluginsShowInLauncher.rawValue:
             "Governs rows for plugins installed on this Mac, which no other Mac has; a backup would "
             + "list commands that aren't there.",
+        AppSettingsKey.docksEnabled.rawValue:
+            "Puts docks on screen and can hide the macOS Dock; an import must not change this Mac's "
+            + "Dock unasked.",
+        AppSettingsKey.dockWidgetsEnabled.rawValue:
+            "Doubles as consent to load native DockWidget code that runs in-process with full "
+            + "privileges; an import must not switch it on.",
         AppSettingsKey.palettePosition.rawValue:
             "Machine-local geometry: every entry names a display this Mac has, and no other one.",
         AppSettingsKey.aiBarPosition.rawValue:

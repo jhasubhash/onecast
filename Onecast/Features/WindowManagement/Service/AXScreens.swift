@@ -26,12 +26,37 @@ enum AXScreens {
     static func converted(
         _ screens: [NSScreen], geometry: AXGeometry
     ) -> [WindowPlacementEngine.Screen] {
-        screens.enumerated().map { index, screen in
+        let docks = AppCore.shared.dockCoordinator.panels.reservedFrames
+        return screens.enumerated().map { index, screen in
             // A display with no number still needs a stable, collision-free id for this call.
             return WindowPlacementEngine.Screen(
                 id: displayID(screen).map(Int.init) ?? -(index + 1),
                 frame: geometry.flip(screen.frame),
-                visibleFrame: geometry.flip(screen.visibleFrame))
+                visibleFrame: geometry.flip(usableFrame(of: screen, docks: docks)))
+        }
+    }
+
+    /// What window commands may use of a display: its visible frame less the custom docks on it.
+    static func usableFrame(of screen: NSScreen) -> CGRect {
+        usableFrame(of: screen, docks: AppCore.shared.dockCoordinator.panels.reservedFrames)
+    }
+
+    /// A dock with no display of its own follows the menu bar, as the dock itself does.
+    private static func usableFrame(
+        of screen: NSScreen, docks: [(displayKey: String?, edge: DockEdge, frame: CGRect)]
+    ) -> CGRect {
+        let key = screen.displayKey
+        let menuBarKey = NSScreen.primary?.displayKey
+        let reserved = docks.filter { ($0.displayKey ?? menuBarKey) == key }
+            .map { DockInsets.Reservation(edge: insetEdge($0.edge), frame: $0.frame) }
+        return DockInsets.usableFrame(visible: screen.visibleFrame, reserved: reserved)
+    }
+
+    private static func insetEdge(_ edge: DockEdge) -> DockInsets.Edge {
+        switch edge {
+        case .bottom: .bottom
+        case .left: .left
+        case .right: .right
         }
     }
 

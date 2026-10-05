@@ -27,6 +27,10 @@ enum HotKeyAction: Hashable, Sendable {
     case pluginCommand(entryID: String)
     /// A scheduled task run on demand, keyed by its stable id.
     case scheduledTask(id: UUID)
+    /// Switches to a Docks setup, keyed by the setup's stable id.
+    case dockSetup(UUID)
+    /// Shows or hides one custom dock, keyed by the dock's stable id.
+    case dockVisibility(UUID)
 
     /// The UserDefaults key, and the `HotKeyCenter` registration id: one per action.
     var defaultsKey: String {
@@ -50,6 +54,8 @@ enum HotKeyAction: Hashable, Sendable {
         case .extensionCommand(let entryID): "hotkey.extensionCommand." + entryID
         case .pluginCommand(let entryID): "hotkey.pluginCommand." + entryID
         case .scheduledTask(let id): "hotkey.scheduledTask." + id.uuidString.lowercased()
+        case .dockSetup(let id): "hotkey.dockSetup." + id.uuidString.lowercased()
+        case .dockVisibility(let id): "hotkey.dockVisibility." + id.uuidString.lowercased()
         }
     }
 

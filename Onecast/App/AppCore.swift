@@ -56,6 +56,7 @@ final class AppCore {
     let notesStore: NotesStore
     let extensions: ExtensionManager
     let plugins = PluginManager()
+    let docks = DockStore()
     let chatHistory: ChatHistoryStore
     let aiChat: AIChatState
     let aiSettings = AISettingsStore(
@@ -110,6 +111,12 @@ final class AppCore {
         plugins: plugins, palette: palette, paletteCoordinator: paletteCoordinator,
         settingsCoordinator: settingsCoordinator, settings: settings, core: self)
     @ObservationIgnored private(set) lazy var pluginWindowController = PluginWindowController(
+        core: self)
+    @ObservationIgnored private(set) lazy var dockCoordinator = DockCoordinator(
+        store: docks, settings: settings, core: self)
+    @ObservationIgnored private(set) lazy var dockSwitchCoordinator = DockSwitchCoordinator(
+        store: docks, settings: settings, appIndex: appIndex, hotKeys: hotKeys,
+        favorites: favorites, visibility: visibility, ranking: launcherRanking, aliases: aliases,
         core: self)
     @ObservationIgnored private(set) lazy var windowCommandCoordinator = WindowCommandCoordinator(
         settings: settings, paletteCoordinator: paletteCoordinator, windowMover: windowMover,
@@ -214,7 +221,7 @@ final class AppCore {
     /// Every confirmation, report and prompt; it also stops a held hotkey stacking them.
     @ObservationIgnored private lazy var dialogs = DialogController(settings: settings)
     private let healthTicker = HealthTicker()
-    @ObservationIgnored private let notificationPresenter = NotificationPresenter(
+    @ObservationIgnored let notificationPresenter = NotificationPresenter(
         screen: { NSScreen.primary })
 
     private init() {
@@ -262,6 +269,8 @@ final class AppCore {
             extensionCoordinator.applyEnabled()
             plugins.start(appIndex: appIndex)
             pluginCoordinator.applyEnabled()
+            dockCoordinator.start()
+            dockCoordinator.applyEnabled()
             fileSearchCoordinator.applyEnabled()
             windowSwitchCoordinator.applyEnabled()
             menuSearchCoordinator.applyEnabled()
@@ -366,6 +375,12 @@ final class AppCore {
             hotKeys.onRunScheduledTask = { [weak self] id in
                 self?.schedulerCoordinator.runTask(id: id)
             }
+            hotKeys.onRunDockSetup = { [weak self] id in
+                self?.dockSwitchCoordinator.switchToSetup(id: id)
+            }
+            hotKeys.onToggleDockVisibility = { [weak self] id in
+                self?.dockSwitchCoordinator.toggleDock(id: id)
+            }
             extensions.onDidUninstall = { [weak self] entryIDs in
                 self?.extensionCoordinator.removeExtensionReferences(entryIDs: entryIDs)
             }
@@ -398,7 +413,9 @@ final class AppCore {
                 customWindowSizeIDs: Set(customWindowSizes.sizes.map(\.id)),
                 quickActionIDs: Set(customQuickActions.actions.map(\.id)),
                 assistantIDs: Set(assistants.assistants.map(\.id)),
-                scheduledTaskIDs: Set(scheduledTasks.tasks.map(\.id)))
+                scheduledTaskIDs: Set(scheduledTasks.tasks.map(\.id)),
+                dockSetupIDs: Set(docks.configuration.setups.map(\.id)),
+                dockIDs: Set(docks.docks.map(\.id)))
             // Keeps running while Carbon pauses: the recorder needs its rewritten flags.
             hyperKeyTap.start(settings: settings)
 
@@ -449,6 +466,10 @@ final class AppCore {
         case .ignored:
             break
         }
+        if DockURL.claims(url) {
+            dockSwitchCoordinator.handle(url)
+            return
+        }
         guard ExtensionDeepLink.claims(url) else { return }
         guard let link = ExtensionDeepLink.parse(url: url) else {
             paletteCoordinator.showPalette(mode: .launcher, restoreAnyMode: true)
@@ -487,6 +508,10 @@ final class AppCore {
             return appIndex.apps.first { $0.kind == .plugin && $0.id == entryID }?.name
         case .scheduledTask(let id):
             return scheduledTasks.task(id: id)?.name
+        case .dockSetup(let id):
+            return docks.setup(id: id).map { "Switch to " + $0.name }
+        case .dockVisibility(let id):
+            return docks.dock(id: id).map { "Show/Hide " + $0.name }
         case .togglePalette, .toggleAIBar, .command, .systemAction, .windowCommand:
             return nil
         }
@@ -528,6 +553,7 @@ final class AppCore {
         // Caps Lock first: its remap is the one teardown that outlives the process.
         hyperKeyTap.prepareForTermination()
         windowLayoutCoordinator.prepareForTermination()
+        dockCoordinator.prepareForTermination()
         inputSourceSwitcher.endSession()
         textInjector.prepareForTermination()
         snippetListener.stop()
@@ -714,6 +740,11 @@ final class AppCore {
         track(
             { _ = $0.pluginsShowInLauncher },
             reproject: { $0.pluginCoordinator.applyPluginsLauncherPresence() })
+        track(
+            {
+                _ = $0.docksEnabled
+                _ = $0.dockWidgetsEnabled
+            }, reproject: { $0.dockCoordinator.applyEnabled() })
     }
 
     /// `.system` resolves to `nil`, so AppKit follows macOS with nothing polling.

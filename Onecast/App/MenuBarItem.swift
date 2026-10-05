@@ -23,6 +23,9 @@ struct MenuBarMenu: View {
                 AppCore.shared.paletteCoordinator.showPalette(mode: .clipboard)
             }
         }
+        if AppCore.shared.settings.docksEnabled {
+            DockMenuBarMenu()
+        }
         Divider()
         Button("Check for Updates...") { AppCore.shared.updateCoordinator.checkForUpdates() }
         Button("Support \(appName)...") { AppCore.shared.supportCoordinator.showSupport() }

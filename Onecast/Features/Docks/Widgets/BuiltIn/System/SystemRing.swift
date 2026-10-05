@@ -1,0 +1,20 @@
+import SwiftUI
+
+/// A ring filled clockwise from the top to `progress`; values outside 0...1 clamp.
+struct SystemRing: View {
+    let progress: Double
+    let lineWidth: CGFloat
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Theme.Colors.controlSurface, lineWidth: lineWidth)
+            Circle()
+                .trim(from: 0, to: min(max(progress, 0), 1))
+                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
+        .padding(lineWidth / 2)
+        .accessibilityHidden(true)
+    }
+}

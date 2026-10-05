@@ -64,6 +64,13 @@ Apple Shortcuts keep the same kind of index in `boundAppleShortcutIDs`, pruned n
 the first successful read of the library, since a failed read looks exactly like deletion
 (see [apple-shortcuts.md](apple-shortcuts.md#sweeping-deleted-shortcuts)).
 
+Docks keep two indexes, `boundDockSetupIDs` for `HotKeyAction.dockSetup` and `boundDockVisibilityIDs`
+for `.dockVisibility`, both pruned in `start()` against `DockStore`, which loads at init so the live
+IDs exist by then. A setup or dock deleted while Onecast runs is cleared by
+`DockSwitchCoordinator.applyLauncherPresence()`, which runs on every store change and diffs the IDs
+it saw last time against the store's. Both actions dispatch through the coordinator's funnels, so
+they obey the Docks switch exactly as the launcher rows do (see [launcher.md](launcher.md#docks)).
+
 Snippets index `StoredSnippet.ID`, the file's path, in `boundSnippetIDs`. The store runs only while
 the feature is on, so they are swept not at launch but on every snapshot, by
 `removeSnippetBindings`; a file that fails to parse still counts, since it is mid-edit rather than

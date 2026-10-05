@@ -124,6 +124,16 @@ final class LauncherCoordinator {
             windowLayoutCoordinator.runWindowLayout(id: id)
             return
         }
+        if app.kind == .dockSetup {
+            guard let id = DockSetup.id(fromEntryID: app.id) else { return }
+            core.dockSwitchCoordinator.switchToSetup(id: id)
+            return
+        }
+        if app.kind == .dock {
+            guard let id = CustomDock.id(fromEntryID: app.id) else { return }
+            core.dockSwitchCoordinator.toggleDock(id: id)
+            return
+        }
         // Before the palette hides: a view command takes the palette over rather than closing it.
         if app.kind == .extensionCommand {
             extensionCoordinator.runExtensionCommand(app, arguments: arguments)
@@ -164,7 +174,8 @@ final class LauncherCoordinator {
             guard let id = ScheduledTask.id(fromEntryID: app.id) else { return }
             core.schedulerCoordinator.runTask(id: id)
         case .command, .quickAction, .customCommand, .assistant, .systemAction, .windowCommand,
-            .windowLayout, .quicklink, .appleShortcut, .extensionCommand, .plugin, .meeting:
+            .windowLayout, .dockSetup, .dock, .quicklink, .appleShortcut, .extensionCommand, .plugin,
+            .meeting:
             break  // handled above
         }
     }
@@ -228,6 +239,12 @@ final class LauncherCoordinator {
             snippetCoordinator.editSnippet(nil)
         case .createScheduledTask:
             core.schedulerEditorCoordinator.createTask()
+        case .toggleDocks:
+            dismissPalette()
+            core.dockSwitchCoordinator.toggleDocks()
+        case .manageDocks:
+            dismissPalette()
+            settingsCoordinator.showSettings(tab: .docks)
         case .createWindowLayout:
             dismissPalette()
             windowLayoutCoordinator.editWindowLayout(nil)

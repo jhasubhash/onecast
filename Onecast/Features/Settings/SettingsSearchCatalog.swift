@@ -111,7 +111,7 @@ enum SettingsSearchCatalog {
         general + applications + systemSettings
         + systemActions + commands + quicklinks + appleShortcuts + fallbacks + ai + quickActions + fileSearch
         + notes
-        + snippets + navigation + windowManagement + clipboard + emoji + calendar
+        + snippets + navigation + windowManagement + docks + clipboard + emoji + calendar
         + extensions + plugins + scheduler + permissions + backup + about
 
     private static let general: [SettingsSearchEntry] = [
@@ -444,6 +444,110 @@ enum SettingsSearchCatalog {
         .init(
             .windowManagementCustomSizes, "New Custom Size",
             keywords: ["add", "create", "resize", "window size"])
+    ]
+
+    private static let docks: [SettingsSearchEntry] = [
+        .init(
+            pane: .docks,
+            keywords: ["dock", "custom dock", "macos dock", "dockset", "launcher bar", "widgets"]),
+        .init(
+            .docksDocks, "Enable Docks",
+            keywords: ["custom dock", "turn on", "turn off", "hide dock"]),
+        .init(
+            .docksDocks, "Dock setup",
+            keywords: [
+                "macos dock", "main dock", "replace", "both", "hide macos dock", "reachable",
+                "suppressed", "never appears", "autohide"
+            ]),
+        .init(
+            group: .docksCommands, "Dock commands",
+            keywords: ["shortcut", "launcher", "toggle docks", "manage docks"]),
+        .init(
+            group: .docksCustomDocks, "Custom docks",
+            keywords: ["dock list", "duplicate", "delete", "show", "hide", "edit"]),
+        .init(
+            .docksCustomDocks, "Add Dock",
+            keywords: ["new", "create", "custom dock"]),
+        .init(
+            .docksPlacement, "Display",
+            keywords: ["monitor", "screen", "main display", "which display"]),
+        .init(
+            .docksPlacement, "Edge",
+            keywords: ["left", "right", "bottom", "side", "position", "screen edge"]),
+        .init(
+            .docksPlacement, "Position along edge",
+            keywords: ["alignment", "align", "start", "centre", "center", "end", "offset"]),
+        .init(
+            .docksAppearance, "Material",
+            keywords: ["liquid glass", "clear glass", "frosted", "blur", "background", "style"]),
+        .init(
+            .docksAppearance, "Tile size",
+            keywords: ["icon size", "bigger", "smaller", "scale", "points"]),
+        .init(
+            .docksAppearance, "Magnification",
+            keywords: ["zoom", "hover", "enlarge", "magnify", "magnified size"]),
+        .init(
+            .docksAppearance, "Auto-hide",
+            keywords: ["autohide", "hide", "slide", "reveal", "edge"]),
+        .init(
+            .docksAppearance, "Show handle when hidden",
+            keywords: ["auto-hide", "strip", "indicator", "grab"]),
+        .init(
+            .docksAppearance, "Layer",
+            keywords: ["above windows", "on the desktop", "floating", "behind", "wallpaper"]),
+        .init(
+            .docksAppearance, "Hide when macOS Dock appears",
+            keywords: ["overlap", "collide", "both docks", "same edge"]),
+        .init(
+            .docksContent, "Show running apps",
+            keywords: ["open apps", "unpinned", "running"]),
+        .init(
+            .docksContent, "Show minimized windows",
+            keywords: ["minimised", "accessibility", "restore window"]),
+        .init(
+            .docksContent, "Show Trash",
+            keywords: ["bin", "empty trash", "delete"]),
+        .init(
+            .docksContent, "Click focused app to minimize",
+            keywords: ["minimise", "hide window", "accessibility"]),
+        .init(
+            .docksContent, "Show app badges",
+            keywords: ["notifications", "unread", "red dot", "accessibility"]),
+        .init(
+            group: .docksLayouts, "Dock layouts",
+            keywords: ["switch", "swipe", "rename", "colour", "duplicate", "active"]),
+        .init(
+            .docksLayouts, "Add Layout",
+            keywords: ["new", "create", "another", "set of apps"]),
+        .init(
+            group: .docksItems, "Layout items",
+            keywords: [
+                "reorder", "drag", "folder", "link", "website", "spacer", "widget", "letter",
+                "colour", "remove"
+            ]),
+        .init(
+            .docksItems, "Add Item",
+            keywords: [
+                "apps", "folders", "files", "link", "shortcut", "spacer", "widget", "pin"
+            ]),
+        .init(
+            .docksNativeLayouts, "Automatically save Dock changes",
+            keywords: ["macos dock", "sync", "track", "pinned apps", "persistent"]),
+        .init(
+            .docksNativeLayouts, "Create from Current Dock",
+            keywords: ["capture", "snapshot", "save", "pinned apps", "macos dock layout"]),
+        .init(
+            group: .docksNativeLayouts, "macOS Dock layouts",
+            keywords: ["apply", "restore", "replace", "spacer", "pinned apps", "switch"]),
+        .init(
+            group: .docksSetups, "Setups",
+            keywords: ["shortcut", "switch", "scene", "preset", "activate", "profile"]),
+        .init(
+            .docksSetups, "Add Setup",
+            keywords: ["new", "snapshot", "record", "save current"]),
+        .init(
+            group: .docksDockWidgets, "DockWidgets",
+            keywords: ["third-party", "install", "plugin", "swift", "widget library", "consent"])
     ]
 
     private static let clipboard: [SettingsSearchEntry] = [

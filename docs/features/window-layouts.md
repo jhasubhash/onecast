@@ -30,6 +30,8 @@ resolution-independent by construction.
 - **Capture always writes `usesPreferredGap: false` and describes against the raw `visibleFrame`.**
   Capturing against the gapped box would bake the current gap into every fraction and residual, so
   changing `windowGap` in Settings would move every window in every captured layout.
+- **A display's `visibleFrame` here is `AXScreens`' usable frame**, the custom docks' strips already
+  taken off, so a layout lands clear of a dock; moving or resizing a dock moves its fractions with it.
 - **`Model/` stays Foundation + CoreGraphics.** `CGDisplayCreateUUIDFromDisplayID` lives in
   ColorSync, so the UUID string is produced in `Service/AXScreens` and injected. `WindowLayoutAnchor`
   maps onto `WindowPlacementEngine.Anchor` rather than doing its own arithmetic; its SwiftUI

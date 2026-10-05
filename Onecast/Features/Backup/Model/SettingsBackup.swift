@@ -8,6 +8,7 @@ struct SettingsBackup: Codable {
     var customCommands: [CustomCommand]?
     var quicklinks: [Quicklink]?
     var windowLayouts: [WindowLayout]?
+    var docks: DockConfiguration?
     var customWindowSizes: [CustomWindowSize]?
     var favoriteApps: [String]?
     var hiddenLauncherItems: [String]?
@@ -102,6 +103,8 @@ struct SettingsBackup: Codable {
         var quicklinks: [String: HotKeyBinding]?
         var windowLayouts: [String: HotKeyBinding]?
         var customWindowSizes: [String: HotKeyBinding]?
+        var dockSetups: [String: HotKeyBinding]?
+        var dockVisibility: [String: HotKeyBinding]?
     }
 
     /// A tally of what an import touched, for user-facing confirmation.
@@ -116,6 +119,7 @@ struct SettingsBackup: Codable {
         var quicklinks = 0
         var windowLayouts = 0
         var customWindowSizes = 0
+        var docks = 0
     }
 }
 
@@ -225,11 +229,20 @@ extension SettingsBackup {
             uniqueKeysWithValues: hk.boundCustomWindowSizeIDs.compactMap { id in
                 hk.binding(for: .customWindowSize(id: id)).map { (id.uuidString.lowercased(), $0) }
             })
+        hotkeys.dockSetups = Dictionary(
+            uniqueKeysWithValues: hk.boundDockSetupIDs.compactMap { id in
+                hk.binding(for: .dockSetup(id)).map { (id.uuidString.lowercased(), $0) }
+            })
+        hotkeys.dockVisibility = Dictionary(
+            uniqueKeysWithValues: hk.boundDockIDs.compactMap { id in
+                hk.binding(for: .dockVisibility(id)).map { (id.uuidString.lowercased(), $0) }
+            })
         backup.hotkeys = hotkeys
 
         backup.customCommands = core.customCommands.commands
         backup.quicklinks = core.quicklinks.quicklinks
         backup.windowLayouts = core.windowLayouts.layouts
+        backup.docks = core.docks.configuration
         backup.customWindowSizes = core.customWindowSizes.sizes
         backup.favoriteApps = core.favorites.keys
         backup.hiddenLauncherItems = Array(core.visibility.hiddenItemKeys)
@@ -256,6 +269,9 @@ extension SettingsBackup {
         if let windowLayouts {
             summary.windowLayouts =
                 core.windowLayoutCoordinator.replaceWindowLayouts(windowLayouts)
+        }
+        if let docks {
+            summary.docks = core.dockSwitchCoordinator.replaceConfiguration(docks)
         }
         if let customWindowSizes {
             summary.customWindowSizes =
@@ -561,6 +577,14 @@ extension SettingsBackup {
             guard let id = UUID(uuidString: rawID), core.windowLayouts.layout(id: id) != nil
             else { continue }
             apply(b, .windowLayout(id: id))
+        }
+        for (rawID, b) in hotkeys.dockSetups ?? [:] {
+            guard let id = UUID(uuidString: rawID), core.docks.setup(id: id) != nil else { continue }
+            apply(b, .dockSetup(id))
+        }
+        for (rawID, b) in hotkeys.dockVisibility ?? [:] {
+            guard let id = UUID(uuidString: rawID), core.docks.dock(id: id) != nil else { continue }
+            apply(b, .dockVisibility(id))
         }
         for (rawID, b) in hotkeys.customWindowSizes ?? [:] {
             guard let id = UUID(uuidString: rawID), core.customWindowSizes.size(id: id) != nil

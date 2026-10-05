@@ -108,6 +108,7 @@ struct WindowCommandTests {
         testDisplayCycle()
         testRestore()
         testMemory()
+        testDockInsets()
         testFuzz()
 
         print("\(passes) passed, \(failures) failed")
@@ -1032,6 +1033,69 @@ struct WindowCommandTests {
         expect(bounded.record(for: 98) == nil, "forget(where:) drops matching keys")
         bounded.forget(key: 99)
         expect(bounded.record(for: 99) == nil, "forget(key:) drops that key")
+    }
+
+    // MARK: - Dock insets
+
+    static func testDockInsets() {
+        // Cocoa space (+Y up): a 1440×900 display under a 25 pt menu bar.
+        let visible = CGRect(x: 0, y: 0, width: 1440, height: 875)
+        let bottom = DockInsets.Reservation(
+            edge: .bottom, frame: CGRect(x: 420, y: 6, width: 600, height: 66))
+        let left = DockInsets.Reservation(
+            edge: .left, frame: CGRect(x: 6, y: 200, width: 66, height: 500))
+        let right = DockInsets.Reservation(
+            edge: .right, frame: CGRect(x: 1368, y: 200, width: 66, height: 500))
+
+        expectRect(
+            DockInsets.usableFrame(visible: visible, reserved: []), visible,
+            "no dock leaves the frame alone")
+        expectRect(
+            DockInsets.usableFrame(visible: visible, reserved: [bottom]),
+            CGRect(x: 0, y: 72, width: 1440, height: 803),
+            "a bottom dock raises the floor to its far rim, spanning the whole width")
+        expectRect(
+            DockInsets.usableFrame(visible: visible, reserved: [left]),
+            CGRect(x: 72, y: 0, width: 1368, height: 875), "a left dock moves the leading edge in")
+        expectRect(
+            DockInsets.usableFrame(visible: visible, reserved: [right]),
+            CGRect(x: 0, y: 0, width: 1368, height: 875), "a right dock pulls the trailing edge in")
+        expectRect(
+            DockInsets.usableFrame(visible: visible, reserved: [bottom, left, right]),
+            CGRect(x: 72, y: 72, width: 1296, height: 803), "docks on three edges all clear")
+        let taller = DockInsets.Reservation(
+            edge: .bottom, frame: CGRect(x: 0, y: 6, width: 300, height: 120))
+        expectRect(
+            DockInsets.usableFrame(visible: visible, reserved: [bottom, taller]),
+            CGRect(x: 0, y: 126, width: 1440, height: 749), "two docks on one edge clear the taller")
+
+        let macOSDockVisible = CGRect(x: 0, y: 75, width: 1440, height: 800)
+        expectRect(
+            DockInsets.usableFrame(visible: macOSDockVisible, reserved: [bottom]), macOSDockVisible,
+            "a dock inside what the macOS Dock already excludes costs nothing more")
+        let secondDisplay = DockInsets.Reservation(
+            edge: .left, frame: CGRect(x: 1446, y: 200, width: 66, height: 500))
+        expectRect(
+            DockInsets.usableFrame(visible: visible, reserved: [secondDisplay]), visible,
+            "a dock on the neighbouring display never insets this one")
+        let swallowing = DockInsets.Reservation(
+            edge: .bottom, frame: CGRect(x: 0, y: 6, width: 1440, height: 2000))
+        expectRect(
+            DockInsets.usableFrame(visible: visible, reserved: [swallowing]), visible,
+            "an inset that would leave no frame is ignored")
+
+        // AX space (+Y down): the inset screen is what the engine tiles, so the dock stays clear.
+        let usable = DockInsets.usableFrame(visible: visible, reserved: [bottom])
+        let inset = WindowPlacementEngine.Screen(
+            id: 1, frame: mainScreen.frame,
+            visibleFrame: CGRect(
+                x: usable.minX, y: 900 - usable.maxY, width: usable.width, height: usable.height))
+        let dockTop = 900 - bottom.frame.maxY
+        expect(frame(.maximize, on: inset)?.maxY == dockTop, "maximize ends where the dock begins")
+        expect(frame(.bottomHalf, on: inset)?.maxY == dockTop, "a bottom half sits above the dock")
+        expect(
+            frame(.bottomLeftQuarter, on: inset)?.maxY == dockTop,
+            "a bottom quarter sits above the dock")
     }
 
     // MARK: - Fuzz

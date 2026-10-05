@@ -7,7 +7,7 @@ import AppKit
 @MainActor
 enum AXWindowAccess {
     /// A hung target must not stall main for the AX default. Per element, never inherited.
-    static let messagingTimeout: Float = 1
+    nonisolated static let messagingTimeout: Float = 1
     /// Slack when checking whether the app honoured the size we asked for.
     static let clampTolerance: CGFloat = 2
 
@@ -16,7 +16,9 @@ enum AXWindowAccess {
 
     // MARK: - Finding windows
 
-    static func application(for pid: pid_t, timeout: Float = messagingTimeout) -> AXUIElement {
+    nonisolated static func application(
+        for pid: pid_t, timeout: Float = messagingTimeout
+    ) -> AXUIElement {
         let application = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(application, timeout)
         return application
@@ -31,7 +33,7 @@ enum AXWindowAccess {
     }
 
     /// Every window the app reports, unfiltered and in its own order.
-    static func windows(in application: AXUIElement) -> [AXUIElement] {
+    nonisolated static func windows(in application: AXUIElement) -> [AXUIElement] {
         var value: CFTypeRef?
         guard
             AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &value)
@@ -58,13 +60,13 @@ enum AXWindowAccess {
 
     // MARK: - Bringing one forward
 
-    static func unminimize(_ window: AXUIElement) -> Bool {
+    nonisolated static func unminimize(_ window: AXUIElement) -> Bool {
         AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
             == .success
     }
 
     /// Raises the window inside its app, then brings the app itself forward.
-    static func focus(
+    nonisolated static func focus(
         _ window: AXUIElement, in application: AXUIElement, of app: NSRunningApplication
     ) {
         AXUIElementPerformAction(window, kAXRaiseAction as CFString)
@@ -184,7 +186,7 @@ enum AXWindowAccess {
         return AXValueGetType(axValue) == type ? axValue : nil
     }
 
-    static func element(_ element: AXUIElement, _ attribute: String) -> AXUIElement? {
+    nonisolated static func element(_ element: AXUIElement, _ attribute: String) -> AXUIElement? {
         var value: CFTypeRef?
         guard
             AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
@@ -195,21 +197,21 @@ enum AXWindowAccess {
         return unsafeDowncast(value, to: AXUIElement.self)
     }
 
-    static func string(_ element: AXUIElement, _ attribute: String) -> String? {
+    nonisolated static func string(_ element: AXUIElement, _ attribute: String) -> String? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success
         else { return nil }
         return value as? String
     }
 
-    static func bool(_ element: AXUIElement, _ attribute: String) -> Bool? {
+    nonisolated static func bool(_ element: AXUIElement, _ attribute: String) -> Bool? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success
         else { return nil }
         return value as? Bool
     }
 
-    static func isSettable(_ attribute: String, on element: AXUIElement) -> Bool {
+    nonisolated static func isSettable(_ attribute: String, on element: AXUIElement) -> Bool {
         var settable = DarwinBoolean(false)
         guard
             AXUIElementIsAttributeSettable(element, attribute as CFString, &settable) == .success

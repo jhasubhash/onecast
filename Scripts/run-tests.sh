@@ -328,7 +328,8 @@ run volume-test            Onecast/Features/SystemActions/Model/VolumeLevel.swif
 run window-command-test    Onecast/Features/WindowManagement/Model/WindowCommand.swift \
                            Onecast/Features/WindowManagement/Model/WindowCycle.swift \
                            Onecast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
-                           Onecast/Features/WindowManagement/Model/WindowActionMemory.swift
+                           Onecast/Features/WindowManagement/Model/WindowActionMemory.swift \
+                           Onecast/Features/WindowManagement/Model/DockInsets.swift
 run window-preset-test     Onecast/Features/WindowManagement/Model/WindowCommand.swift \
                            Onecast/Features/WindowManagement/Model/WindowShortcutPreset.swift \
                            Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
@@ -633,6 +634,39 @@ run assistant-store-test   Onecast/Features/Settings/AppSettingsKey.swift \
 run plugin-catalog-test    Onecast/Platform/AppPaths.swift \
                            Onecast/Features/Plugins/Model/PluginPreference.swift \
                            Onecast/Features/Plugins/Service/PluginCatalog.swift
+run docks-test             Onecast/Features/Docks/Model/DockModels.swift \
+                           Onecast/Features/Docks/Model/DockGeometry.swift \
+                           Onecast/Features/Docks/Model/DockSlots.swift \
+                           Onecast/Features/Docks/Model/DockStore.swift \
+                           Onecast/Features/Docks/Model/DockURL.swift \
+                           Onecast/Features/Docks/Model/DockEntryID.swift
+run dock-widgets-productivity-test \
+                           Onecast/Features/Calendar/Model/*.swift \
+                           Onecast/Features/Docks/Model/Widgets/Productivity*.swift
+run native-dock-test       Onecast/Features/Docks/Model/DockModels.swift \
+                           Onecast/Features/Docks/Model/NativeDockError.swift \
+                           Onecast/Features/Docks/Model/NativeDockHidingPlan.swift \
+                           Onecast/Features/Docks/Model/NativeDockPlist.swift
+run dockwidget-catalog-test Onecast/Platform/AppPaths.swift \
+                           Onecast/Features/Plugins/Model/PluginPreference.swift \
+                           Onecast/Features/Plugins/Service/PluginCatalog.swift \
+                           Onecast/Features/Docks/Model/DockModels.swift \
+                           Onecast/Features/Docks/Model/DockWidgetManifest.swift \
+                           Onecast/Features/Docks/Service/DockWidgetCatalog.swift
+run dock-widgets-time-test Onecast/Features/Calculator/Model/*.swift \
+                           Onecast/Features/Scheduler/Model/NaturalDateParser.swift \
+                           Onecast/Features/Docks/Model/Widgets/Time*.swift
+run dock-strip-layout-test Onecast/Features/Docks/Model/DockModels.swift \
+                           Onecast/Features/Docks/Model/DockGeometry.swift \
+                           Onecast/Features/Docks/Model/DockSlots.swift \
+                           Onecast/Features/Docks/Model/DockStripLayout.swift \
+                           Onecast/Features/Docks/Model/DockPopupPlacement.swift
+run dock-badges-test       Onecast/Features/Docks/Model/DockBadges.swift
+run dock-widgets-system-test Onecast/Features/Docks/Model/Widgets/System*.swift
+run dock-widgets-personal-test Onecast/Features/Docks/Model/Widgets/Personal*.swift \
+                           Onecast/Features/Docks/Service/Widgets/PersonalHydrationHistoryFile.swift \
+                           Onecast/Features/Docks/Service/Widgets/PersonalAIUsageScanner.swift \
+                           Tests/dock-widgets-personal/*.swift
 
 if [ "$emit_db" -eq 1 ]; then
     printf ']\n' >> "$DB"

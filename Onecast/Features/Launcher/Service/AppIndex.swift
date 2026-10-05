@@ -18,6 +18,8 @@ struct AppEntry: Identifiable, Hashable, Sendable {
         case meeting
         case plugin
         case scheduledTask
+        case dockSetup
+        case dock
 
         var descriptor: KindDescriptor {
             switch self {
@@ -102,6 +104,16 @@ struct AppEntry: Identifiable, Hashable, Sendable {
                 return KindDescriptor(
                     label: "Scheduled Task", sectionTitle: "Scheduled Tasks",
                     openVerb: "Run Scheduled Task", canHideFromSearch: false,
+                    canRevealInFinder: false, canDragOut: false, isSymbolIcon: true, rankPriority: 3)
+            case .dockSetup:
+                return KindDescriptor(
+                    label: "Dock Setup", sectionTitle: "Dock Setups",
+                    openVerb: "Switch Setup", canHideFromSearch: false,
+                    canRevealInFinder: false, canDragOut: false, isSymbolIcon: true, rankPriority: 3)
+            case .dock:
+                return KindDescriptor(
+                    label: "Custom Dock", sectionTitle: "Docks",
+                    openVerb: "Toggle Dock", canHideFromSearch: false,
                     canRevealInFinder: false, canDragOut: false, isSymbolIcon: true, rankPriority: 3)
             }
         }
@@ -216,6 +228,10 @@ struct AppEntry: Identifiable, Hashable, Sendable {
             return ScheduledTask.id(fromEntryID: id).map { .scheduledTask(id: $0) }
         case .snippet:
             return StoredSnippet.id(fromEntryID: id).map { .snippet(id: $0) }
+        case .dockSetup:
+            return DockSetup.id(fromEntryID: id).map { .dockSetup($0) }
+        case .dock:
+            return CustomDock.id(fromEntryID: id).map { .dockVisibility($0) }
         case .meeting:
             return nil
         }
@@ -253,6 +269,8 @@ struct AppEntry: Identifiable, Hashable, Sendable {
         case .windowLayout: return WindowLayout.sfSymbol
         case .meeting: return "video.fill"
         case .scheduledTask: return ScheduledTask.sfSymbol
+        case .dockSetup: return DockSetup.launcherSymbol
+        case .dock: return DockSetup.launcherSymbol
         case .application, .systemSettings, .appleShortcut, .extensionCommand, .plugin: return "questionmark"
         }
     }
@@ -307,6 +325,23 @@ extension AppEntry {
         self.init(
             id: shortcut.entryID, name: shortcut.name, url: applicationURL, bundleID: nil,
             kind: .appleShortcut)
+    }
+
+    /// The one row a setup draws, tinted by the colour its owner gave it.
+    init(_ setup: DockSetup) {
+        self.init(
+            id: setup.entryID, name: "Switch to " + setup.name,
+            url: URL(string: "onecast://dock/setup/" + setup.id.uuidString)!,
+            bundleID: nil, kind: .dockSetup, keywords: ["dock"],
+            iconOverride: .tintedSymbol(name: DockSetup.launcherSymbol, tint: setup.color.entryTint))
+    }
+
+    /// Named for what the row does next, so it follows the dock's visibility.
+    init(_ dock: CustomDock) {
+        self.init(
+            id: dock.entryID, name: dock.launcherTitle,
+            url: URL(string: "onecast://dock/toggle/" + dock.id.uuidString)!,
+            bundleID: nil, kind: .dock, symbolName: dock.launcherSymbol, keywords: ["dock"])
     }
 }
 
@@ -393,6 +428,8 @@ final class AppIndex {
     private var pluginEntries: [AppEntry] = []
     private var meetingEntries: [AppEntry] = []
     private var scheduledTaskEntries: [AppEntry] = []
+    /// Setups first, then docks, each by name: one slice, so the long concatenation stays short.
+    private var dockEntries: [AppEntry] = []
     /// The catalog's commands a disabled feature hides; the Commands slice is recomputed from it.
     private var hiddenCommands: Set<CommandID> = []
     private var nameCache = BundleNameCache()
@@ -551,6 +588,20 @@ final class AppIndex {
         publishEntries()
     }
 
+    /// Replaces the Docks slice; the coordinator pushes nothing while the feature is off.
+    func setDocks(setups: [DockSetup], docks: [CustomDock]) {
+        func precedes(_ lhs: AppEntry, _ rhs: AppEntry) -> Bool {
+            let order = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
+            return order == .orderedSame ? lhs.id < rhs.id : order == .orderedAscending
+        }
+        let entries =
+            setups.map(AppEntry.init).sorted(by: precedes)
+            + docks.map(AppEntry.init).sorted(by: precedes)
+        guard entries != dockEntries else { return }
+        dockEntries = entries
+        publishEntries()
+    }
+
     func updateSnippets(_ records: [StoredSnippet]) {
         let entries =
             records
@@ -687,7 +738,7 @@ final class AppIndex {
                 extensionEntries + pluginEntries + quicklinkEntries + appleShortcutEntries
                     + snippetEntries + Self.systemActionEntries
                     + windowLayoutEntries + windowCommandEntries + customWindowSizeEntries
-                    + customCommandEntries + scheduledTaskEntries + assistantEntries
+                    + dockEntries + customCommandEntries + scheduledTaskEntries + assistantEntries
                     + quickActionEntries + commandEntries)
         guard updated != apps else { return }
         apps = updated

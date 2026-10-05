@@ -20,9 +20,10 @@ entries and a still-registered shortcut moves nothing.
   stay Foundation + CoreGraphics and pure** — no AX, no `NSScreen`, no clock (`WindowActionMemory`
   takes `now` as a parameter, `SpaceGesture` takes `timestamp`). Every `AXUIElement` call and the
   Cocoa↔AX flip live in `Service/`; every `CGEvent` call lives in `SpaceSwitcher.swift`.
-- **`AXWindowAccess` is the one AX layer**, shared by the mover, the layout runner and
-  [Navigation](navigation.md)'s window switcher. Its `write` is the size → position → size sequence:
-  two copies of it would land a stubborn app two ways.
+- **`AXWindowAccess` is the one AX layer**, shared by the mover, the layout runner,
+  [Navigation](navigation.md)'s window switcher and the Docks' window observer, which is why its
+  pure reads are `nonisolated`. Its `write` is the size → position → size sequence: two copies of it
+  would land a stubborn app two ways.
 - **Our own windows are written through AppKit, never AX.** `WindowMover.Surface` is the split:
   an `AXUIElement` write into our own process would stall the main thread that services it.
   `WindowInventory` still excludes us entirely, so layouts never name one of our windows.
@@ -39,9 +40,10 @@ entries and a still-registered shortcut moves nothing.
 | `Model/WindowCycle.swift`            | Foundation                   | The three cycling modes a repeat press can run                      |
 | `Model/WindowPlacementEngine.swift`  | Foundation + CoreGraphics    | **Pure.** Every frame the commands produce                          |
 | `Model/WindowActionMemory.swift`     | Foundation + CoreGraphics    | **Pure.** Per-window cycle position and restore point               |
+| `Model/DockInsets.swift`             | Foundation + CoreGraphics    | **Pure.** The custom docks' strips taken off a display's visible frame |
 | `Model/SpaceGesture.swift`           | Foundation                   | **Pure.** The Dock-swipe field tables and the IOHID payload bytes   |
 | `Service/AXWindowAccess.swift`       | AppKit + ApplicationServices | `@MainActor`. Every `AXUIElement` call, and the one write sequence  |
-| `Service/AXScreens.swift`            | AppKit + ColorSync           | `@MainActor`. `AXGeometry`, the one coordinate flip                 |
+| `Service/AXScreens.swift`            | AppKit + ColorSync           | `@MainActor`. `AXGeometry`, the one coordinate flip, each display's usable frame |
 | `Service/WindowMover.swift`          | AppKit + ApplicationServices | `@MainActor`. Command policy: cycle, restore, fullscreen            |
 | `Service/SpaceSwitcher.swift`        | CoreGraphics                 | `@MainActor`. Every `CGEvent` call and the payload splice           |
 | `Service/WindowTarget.swift`         | AppKit                       | `@MainActor`. Which window a command acts on                        |
@@ -55,11 +57,11 @@ entries and a still-registered shortcut moves nothing.
 The feature also owns **[Window Layouts](window-layouts.md)** — saved multi-display arrangements
 applied in one pass. They share this feature's switch, its Accessibility grant and its gap setting.
 
-The first four compile into `Tests/window-command-test.swift` and `SpaceGesture.swift` compiles into
-`Tests/space-gesture-test.swift`, so none of them may gain an AppKit, SwiftUI or `NSScreen`
-dependency, and all must stay pure — `WindowActionMemory` takes `now` as a parameter rather than
-reading a clock. CoreGraphics is needed only because `CGRect`'s `Equatable` conformance lives in that
-overlay rather than in Foundation.
+The first four compile into `Tests/window-command-test.swift`, as does `DockInsets.swift`, and
+`SpaceGesture.swift` compiles into `Tests/space-gesture-test.swift`, so none of them may gain an
+AppKit, SwiftUI or `NSScreen` dependency, and all must stay pure — `WindowActionMemory` takes `now`
+as a parameter rather than reading a clock. CoreGraphics is needed only because `CGRect`'s
+`Equatable` conformance lives in that overlay rather than in Foundation.
 
 Adding a command is four edits in `WindowCommand.swift` (a case in `ID`, plus `name`, `symbol` and
 `group` arms), an arm in `WindowPlacementEngine.placement` or `tileFractions`, and bumping
@@ -85,6 +87,13 @@ wake or a resolution change, and mixing two anchors inside one command corrupts 
 Nothing here touches `backingScaleFactor`. `NSScreen.frame`, `NSScreen.visibleFrame` and AX
 coordinates are all in points, so mixed-DPI correctness is automatic; a scale factor appearing anywhere
 in this feature is a bug. `visibleFrame` already excludes the menu bar, the Dock and the notch.
+
+Custom docks are taken off it too, once, in `AXScreens.converted`: that is where every `Screen` the
+commands and layouts tile is built, so a maximize, a half or a layout never covers a dock. The strips
+come from `DockPanelController.reservedFrames` (Cocoa space, filtered to the display by
+`displayKey`, a dock with none belonging to the menu-bar display) and `DockInsets.usableFrame` does
+the arithmetic. A dock only matters on the edge it hugs, from the screen's edge to its far rim, and
+only the docks Onecast draws count — never another app's.
 
 ## Geometry
 
@@ -378,13 +387,15 @@ and every shortcut stays editable afterwards.
 
 ## Testing
 
-`Tests/window-command-test.swift` (500 assertions) covers the catalog, the AX-space convention lock,
+`Tests/window-command-test.swift` (512 assertions) covers the catalog, the AX-space convention lock,
 tiling on divisible and non-divisible screens, off-origin and negative-coordinate displays, gap
 arithmetic including degenerate values, sizing, the Make Larger/Smaller round trip, nudges, display
 moves and wrapping, both cycling modes including the strip walk, its wrap and a run of real presses
-across displays, restore recovery, every `WindowActionMemory` rule, and a fuzz sweep over every
-command × gap × screen × cycle × step × degenerate window frame checking for non-finite output,
-negative dimensions, off-screen results, non-determinism and, at step 0, drift on repeat.
+across displays, restore recovery, every `WindowActionMemory` rule, the `DockInsets` arithmetic (one
+strip per edge, a dock the system already excludes, a neighbouring display's dock, an inset that
+would leave nothing) and a fuzz sweep over every command × gap × screen × cycle × step × degenerate
+window frame checking for non-finite output, negative dimensions, off-screen results,
+non-determinism and, at step 0, drift on repeat.
 
 `Tests/window-preset-test.swift` covers the preset tables (no key used twice, a commanding modifier
 on each) and `WindowShortcutPresetPlan`: a fresh apply, a repeat apply, a replaced user key, a

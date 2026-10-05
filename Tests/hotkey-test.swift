@@ -266,6 +266,20 @@ struct DoubleTapDetectorTests {
             Set(HotKeyAction.builtInActions.map(\.defaultsKey)).count
                 == HotKeyAction.builtInActions.count,
             "no two built-in actions share a defaults key, which would bind them together")
+
+        // One id names a setup and a dock in different stores, so only the prefix tells them apart.
+        let shared = UUID()
+        let perItem: [HotKeyAction] = [
+            .dockSetup(shared), .dockVisibility(shared), .windowLayout(id: shared),
+            .scheduledTask(id: shared),
+        ]
+        expect(
+            Set(perItem.map(\.defaultsKey)).count == perItem.count,
+            "a setup, a dock and other per-item actions never share a defaults key")
+        expect(
+            HotKeyAction.dockSetup(shared).defaultsKey
+                == "hotkey.dockSetup." + shared.uuidString.lowercased(),
+            "a setup's shortcut persists under its lowercase id")
     }
 
     // MARK: - The Hyper chord
