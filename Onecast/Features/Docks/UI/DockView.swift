@@ -42,6 +42,8 @@ private struct DockStripView: View, @MainActor Animatable {
     private static let handleLengthRatio: CGFloat = 0.28
     private static let handleWeightRatio: CGFloat = 0.06
     private static let minimumHandleWeight: CGFloat = 3
+    /// The faintest alpha the window server still counts as part of the window, not click-through.
+    private static let hoverAlpha = 1.0 / 255.0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -57,12 +59,26 @@ private struct DockStripView: View, @MainActor Animatable {
         let placed = zip(slots, layout.tiles).map { Placed(slot: $0, tile: $1) }
         let size = model.restSize
         ZStack(alignment: .topLeading) {
+            hoverCover(layout)
             plate(layout)
             tiles(placed, layout: layout)
             marker(layout, slots: slots)
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .animation(reduceMotion ? nil : Self.arrival, value: slots.map(\.id))
+    }
+
+    /// Keeps the pointer on the dock over a magnified strip's gaps and tops, which are clear.
+    @ViewBuilder
+    private func hoverCover(_ layout: DockStripLayout) -> some View {
+        if lens > 0 {
+            let frame = model.envelopeFrame(layout)
+            Rectangle()
+                .fill(Color.black.opacity(Self.hoverAlpha))
+                .frame(width: frame.width, height: frame.height)
+                .offset(x: frame.minX, y: frame.minY)
+                .accessibilityHidden(true)
+        }
     }
 
     private func plate(_ layout: DockStripLayout) -> some View {

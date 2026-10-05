@@ -95,13 +95,24 @@ switches nothing back. `HotKeyAction.dockVisibility` shows or hides one dock. Se
 - **The look.** A glass plate and a handle pill at its end (drag it along the edge to move the
   dock); every widget is a card inside it with Dockset's modest corner (`cardRadiusRatio`, about a
   sixth of the tile), and the plate's corner is the card's plus the padding, so the curves run parallel.
-- **Anchoring.** The SwiftUI tree is aligned against the screen edge and centred along it, so the
-  window can change size without the plate moving; while the pointer is on a magnifying dock the
-  window grows by exactly what the lens can add.
+- **Anchoring, and a window that never resizes on hover.** The SwiftUI tree is aligned against the
+  screen edge and centred along it. A magnifying dock's window always holds the lens's worst-case
+  room (`lensRoom`, swept along the strip), because resizing a SwiftUI window as the pointer enters
+  drew one stale frame: the flicker. Its clear margin passes clicks through to the apps behind.
 - **Tiles carry no gestures.** `DockContainerView` owns every press, right click and scroll and
   hit-tests against `DockStripLayout`, the same pure layout the tiles are drawn from. A widget tile is
   the exception: left events pass through so its own buttons work, and the tile reports its tap.
-- **The lens is anchored to the pointer**: the point under it stays put and the strip grows around it.
+- **The lens grows the strip evenly from its centre**, as the macOS Dock does, and the plate takes
+  one width for the whole hover: the most the lens can ever add (`plateGrowth`, from the same sweep
+  as `lensRoom`), eased in as the pointer arrives and out as it leaves. Its ends therefore never
+  creep while the pointer moves. Tiles before the pointer keep to the plate's start and tiles after
+  it to its end, with the unused room at the pointer, so a far tile never moves at all. (Anchoring
+  the lens to the pointer instead slid the whole bar, which read as flicker.) Icons and widgets
+  magnify; a growing widget is laid out at its peak size and scaled down, so its text stays sharp
+  and it reflows only as it starts and stops growing. Every slot gains at most one icon's growth,
+  so a long widget never drags the strip; spacers and dividers keep their size. While the lens is
+  up, an invisible cover over everything it grew
+  keeps the pointer on the dock, so a magnified tile's top or a gap never collapses the lens.
 - **Auto-hide slides the plate inside its window, then fits the window**, leaving a `handleThickness`
   strip, never a window parked off screen. Reveal is a global pointer monitor on the reveal zone,
   armed only while some dock hides; in a full-screen Space the pointer must rest there first. It is

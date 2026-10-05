@@ -97,3 +97,11 @@ struct DockWidgetTileView: View {
         return line.count <= headlineLimit ? String(line) : String(line.prefix(headlineLimit)) + "…"
     }
 }
+
+/// Redraws on its own inputs or observed state, never because the lens is scaling its slot.
+extension DockWidgetTileView: @MainActor Equatable {
+    static func == (lhs: DockWidgetTileView, rhs: DockWidgetTileView) -> Bool {
+        lhs.instanceID == rhs.instanceID && lhs.reference == rhs.reference && lhs.edge == rhs.edge
+            && lhs.tileLength == rhs.tileLength
+    }
+}

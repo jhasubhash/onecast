@@ -4,8 +4,8 @@ import Foundation
 /// Where each slot of a dock sits along its axis, with the magnifying lens applied.
 ///
 /// Positions are in the dock's rest frame: its origin is the rim of the unmagnified dock, so a
-/// tile or the plate grown by the lens may reach below zero or past the rest length. The lens is
-/// anchored to the pointer: the point under it stays where it is, and the strip grows around it.
+/// tile or the plate grown by the lens may reach below zero or past the rest length. The lens
+/// grows the strip evenly from its centre, as the macOS Dock does, so its ends hold still.
 struct DockStripLayout: Equatable, Sendable {
     struct Tile: Equatable, Sendable {
         var along: CGFloat
@@ -32,12 +32,15 @@ struct DockStripLayout: Equatable, Sendable {
 
     var gap: CGFloat { tileSize * DockGeometry.gapRatio }
     var inset: CGFloat { tileSize * DockGeometry.insetRatio }
+    /// How far from the edge-side rim the strip reaches: the rest thickness, or the tallest tile.
+    var depth: CGFloat { 2 * inset + (tiles.map(\.cross).max() ?? tileSize) }
 
     /// `pointer` is the pointer's position along the axis in the rest frame; nil, or a `lens`
     /// of 0, lays the strip out at rest. `scroll` shifts a rest layout along the axis.
+    /// `plateGrowth` is the most the lens ever adds; the plate takes all of it while hovered.
     static func make(
         slots: [Slot], tileSize: CGFloat, magnifiedSize: CGFloat, pointer: CGFloat?,
-        lens: CGFloat, scroll: CGFloat = 0
+        lens: CGFloat, scroll: CGFloat = 0, plateGrowth: CGFloat = 0
     ) -> DockStripLayout {
         let gap = tileSize * DockGeometry.gapRatio
         let inset = tileSize * DockGeometry.insetRatio
@@ -64,41 +67,36 @@ struct DockStripLayout: Equatable, Sendable {
         let scales = slots.indices.map { index -> CGFloat in
             guard slots[index].magnifies else { return 1 }
             let centre = starts[index] + lengths[index] / 2
+            // A long widget is at full size anywhere over its body, not only at its centre.
+            let body = max(lengths[index] - tileSize, 0) / 2
             let size = DockGeometry.magnification(
-                distance: centre - pointer, tileSize: tileSize, magnified: magnifiedSize)
-            return 1 + lens * (size / tileSize - 1)
+                distance: max(abs(centre - pointer) - body, 0), tileSize: tileSize,
+                magnified: magnifiedSize)
+            // Every slot grows by at most what one icon does, so a long widget never drags the strip.
+            let share = tileSize / max(lengths[index], tileSize)
+            return 1 + lens * (size / tileSize - 1) * share
         }
         let extras = slots.indices.map { lengths[$0] * (scales[$0] - 1) }
 
-        var anchor = slots.count - 1
-        for index in slots.indices where pointer < starts[index] + lengths[index] + gap / 2 {
-            anchor = index
-            break
-        }
-        let fraction = min(max((pointer - starts[anchor]) / lengths[anchor], 0), 1)
-        let grownBefore = extras[anchor] * fraction
-        let grownAfter = extras[anchor] - grownBefore
-
-        var tiles = slots.indices.map { index in
-            Tile(
-                along: starts[index], length: lengths[index] + extras[index],
+        let total = extras.reduce(0, +)
+        // The plate holds one width for the whole hover, so its ends never creep as the lens moves.
+        let half = max(plateGrowth * lens, total) / 2
+        // Unused room sits at the pointer: earlier tiles keep to the start, later ones to the end.
+        let slack = 2 * half - total
+        var grown: CGFloat = 0
+        let tiles = slots.indices.map { index in
+            let centre = starts[index] + lengths[index] / 2
+            let towardEnd = min(max((centre - pointer) / tileSize + 0.5, 0), 1)
+            let tile = Tile(
+                along: starts[index] - half + grown + slack * towardEnd,
+                length: lengths[index] + extras[index],
                 cross: slots[index].magnifies ? tileSize * scales[index] : tileSize,
                 scale: scales[index])
-        }
-        tiles[anchor].along = starts[anchor] - grownBefore
-
-        var shiftAfter = grownAfter
-        for index in slots.indices where index > anchor {
-            tiles[index].along = starts[index] + shiftAfter
-            shiftAfter += extras[index]
-        }
-        var shiftBefore = grownBefore
-        for index in slots.indices.reversed() where index < anchor {
-            tiles[index].along = starts[index] + lengths[index] - shiftBefore - tiles[index].length
-            shiftBefore += extras[index]
+            grown += extras[index]
+            return tile
         }
         return DockStripLayout(
-            tiles: tiles, plateStart: -shiftBefore, plateEnd: restLength + shiftAfter,
+            tiles: tiles, plateStart: -half, plateEnd: restLength + half,
             restLength: restLength, tileSize: tileSize)
     }
 
@@ -129,12 +127,12 @@ struct DockStripLayout: Equatable, Sendable {
 }
 
 extension DockSlot {
-    /// Icons grow under the lens; widgets, spacers and dividers keep their size.
+    /// Icons and widgets grow under the lens; spacers and dividers keep their size.
     var magnifies: Bool {
         switch self {
         case .pinned(let item, _):
             switch item.kind {
-            case .spacer, .widget: false
+            case .spacer: false
             default: true
             }
         case .running, .minimized, .trash: true

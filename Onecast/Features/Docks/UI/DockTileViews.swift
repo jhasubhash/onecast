@@ -59,12 +59,25 @@ struct DockTileView: View {
         case .spacer:
             Color.clear
         case .widget(let reference):
+            let scale = max((model.edge.isVertical ? size.width : size.height) / model.tileSize, 1)
+            // Laid out at its peak size and scaled down, so text stays sharp and reflows only twice.
+            let rendered = scale > Self.growingScale ? widgetPeakScale(restSize: size, scale: scale) : 1
             DockWidgetTileView(
                 instanceID: item.id, reference: reference, edge: model.edge,
-                tileLength: model.tileSize
+                tileLength: model.tileSize * rendered
             )
+            .equatable()
+            .frame(width: size.width * rendered / scale, height: size.height * rendered / scale)
+            .scaleEffect(scale / rendered)
             .simultaneousGesture(TapGesture().onEnded { model.onWidgetTap?(item.id) })
         }
+    }
+
+    /// The most this widget's slot grows, the same share of one icon's growth the strip gives it.
+    private func widgetPeakScale(restSize: CGSize, scale: CGFloat) -> CGFloat {
+        let restAlong = (model.edge.isVertical ? restSize.height : restSize.width) / scale
+        let share = model.tileSize / max(restAlong, model.tileSize)
+        return max(1 + (model.magnifiedSize / model.tileSize - 1) * share, scale)
     }
 
     @ViewBuilder
@@ -100,6 +113,8 @@ struct DockTileView: View {
     private static let cornerRatio: CGFloat = 0.22
     private static let highlightWidth: CGFloat = 2
     private static let highlightFill = 0.18
+    /// Past this, a widget counts as growing and is drawn at its peak size instead of its rest one.
+    private static let growingScale: CGFloat = 1.001
 }
 
 /// An app's icon with its running dot, badge and dimming when it can no longer be found.

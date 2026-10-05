@@ -36,6 +36,8 @@ final class DockSurfaceModel {
     private(set) var availableLength: CGFloat = .greatestFiniteMagnitude
     /// The magnified tile size the screen has room for; the tile size when there is none.
     private(set) var magnifiedSize: CGFloat
+    /// The most the lens ever adds along the axis: the plate's one width while it is hovered.
+    private(set) var plateGrowth: CGFloat = 0
 
     @ObservationIgnored private var names: [String: String?] = [:]
     @ObservationIgnored private var resolved: [UUID: URL?] = [:]
@@ -117,7 +119,12 @@ final class DockSurfaceModel {
         DockStripLayout.make(
             slots: stripSlots(slots), tileSize: tileSize,
             magnifiedSize: isMagnifying ? magnifiedSize : tileSize, pointer: pointer,
-            lens: CGFloat(lens), scroll: scrolls ? clampedScroll(scroll) : 0)
+            lens: CGFloat(lens), scroll: scrolls ? clampedScroll(scroll) : 0,
+            plateGrowth: isMagnifying ? plateGrowth : 0)
+    }
+
+    func setPlateGrowth(_ growth: CGFloat) {
+        if plateGrowth != growth { plateGrowth = growth }
     }
 
     /// The dock's rest frame: where the unmagnified plate sits, origin at its top leading corner.
@@ -146,6 +153,20 @@ final class DockSurfaceModel {
         return edge.isVertical
             ? CGRect(x: 0, y: layout.plateStart, width: thickness, height: length)
             : CGRect(x: layout.plateStart, y: 0, width: length, height: thickness)
+    }
+
+    /// Everything the lens has grown, from the edge-side rim out to the tallest tile.
+    func envelopeFrame(_ layout: DockStripLayout) -> CGRect {
+        let length = layout.plateEnd - layout.plateStart
+        let depth = layout.depth
+        switch edge {
+        case .bottom:
+            return CGRect(x: layout.plateStart, y: thickness - depth, width: length, height: depth)
+        case .left:
+            return CGRect(x: 0, y: layout.plateStart, width: depth, height: length)
+        case .right:
+            return CGRect(x: thickness - depth, y: layout.plateStart, width: depth, height: length)
+        }
     }
 
     /// A line across the dock at `along`, for the drop marker.

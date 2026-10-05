@@ -42,13 +42,17 @@ struct DockStripLayoutTests {
         magnifiedTileReachesFullSize()
         plateGrowsByTheSumOfTheExtras()
         tilesNeverOverlapOrLoseTheirGap()
-        pointerStaysOnTheSameFractionOfItsTile()
-        edgesGrowOnlyInward()
+        growsEvenlyFromItsCentre()
+        endsHoldStillOverTheMiddle()
+        plateHoldsOneWidthWhileHovered()
+        farTilesHoldStillWhileHovered()
+        middleTileStaysUnderThePointer()
         nonMagnifyingSlotsKeepTheirSize()
         hitTestingFollowsTheLens()
         insertionIndexCountsPinnedCentres()
         insertionMarkerSitsInTheGap()
         slotMagnificationByKind()
+        longWidgetMagnifiesAcrossItsBody()
         popupsSitBesideTheirAnchor()
         popupsStayOnScreen()
         cardCornerIsConcentricWithThePlate()
@@ -126,25 +130,83 @@ struct DockStripLayoutTests {
         }
     }
 
-    static func pointerStaysOnTheSameFractionOfItsTile() {
-        let rest = layout(tiles(5), pointer: nil)
-        let pointer = rest.tiles[2].along + tileSize * 0.25
-        let result = layout(tiles(5), pointer: pointer)
-        let tile = result.tiles[2]
-        near((pointer - tile.along) / tile.length, 0.25, "the pointer keeps its place on the tile")
-        near(tile.along + tile.length * 0.25, pointer, "so the tile stays under it")
+    /// The bar grows by the same amount at both ends, wherever the pointer is.
+    static func growsEvenlyFromItsCentre() {
+        let rest = layout(tiles(6), pointer: nil)
+        for pointer in stride(from: CGFloat(-20), through: rest.restLength + 20, by: 5) {
+            let result = layout(tiles(6), pointer: pointer)
+            near(-result.plateStart, result.plateEnd - rest.restLength, "even growth at \(pointer)", tolerance: 0.01)
+        }
     }
 
-    static func edgesGrowOnlyInward() {
-        let rest = layout(tiles(4), pointer: nil)
-        let atStart = layout(tiles(4), pointer: rest.tiles[0].along)
-        near(atStart.plateStart, 0, "pointer at the first tile's start leaves the start put")
-        expect(atStart.plateEnd > rest.restLength, "the plate grows away from the pointer")
-        let atEnd = layout(tiles(4), pointer: rest.tiles[3].end)
-        near(atEnd.plateEnd, rest.restLength, "pointer at the last tile's end leaves the end put")
-        expect(atEnd.plateStart < 0, "the plate grows toward the start")
+    /// Over the middle of a long dock the ends do not move, so the bar never seems to breathe.
+    static func endsHoldStillOverTheMiddle() {
+        let rest = layout(tiles(14), pointer: nil)
+        let from = rest.tiles[5].along, to = rest.tiles[8].end
+        let starts = stride(from: from, through: to, by: 3).map { layout(tiles(14), pointer: $0).plateStart }
+        let spread = (starts.max() ?? 0) - (starts.min() ?? 0)
+        // The cosine lens's total ripples by under a point as it slides; under a pixel, unseen.
+        expect(spread < 1, "the start barely moves while the pointer crosses the middle (spread \(spread))")
+    }
+
+    /// With its most growth given, the plate keeps one width for the whole sweep, ends included.
+    static func plateHoldsOneWidthWhileHovered() {
+        let rest = layout(tiles(8), pointer: nil)
+        let pointers = Array(stride(from: CGFloat(0), through: rest.restLength, by: 4))
+        let most = pointers.map { p in layout(tiles(8), pointer: p).tiles.reduce(0) { $0 + $1.length } }
+            .max().map { $0 - tileSize * 8 } ?? 0
+        let widths = pointers.map { p -> CGFloat in
+            let grown = DockStripLayout.make(
+                slots: tiles(8), tileSize: tileSize, magnifiedSize: magnified, pointer: p, lens: 1,
+                plateGrowth: most)
+            return grown.plateEnd - grown.plateStart
+        }
+        near((widths.max() ?? 0) - (widths.min() ?? 0), 0, "the plate's width never changes", tolerance: 0.001)
+        near(widths.first ?? 0, rest.restLength + most, "it is the rest length plus the most growth")
+        let half = DockStripLayout.make(
+            slots: tiles(8), tileSize: tileSize, magnifiedSize: magnified, pointer: 100, lens: 0.5,
+            plateGrowth: most)
+        expect(half.plateEnd - half.plateStart < widths[0], "it eases in and out with the lens")
+    }
+
+    /// A tile well clear of the lens keeps exactly its place while the pointer moves elsewhere.
+    static func farTilesHoldStillWhileHovered() {
+        let count = 14
+        let rest = layout(tiles(count), pointer: nil)
+        let pointers = Array(stride(from: CGFloat(0), through: rest.restLength, by: 3))
+        let most = pointers.map { p in layout(tiles(count), pointer: p).tiles.reduce(0) { $0 + $1.length } }
+            .max().map { $0 - tileSize * CGFloat(count) } ?? 0
+        func grown(_ pointer: CGFloat) -> DockStripLayout {
+            DockStripLayout.make(
+                slots: tiles(count), tileSize: tileSize, magnifiedSize: magnified, pointer: pointer,
+                lens: 1, plateGrowth: most)
+        }
+        let late = pointers.filter { $0 > rest.tiles[6].along }.map { grown($0).tiles[0].along }
+        near((late.max() ?? 0) - (late.min() ?? 0), 0, "the first tile never moves", tolerance: 0.001)
+        let early = pointers.filter { $0 < rest.tiles[7].end }.map { grown($0).tiles[count - 1].along }
+        near((early.max() ?? 0) - (early.min() ?? 0), 0, "nor does the last", tolerance: 0.001)
+        let gap = tileSize * DockGeometry.gapRatio
+        for pointer in pointers {
+            let result = grown(pointer)
+            for index in 1..<count {
+                expect(
+                    result.tiles[index].along - result.tiles[index - 1].end >= gap - 0.001,
+                    "tiles never close their gap at \(pointer)")
+            }
+            expect(
+                result.tiles[0].along >= result.plateStart && result.tiles[count - 1].end <= result.plateEnd,
+                "tiles stay on the plate at \(pointer)")
+        }
+    }
+
+    /// At a middle tile's centre the lens is symmetric, so that tile stays centred under the pointer.
+    static func middleTileStaysUnderThePointer() {
+        let rest = layout(tiles(9), pointer: nil)
+        let pointer = rest.tiles[4].along + tileSize / 2
+        let tile = layout(tiles(9), pointer: pointer).tiles[4]
+        near(tile.along + tile.length / 2, pointer, "the hovered tile is centred on the pointer")
         let beyond = layout(tiles(4), pointer: rest.restLength + 500)
-        expect(beyond.tiles.count == 4 && beyond.plateEnd >= rest.restLength, "a far pointer still lays out")
+        expect(beyond.tiles.count == 4, "a far pointer still lays out")
     }
 
     static func nonMagnifyingSlotsKeepTheirSize() {
@@ -202,12 +264,31 @@ struct DockStripLayoutTests {
         let widget = DockItem(kind: .widget(DockWidgetReference(widgetID: "builtin.x")))
         expect(DockSlot.pinned(app, running: nil).magnifies, "an app magnifies")
         expect(!DockSlot.pinned(spacer, running: nil).magnifies, "a spacer does not")
-        expect(!DockSlot.pinned(widget, running: nil).magnifies, "a widget does not")
+        expect(DockSlot.pinned(widget, running: nil).magnifies, "a widget magnifies too")
         expect(DockSlot.trash.magnifies, "the trash magnifies")
         expect(!DockSlot.divider("running").magnifies, "a divider does not")
         expect(
             DockSlot.trash.stripSlot == DockStripLayout.Slot(extent: .tile, magnifies: true),
             "a strip slot pairs extent and magnification")
+    }
+
+    /// A long widget is fully grown anywhere over its body, by no more length than an icon gains.
+    static func longWidgetMagnifiesAcrossItsBody() {
+        let slots: [DockStripLayout.Slot] = [
+            .init(extent: .tile, magnifies: true), .init(extent: .span(4), magnifies: true),
+        ]
+        let rest = layout(slots, pointer: nil)
+        let wide = rest.tiles[1]
+        let iconGrowth = magnified - tileSize
+        for fraction in [CGFloat(0.15), 0.5, 0.85] {
+            let over = layout(slots, pointer: wide.along + wide.length * fraction)
+            near(over.tiles[1].length - wide.length, iconGrowth, "grown by one icon's worth at \(fraction)")
+        }
+        let first = layout(slots, pointer: rest.tiles[0].along + rest.tiles[0].length / 2)
+        near(first.tiles[0].scale, magnified / tileSize, "a plain tile still peaks at its centre")
+        expect(first.tiles[1].scale > 1, "a widget near the pointer grows a little")
+        near(rest.depth, DockGeometry.thickness(tileSize: tileSize), "at rest the strip is as deep as the plate")
+        near(first.depth, magnified + 2 * rest.inset, "under the lens it reaches the tallest tile")
     }
 
     static let screen = CGRect(x: 0, y: 0, width: 1000, height: 800)

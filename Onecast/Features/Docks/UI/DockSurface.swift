@@ -15,9 +15,9 @@ final class DockSurface {
     /// The dock's shown frame at rest, in screen coordinates; what window management reserves.
     private(set) var pill: CGRect = .zero
     private var visibleFrame: CGRect = .zero
+    /// Room kept around the plate for the lens: kept always, so hovering never resizes the window.
     private var overscan = (along: CGFloat(0), cross: CGFloat(0))
     private var isOverDock = false
-    private var isExpanded = false
     private var isSettledTucked = false
     private var isRevealed = false
     private(set) var isYielding = false
@@ -33,14 +33,11 @@ final class DockSurface {
 
     private var hideTask: Task<Void, Never>?
     private var settleTask: Task<Void, Never>?
-    private var shrinkTask: Task<Void, Never>?
     private var dwellTask: Task<Void, Never>?
     private var labelTask: Task<Void, Never>?
 
     /// Window padding around the plate that the plate's shadow falls into.
     private static let pad: CGFloat = 16
-    /// How far the lens can push the strip out of either end, in multiples of the extra size.
-    private static let sideGrowth: CGFloat = 1.75
     /// The most the lens can add to the whole dock, in multiples of the extra size.
     private static let totalGrowth: CGFloat = 2.5
     private static let lensDuration: TimeInterval = 0.12
@@ -112,7 +109,7 @@ final class DockSurface {
 
     func close() {
         isClosed = true
-        for task in [hideTask, settleTask, shrinkTask, dwellTask, labelTask] { task?.cancel() }
+        for task in [hideTask, settleTask, dwellTask, labelTask] { task?.cancel() }
         if model.openSlotID != nil || floating.isOpen(.menu(dockID: dockID)) { floating.close() }
         floating.label.hide()
         container.surface = nil
@@ -141,8 +138,8 @@ final class DockSurface {
             length: model.viewport, thickness: model.thickness, edge: edge,
             alignment: alignmentOverride ?? dock.placement.alignment, screen: visibleFrame,
             available: visibleFrame)
-        let growth = max(magnified - tile, 0)
-        overscan = (growth * Self.sideGrowth, growth)
+        overscan = lensRoom(magnified: magnified)
+        model.setPlateGrowth(overscan.along * 2)
         syncPresentation()
         // A dock that grows is given its new room at once and trimmed once the tiles have moved.
         if pill != previous, panel.isVisible, !isSettledTucked, alignmentOverride == nil,
@@ -175,6 +172,21 @@ final class DockSurface {
     }
 
     // MARK: - Frames
+
+    /// The lens's worst-case growth past either end and out from the edge, swept along the strip.
+    private func lensRoom(magnified: CGFloat) -> (along: CGFloat, cross: CGFloat) {
+        let tile = model.tileSize
+        guard magnified > tile else { return (0, 0) }
+        let slots = model.stripSlots(model.slots)
+        let length = model.restLength
+        var along: CGFloat = 0
+        for pointer in stride(from: 0, through: length, by: max(tile / 4, 1)) {
+            let layout = DockStripLayout.make(
+                slots: slots, tileSize: tile, magnifiedSize: magnified, pointer: pointer, lens: 1)
+            along = max(along, -layout.plateStart, layout.plateEnd - length)
+        }
+        return (along, magnified - tile)
+    }
 
     private func expand(_ rect: CGRect, along: CGFloat, cross: CGFloat, edgeSide: CGFloat)
         -> CGRect
@@ -211,7 +223,7 @@ final class DockSurface {
                     x: visibleFrame.maxX - handle, y: pill.minY, width: handle, height: pill.height)
             }
         }
-        let extra = isExpanded ? overscan : (along: 0, cross: 0)
+        let extra = model.isMagnifying ? overscan : (along: 0, cross: 0)
         return expand(
             pill, along: Self.pad + extra.along, cross: Self.pad + extra.cross,
             edgeSide: DockGeometry.edgeMargin)
@@ -242,7 +254,6 @@ final class DockSurface {
     private func syncPresentation() {
         if wantsTucked {
             guard !model.isTucked || model.tuckedVisible != handleVisible else { return }
-            isExpanded = false
             isOverDock = false
             floating.label.hide()
             model.lens = 0
@@ -401,10 +412,11 @@ final class DockSurface {
         return index
     }
 
+    /// Over the strip as it is drawn now, so a magnified tile's top and the gaps between counts.
     private func isOverPlate(_ point: CGPoint, layout: DockStripLayout) -> Bool {
         let strip = stripPoint(point)
         return strip.along >= layout.plateStart && strip.along <= layout.plateEnd
-            && strip.fromEdge >= -DockGeometry.edgeMargin && strip.fromEdge <= model.thickness
+            && strip.fromEdge >= -DockGeometry.edgeMargin && strip.fromEdge <= layout.depth
     }
 
     private func slot(id: String) -> (index: Int, slot: DockSlot)? {
@@ -484,13 +496,7 @@ final class DockSurface {
     private func engage() {
         guard !isOverDock else { return }
         isOverDock = true
-        shrinkTask?.cancel()
-        let magnifying = model.isMagnifying
-        if magnifying, !isExpanded {
-            isExpanded = true
-            applyFrame()
-        }
-        withAnimation(lensAnimation()) { model.lens = magnifying ? 1 : 0 }
+        withAnimation(lensAnimation()) { model.lens = model.isMagnifying ? 1 : 0 }
     }
 
     private func disengage() {
@@ -498,14 +504,6 @@ final class DockSurface {
         isOverDock = false
         withAnimation(lensAnimation()) { model.lens = 0 }
         hideLabel()
-        shrinkTask?.cancel()
-        shrinkTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(Int(Self.lensDuration * 1000) + 40))
-            guard !Task.isCancelled, let self, !isOverDock else { return }
-            isExpanded = false
-            model.pointer = nil
-            applyFrame()
-        }
         scheduleHide()
     }
 
