@@ -256,8 +256,8 @@ struct DockStripLayoutTests {
             let plate = DockPlateShape.plateRadius(tileSize: size)
             let card = DockPlateShape.cardRadius(tileSize: size)
             near(plate - card, size * DockGeometry.insetRatio, "padding is the radii's difference at \(size)")
-            near(plate, DockGeometry.thickness(tileSize: size) * DockPlateShape.radiusRatio, "plate radius follows thickness at \(size)")
-            expect(card > 0 && card < size / 2, "a card is rounded but never a circle at \(size)")
+            near(card, size * DockPlateShape.cardRadiusRatio, "card radius follows the tile size at \(size)")
+            expect(card > 0 && card <= size * 0.2, "a card is rounded, never pill-shaped, at \(size)")
         }
     }
 

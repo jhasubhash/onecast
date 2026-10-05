@@ -92,8 +92,9 @@ switches nothing back. `HotKeyAction.dockVisibility` shows or hides one dock. Se
   so Mission Control hides them as it hides the real Dock. `reservedFrames` lists the docks that take
   space, which Onecast's own window commands and layouts leave clear
   ([window-management.md](window-management.md)).
-- **The look.** A glass plate with near-capsule ends and a handle pill at its end (drag it along the
-  edge to move the dock); every widget is a card inside it whose corners are concentric with the plate.
+- **The look.** A glass plate and a handle pill at its end (drag it along the edge to move the
+  dock); every widget is a card inside it with Dockset's modest corner (`cardRadiusRatio`, about a
+  sixth of the tile), and the plate's corner is the card's plus the padding, so the curves run parallel.
 - **Anchoring.** The SwiftUI tree is aligned against the screen edge and centred along it, so the
   window can change size without the plate moving; while the pointer is on a magnifying dock the
   window grows by exactly what the lens can add.

@@ -150,14 +150,14 @@ extension DockSlot {
 /// The plate's corner, and the corner of a widget card inside it: the card's is the plate's less
 /// the padding between them, so the two curves stay parallel.
 enum DockPlateShape {
-    /// The plate's corner as a share of its thickness; near a capsule's end.
-    static let radiusRatio: CGFloat = 0.4
+    /// A widget card's corner as a share of the tile size; Dockset's cards sit near a sixth.
+    static let cardRadiusRatio: CGFloat = 0.18
 
     static func plateRadius(tileSize: CGFloat) -> CGFloat {
-        DockGeometry.thickness(tileSize: tileSize) * radiusRatio
+        cardRadius(tileSize: tileSize) + tileSize * DockGeometry.insetRatio
     }
 
     static func cardRadius(tileSize: CGFloat) -> CGFloat {
-        max(plateRadius(tileSize: tileSize) - tileSize * DockGeometry.insetRatio, 0)
+        tileSize * cardRadiusRatio
     }
 }
