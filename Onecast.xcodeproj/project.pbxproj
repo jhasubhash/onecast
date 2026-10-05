@@ -811,6 +811,7 @@
 		C31E5422164C07994FDFF69F /* ProductivityParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EA4C0C9DD78CC4882D01D51 /* ProductivityParts.swift */; };
 		C33D295052A2C767C58DD01B /* NotesWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C5B2E5129E47EDE4388320 /* NotesWindowController.swift */; };
 		C35C87F5049AD8FA99D17267 /* QuicklinkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19723E85BE1B0E0D7E4B2A4E /* QuicklinkStore.swift */; };
+		C39DCD5471729E4AE8A92FF7 /* DockLensDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3F62032CF09E13B3ED1A8B /* DockLensDriver.swift */; };
 		C3EDC2A951264A56BE3F3146 /* SystemBatteryDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62DE2629896492F6B5DB502B /* SystemBatteryDetails.swift */; };
 		C40A08ED786CB01CFF2C7CED /* PersonalAIUsageLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = C37965EA87EBFFABE66F615E /* PersonalAIUsageLimits.swift */; };
 		C42631C6DB2A90DA9910E3BF /* SystemActivityTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F74546E25F74DBA97FF2A21F /* SystemActivityTileView.swift */; };
@@ -1174,6 +1175,7 @@
 		1BA83136A8AB712848C8F34A /* ExtensionCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCatalog.swift; sourceTree = "<group>"; };
 		1C6ABF84333A1D4EFF27E5C8 /* AIUsageTileCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIUsageTileCells.swift; sourceTree = "<group>"; };
 		1D088299C5A92E5E5ADBE08D /* DockFloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockFloatingPanel.swift; sourceTree = "<group>"; };
+		1D3F62032CF09E13B3ED1A8B /* DockLensDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockLensDriver.swift; sourceTree = "<group>"; };
 		1D498A91E284B150EAD2D9E6 /* LauncherScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherScreen.swift; sourceTree = "<group>"; };
 		1D720C1B81C62DCA9549EE64 /* WeatherEmptyTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherEmptyTile.swift; sourceTree = "<group>"; };
 		1DDC4CD3D5A83C61D3967414 /* ExtensionFormField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionFormField.swift; sourceTree = "<group>"; };
@@ -2110,7 +2112,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_3367ABC9-064D-4368-9C21-91489EF266ED" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_74AAA171-23E4-45A0-818B-4DB1D3DC1398" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2589,6 +2591,7 @@
 				482C735E08FD0735B8AC6489 /* DockCoordinator.swift */,
 				F5F5BDB92C24E7E5DB34F140 /* DockFloatingController.swift */,
 				1D088299C5A92E5E5ADBE08D /* DockFloatingPanel.swift */,
+				1D3F62032CF09E13B3ED1A8B /* DockLensDriver.swift */,
 				215386D0AEB04C3667BC3D7E /* DockMenuBarMenu.swift */,
 				8EBC2F816D0CBA388F68B36D /* DockMenus.swift */,
 				D2F36752A2C22463B342B7EB /* DockPanel.swift */,
@@ -4517,10 +4520,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_DBD8C13F-7276-42E2-B6BE-EB0BDE29B33B" /* onecast */ = {
+		"TEMP_928D7E10-EA4A-454A-BEB4-FAD255BC8E4B" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_3367ABC9-064D-4368-9C21-91489EF266ED" /* Signing.xcconfig */,
+				"TEMP_74AAA171-23E4-45A0-818B-4DB1D3DC1398" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -4942,6 +4945,7 @@
 				ED8DC7AFACE4676640ADB763 /* DockItemStrip.swift in Sources */,
 				8B3F3E369640A541619AA11F /* DockItemsSection.swift in Sources */,
 				129E380290C886A4191D9702 /* DockLayoutsSection.swift in Sources */,
+				C39DCD5471729E4AE8A92FF7 /* DockLensDriver.swift in Sources */,
 				D727EC1AC6763D2DB8D12938 /* DockMenuBarMenu.swift in Sources */,
 				E588B3026E8EACD05CF8C9D0 /* DockMenus.swift in Sources */,
 				7B7AC6B5099F4C9DDE06C6EF /* DockModels.swift in Sources */,
@@ -5757,7 +5761,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_3367ABC9-064D-4368-9C21-91489EF266ED" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_74AAA171-23E4-45A0-818B-4DB1D3DC1398" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -5976,7 +5980,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_3367ABC9-064D-4368-9C21-91489EF266ED" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_74AAA171-23E4-45A0-818B-4DB1D3DC1398" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

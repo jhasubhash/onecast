@@ -30,6 +30,12 @@ final class DockSurface {
     private var labelSlotID: String?
     private var scrollGesture = ScrollGesture()
     private var lastStepTime: TimeInterval = 0
+    /// Where the driver is easing the lens and the pointer, once per display frame.
+    private var lensTarget: Double = 0
+    private var pointerTarget: CGFloat?
+    private lazy var lensDriver = DockLensDriver(view: container) { [weak self] seconds in
+        self?.advanceLens(by: seconds) ?? false
+    }
 
     private var hideTask: Task<Void, Never>?
     private var settleTask: Task<Void, Never>?
@@ -40,7 +46,10 @@ final class DockSurface {
     private static let pad: CGFloat = 16
     /// The most the lens can add to the whole dock, in multiples of the extra size.
     private static let totalGrowth: CGFloat = 2.5
-    private static let lensDuration: TimeInterval = 0.12
+    /// How quickly the lens zooms in and out: about 0.13 s to settle.
+    private static let lensTimeConstant = 0.045
+    /// How quickly the lens catches up with the pointer: close enough to feel attached to it.
+    private static let pointerTimeConstant = 0.035
     private static let slideSettle = Duration.milliseconds(340)
     private static let hideDelay = Duration.milliseconds(600)
     private static let labelDelay = Duration.milliseconds(350)
@@ -110,6 +119,7 @@ final class DockSurface {
     func close() {
         isClosed = true
         for task in [hideTask, settleTask, dwellTask, labelTask] { task?.cancel() }
+        lensDriver.stop()
         if model.openSlotID != nil || floating.isOpen(.menu(dockID: dockID)) { floating.close() }
         floating.label.hide()
         container.surface = nil
@@ -256,7 +266,7 @@ final class DockSurface {
             guard !model.isTucked || model.tuckedVisible != handleVisible else { return }
             isOverDock = false
             floating.label.hide()
-            model.lens = 0
+            settleLens(at: 0)
             model.setTucked(true, visible: handleVisible)
             guard panel.isVisible else {
                 isSettledTucked = true
@@ -479,8 +489,7 @@ final class DockSurface {
             disengage()
             return
         }
-        engage()
-        model.pointer = stripPoint(point).along
+        engage(at: stripPoint(point).along)
         updateLabel(hit: hit, slots: slots)
     }
 
@@ -488,21 +497,72 @@ final class DockSurface {
         disengage()
     }
 
-    private func lensAnimation() -> Animation? {
-        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-            ? nil : .easeOut(duration: Self.lensDuration)
+    // MARK: - Lens motion
+
+    private var reducesMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+
+    /// Mouse events arrive unevenly, and in pairs, so the lens eases toward each one at the
+    /// display's pace rather than jumping to it or stacking animations on one another.
+    private func engage(at along: CGFloat) {
+        guard isOverDock else {
+            isOverDock = true
+            // Seeded at once, so the lens never sweeps in from where the last hover ended.
+            pointerTarget = along
+            if model.pointer != along { model.pointer = along }
+            moveLens(to: model.isMagnifying ? 1 : 0)
+            return
+        }
+        guard along != pointerTarget else { return }
+        pointerTarget = along
+        if reducesMotion { model.pointer = along } else { lensDriver.start() }
     }
 
-    private func engage() {
-        guard !isOverDock else { return }
-        isOverDock = true
-        withAnimation(lensAnimation()) { model.lens = model.isMagnifying ? 1 : 0 }
+    private func moveLens(to target: Double) {
+        lensTarget = target
+        if reducesMotion {
+            if model.lens != target { model.lens = target }
+        } else {
+            lensDriver.start()
+        }
+    }
+
+    /// For a dock sliding away: the lens drops to rest at once, with nothing left to ease.
+    private func settleLens(at target: Double) {
+        lensDriver.stop()
+        lensTarget = target
+        if model.lens != target { model.lens = target }
+    }
+
+    /// One display frame; returns whether anything is still moving.
+    private func advanceLens(by seconds: Double) -> Bool {
+        var moving = false
+        let lens = DockLensDriver.approach(
+            model.lens, to: lensTarget, seconds: seconds, timeConstant: Self.lensTimeConstant)
+        if abs(lens - lensTarget) < 0.001 {
+            if model.lens != lensTarget { model.lens = lensTarget }
+        } else {
+            model.lens = lens
+            moving = true
+        }
+        if let target = pointerTarget, let pointer = model.pointer {
+            let next = CGFloat(
+                DockLensDriver.approach(
+                    Double(pointer), to: Double(target), seconds: seconds,
+                    timeConstant: Self.pointerTimeConstant))
+            if abs(next - target) < 0.05 {
+                if model.pointer != target { model.pointer = target }
+            } else {
+                model.pointer = next
+                moving = true
+            }
+        }
+        return moving
     }
 
     private func disengage() {
         guard isOverDock else { return }
         isOverDock = false
-        withAnimation(lensAnimation()) { model.lens = 0 }
+        moveLens(to: 0)
         hideLabel()
         scheduleHide()
     }

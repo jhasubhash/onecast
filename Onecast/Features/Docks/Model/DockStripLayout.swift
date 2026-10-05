@@ -81,12 +81,14 @@ struct DockStripLayout: Equatable, Sendable {
         let total = extras.reduce(0, +)
         // The plate holds one width for the whole hover, so its ends never creep as the lens moves.
         let half = max(plateGrowth * lens, total) / 2
-        // Unused room sits at the pointer: earlier tiles keep to the start, later ones to the end.
+        // Unused room sits at the pointer: earlier tiles keep to the plate's start, later ones to
+        // its end, so a far tile never moves; the hand-over blends smoothly over a few tiles.
         let slack = 2 * half - total
+        let span = tileSize * handOverTiles
         var grown: CGFloat = 0
         let tiles = slots.indices.map { index in
             let centre = starts[index] + lengths[index] / 2
-            let towardEnd = min(max((centre - pointer) / tileSize + 0.5, 0), 1)
+            let towardEnd = smoothstep((centre - pointer) / span + 0.5)
             let tile = Tile(
                 along: starts[index] - half + grown + slack * towardEnd,
                 length: lengths[index] + extras[index],
@@ -98,6 +100,14 @@ struct DockStripLayout: Equatable, Sendable {
         return DockStripLayout(
             tiles: tiles, plateStart: -half, plateEnd: restLength + half,
             restLength: restLength, tileSize: tileSize)
+    }
+
+    /// How many tiles the unused room is handed across, so no tile darts sideways as it passes.
+    private static let handOverTiles: CGFloat = 3
+
+    private static func smoothstep(_ x: CGFloat) -> CGFloat {
+        let t = min(max(x, 0), 1)
+        return t * t * (3 - 2 * t)
     }
 
     /// The tile holding the point `along` the axis and `fromEdge` the dock's edge-side rim.

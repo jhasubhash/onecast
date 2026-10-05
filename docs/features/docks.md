@@ -106,13 +106,18 @@ switches nothing back. `HotKeyAction.dockVisibility` shows or hides one dock. Se
   one width for the whole hover: the most the lens can ever add (`plateGrowth`, from the same sweep
   as `lensRoom`), eased in as the pointer arrives and out as it leaves. Its ends therefore never
   creep while the pointer moves. Tiles before the pointer keep to the plate's start and tiles after
-  it to its end, with the unused room at the pointer, so a far tile never moves at all. (Anchoring
-  the lens to the pointer instead slid the whole bar, which read as flicker.) Icons and widgets
-  magnify; a growing widget is laid out at its peak size and scaled down, so its text stays sharp
-  and it reflows only as it starts and stops growing. Every slot gains at most one icon's growth,
-  so a long widget never drags the strip; spacers and dividers keep their size. While the lens is
-  up, an invisible cover over everything it grew
-  keeps the pointer on the dock, so a magnified tile's top or a gap never collapses the lens.
+  it to its end; the unused room is handed across three tiles at the pointer with a smoothstep, so
+  a far tile never moves and no tile ever doubles back during a one-way sweep (pinned in
+  `dock-strip-layout-test`). (Anchoring the lens to the pointer slid the whole bar; handing the room
+  over within one tile darted icons sideways.) Icons and widgets magnify, every slot gaining at
+  most one icon's growth; spacers and dividers keep their size. Each tile is laid out once at its
+  peak size (a widget only while it grows, so its text stays sharp) and is scaled and moved by
+  transforms, which, unlike frames, are never rounded to whole points: on a 1x display rounding
+  made slow-moving icons flip back and forth by a point. While the lens is up, an invisible cover
+  over everything it grew keeps the pointer on the dock. `DockLensDriver` eases the lens and the
+  pointer toward their targets once per display frame on a `CADisplayLink`, idling once settled:
+  mouse moves arrive unevenly and in pairs, and stacking a SwiftUI animation on each one shoved the
+  icons back and forth.
 - **Auto-hide slides the plate inside its window, then fits the window**, leaving a `handleThickness`
   strip, never a window parked off screen. Reveal is a global pointer monitor on the reveal zone,
   armed only while some dock hides; in a full-screen Space the pointer must rest there first. It is

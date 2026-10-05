@@ -1,12 +1,13 @@
 import AppKit
 import SwiftUI
 
-/// One slot of a dock as drawn. It carries no gestures of its own: the panel's container view
-/// owns the pointer, so a click, a drag and a menu all work the same on a magnified tile.
+/// One slot of a dock as drawn, laid out once at `size` (rest × `renderScale`) and then scaled and
+/// moved by transforms, which are never rounded to whole points; the container owns its gestures.
 struct DockTileView: View {
     let slot: DockSlot
     let model: DockSurfaceModel
     let size: CGSize
+    let renderScale: CGFloat
 
     var body: some View {
         content
@@ -28,7 +29,8 @@ struct DockTileView: View {
         case .running(let app):
             DockAppTile(
                 path: app.path, isMissing: false, running: app,
-                badge: model.badge(for: app.bundleID), model: model, side: side)
+                badge: model.badge(for: app.bundleID), model: model, side: side,
+                renderScale: renderScale)
         case .minimized(let window):
             DockMinimizedTile(
                 window: window, preview: model.windows.preview(for: window.token), side: side)
@@ -47,7 +49,7 @@ struct DockTileView: View {
                 path: model.iconPath(for: item, reference: reference, running: running),
                 isMissing: model.isMissing(item, reference: reference, running: running),
                 running: running, badge: model.badge(for: running?.bundleID ?? reference.bundleID),
-                model: model, side: side)
+                model: model, side: side, renderScale: renderScale)
         case .folder(let folder):
             DockFolderTile(folder: folder, side: side)
         case .file(let path):
@@ -59,25 +61,13 @@ struct DockTileView: View {
         case .spacer:
             Color.clear
         case .widget(let reference):
-            let scale = max((model.edge.isVertical ? size.width : size.height) / model.tileSize, 1)
-            // Laid out at its peak size and scaled down, so text stays sharp and reflows only twice.
-            let rendered = scale > Self.growingScale ? widgetPeakScale(restSize: size, scale: scale) : 1
             DockWidgetTileView(
                 instanceID: item.id, reference: reference, edge: model.edge,
-                tileLength: model.tileSize * rendered
+                tileLength: model.tileSize * renderScale
             )
             .equatable()
-            .frame(width: size.width * rendered / scale, height: size.height * rendered / scale)
-            .scaleEffect(scale / rendered)
             .simultaneousGesture(TapGesture().onEnded { model.onWidgetTap?(item.id) })
         }
-    }
-
-    /// The most this widget's slot grows, the same share of one icon's growth the strip gives it.
-    private func widgetPeakScale(restSize: CGSize, scale: CGFloat) -> CGFloat {
-        let restAlong = (model.edge.isVertical ? restSize.height : restSize.width) / scale
-        let share = model.tileSize / max(restAlong, model.tileSize)
-        return max(1 + (model.magnifiedSize / model.tileSize - 1) * share, scale)
     }
 
     @ViewBuilder
@@ -113,8 +103,14 @@ struct DockTileView: View {
     private static let cornerRatio: CGFloat = 0.22
     private static let highlightWidth: CGFloat = 2
     private static let highlightFill = 0.18
-    /// Past this, a widget counts as growing and is drawn at its peak size instead of its rest one.
-    private static let growingScale: CGFloat = 1.001
+}
+
+/// The lens only transforms a tile, so a tile redraws on its own inputs or observed state alone.
+extension DockTileView: @MainActor Equatable {
+    static func == (lhs: DockTileView, rhs: DockTileView) -> Bool {
+        lhs.slot == rhs.slot && lhs.model === rhs.model && lhs.size == rhs.size
+            && lhs.renderScale == rhs.renderScale
+    }
 }
 
 /// An app's icon with its running dot, badge and dimming when it can no longer be found.
@@ -125,6 +121,8 @@ private struct DockAppTile: View {
     let badge: String?
     let model: DockSurfaceModel
     let side: CGFloat
+    /// The tile is drawn this much larger than rest and scaled down, so rest sizes are scaled up.
+    let renderScale: CGFloat
 
     private static let dotRatio: CGFloat = 0.08
     private static let minimumDot: CGFloat = 3
@@ -138,10 +136,10 @@ private struct DockAppTile: View {
             .overlay(alignment: dotAlignment) { dot }
     }
 
-    private var dotSize: CGFloat { max(model.tileSize * Self.dotRatio, Self.minimumDot) }
+    private var dotSize: CGFloat { max(model.tileSize * Self.dotRatio, Self.minimumDot) * renderScale }
 
     /// Half way between the icon and the plate's rim, which is `inset` thick.
-    private var dotTravel: CGFloat { model.inset / 2 + dotSize / 2 }
+    private var dotTravel: CGFloat { (model.inset / 2) * renderScale + dotSize / 2 }
 
     private var dotAlignment: Alignment { model.edge.surfaceAlignment }
 

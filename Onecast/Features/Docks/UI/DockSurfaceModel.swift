@@ -116,11 +116,22 @@ final class DockSurfaceModel {
     func clampedScroll(_ value: CGFloat) -> CGFloat { min(max(value, 0), maxScroll) }
 
     func layout(lens: Double, slots: [DockSlot]) -> DockStripLayout {
+        layout(lens: lens, pointer: pointer, slots: slots)
+    }
+
+    func layout(lens: Double, pointer: CGFloat?, slots: [DockSlot]) -> DockStripLayout {
         DockStripLayout.make(
             slots: stripSlots(slots), tileSize: tileSize,
             magnifiedSize: isMagnifying ? magnifiedSize : tileSize, pointer: pointer,
             lens: CGFloat(lens), scroll: scrolls ? clampedScroll(scroll) : 0,
             plateGrowth: isMagnifying ? plateGrowth : 0)
+    }
+
+    /// How large a slot ever grows under the lens: one icon's growth, shared over its length.
+    func peakScale(restLength: CGFloat, magnifies: Bool) -> CGFloat {
+        guard magnifies, isMagnifying else { return 1 }
+        let share = tileSize / max(restLength, tileSize)
+        return 1 + (magnifiedSize / tileSize - 1) * share
     }
 
     func setPlateGrowth(_ growth: CGFloat) {

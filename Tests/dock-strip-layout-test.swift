@@ -46,6 +46,7 @@ struct DockStripLayoutTests {
         endsHoldStillOverTheMiddle()
         plateHoldsOneWidthWhileHovered()
         farTilesHoldStillWhileHovered()
+        tilesNeverDoubleBackDuringASweep()
         middleTileStaysUnderThePointer()
         nonMagnifyingSlotsKeepTheirSize()
         hitTestingFollowsTheLens()
@@ -197,6 +198,43 @@ struct DockStripLayoutTests {
                 result.tiles[0].along >= result.plateStart && result.tiles[count - 1].end <= result.plateEnd,
                 "tiles stay on the plate at \(pointer)")
         }
+    }
+
+    /// A slow sweep over a mixed dock never sends a tile back the way it came, which is the wobble,
+    /// and never closes a gap; widgets, dividers and spacers are where the unused room varies most.
+    static func tilesNeverDoubleBackDuringASweep() {
+        let slots: [DockStripLayout.Slot] =
+            [.init(extent: .spacer(.regular), magnifies: false)] + tiles(1)
+            + [.init(extent: .span(4), magnifies: true), .init(extent: .span(2), magnifies: true),
+                .init(extent: .divider, magnifies: false)] + tiles(10)
+            + [.init(extent: .divider, magnifies: false)] + tiles(1)
+        let rest = layout(slots, pointer: nil)
+        let sweep = Array(stride(from: CGFloat(0), through: rest.restLength, by: 0.5))
+        let most = sweep.map { p in layout(slots, pointer: p).tiles.reduce(0) { $0 + $1.length } }
+            .max().map { $0 - rest.tiles.reduce(0) { $0 + $1.length } } ?? 0
+        let gap = tileSize * DockGeometry.gapRatio
+        var previous: [CGFloat]?
+        var direction = [CGFloat](repeating: 0, count: slots.count)
+        var reversals = 0
+        for pointer in sweep {
+            let result = DockStripLayout.make(
+                slots: slots, tileSize: tileSize, magnifiedSize: magnified, pointer: pointer, lens: 1,
+                plateGrowth: most)
+            for index in 1..<slots.count where result.tiles[index].along - result.tiles[index - 1].end < gap - 0.001 {
+                expect(false, "gap \(index) closed at \(pointer)")
+            }
+            let centres = result.tiles.map { $0.along + $0.length / 2 }
+            if let previous {
+                for index in centres.indices {
+                    let move = centres[index] - previous[index]
+                    guard abs(move) > 1e-4 else { continue }
+                    if direction[index] * move < 0 { reversals += 1 }
+                    direction[index] = move
+                }
+            }
+            previous = centres
+        }
+        expect(reversals == 0, "no tile doubles back during a one-way sweep (\(reversals) reversals)")
     }
 
     /// At a middle tile's centre the lens is symmetric, so that tile stays centred under the pointer.

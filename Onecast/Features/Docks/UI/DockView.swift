@@ -10,7 +10,7 @@ struct DockView: View {
     private static let slide = Animation.smooth(duration: 0.28)
 
     var body: some View {
-        DockStripView(model: model, lens: model.lens)
+        DockStripView(model: model)
             .offset(tuckOffset)
             .animation(reduceMotion ? nil : Self.slide, value: model.isTucked)
             .padding(model.edge.marginEdge, DockGeometry.edgeMargin)
@@ -26,18 +26,16 @@ struct DockView: View {
     }
 }
 
-/// Re-evaluated every frame the lens animates, since the lens is its animatable data.
-private struct DockStripView: View, @MainActor Animatable {
+/// The plate and its tiles, redrawn each display frame the surface eases the lens or the pointer.
+private struct DockStripView: View {
     let model: DockSurfaceModel
-    var lens: Double
 
-    var animatableData: Double {
-        get { lens }
-        set { lens = newValue }
-    }
+    private var lens: Double { model.lens }
 
     private static let markerWidth: CGFloat = 3
     private static let arrival = Animation.smooth(duration: 0.25)
+    /// Past this, a widget counts as growing and is drawn at its peak size instead of its rest one.
+    private static let growingScale: CGFloat = 1.001
     /// The grabber's length across the dock, as a share of its thickness, and its weight.
     private static let handleLengthRatio: CGFloat = 0.28
     private static let handleWeightRatio: CGFloat = 0.06
@@ -129,12 +127,30 @@ private struct DockStripView: View, @MainActor Animatable {
 
     private func tileViews(_ placed: [Placed]) -> some View {
         ForEach(placed) { entry in
-            let frame = model.frame(of: entry.tile)
-            DockTileView(slot: entry.slot, model: model, size: frame.size)
-                .frame(width: frame.width, height: frame.height)
+            let tile = entry.tile
+            let frame = model.frame(of: tile)
+            let rest = tile.length / tile.scale
+            let render = renderScale(entry.slot, tile: tile, restLength: rest)
+            let size = model.edge.isVertical
+                ? CGSize(width: model.tileSize * render, height: rest * render)
+                : CGSize(width: rest * render, height: model.tileSize * render)
+            DockTileView(slot: entry.slot, model: model, size: size, renderScale: render)
+                .equatable()
+                .frame(width: size.width, height: size.height)
+                .scaleEffect(tile.scale / render, anchor: .topLeading)
                 .offset(x: frame.minX, y: frame.minY)
                 .transition(.scale(scale: 0.5).combined(with: .opacity))
         }
+    }
+
+    /// Icons are drawn at their peak and scaled down; a widget only while it grows, so its text is
+    /// drawn at rest size the rest of the time rather than shrunk from a larger layout.
+    private func renderScale(_ slot: DockSlot, tile: DockStripLayout.Tile, restLength: CGFloat)
+        -> CGFloat
+    {
+        let peak = model.peakScale(restLength: restLength, magnifies: slot.magnifies)
+        guard case .pinned(let item, _) = slot, case .widget = item.kind else { return peak }
+        return tile.scale > Self.growingScale ? peak : 1
     }
 
     @ViewBuilder
