@@ -20,6 +20,7 @@ final class AIUsageModel {
         let source: PersonalAIUsageLimitsSource
         let fallbackTitle: String
         let window: PersonalAIUsageLimitWindow
+        var amounts: PersonalAIUsageLimitsReport.Amounts? = nil
     }
 
     /// Why Codex's limits are or are not on screen, for the popover to explain.
@@ -76,8 +77,15 @@ final class AIUsageModel {
                 id: $0.id, source: settings.limitsSource, fallbackTitle: $0.fallbackTitle,
                 window: PersonalAIUsageLimitWindow(
                     usedPercent: $0.usedPercent, durationMinutes: $0.durationMinutes,
-                    resetsAt: $0.resetsAt))
+                    resetsAt: $0.resetsAt),
+                amounts: $0.amounts)
         }
+    }
+
+    /// The chosen remote source's quotas it does not meter, for the popover to name.
+    var unlimitedQuotas: [String] {
+        guard settings.limitsSource != .codex, case .ready(let report) = currentRemoteStatus else { return [] }
+        return report.unlimited
     }
 
     /// The chosen remote source's state; Codex reports through `codexStatus` instead.

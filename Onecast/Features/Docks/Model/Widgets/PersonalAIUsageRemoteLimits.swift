@@ -8,11 +8,30 @@ struct PersonalAIUsageLimitsReport: Sendable, Equatable {
         let usedPercent: Int
         let durationMinutes: Int?
         let resetsAt: Date?
+        /// The counts behind the percentage, where the service gives them.
+        var amounts: Amounts? = nil
+    }
+
+    struct Amounts: Sendable, Equatable {
+        enum Unit: String, Sendable {
+            case credits
+            case requests
+        }
+
+        let used: Int
+        let remaining: Int
+        let entitlement: Int
+        let unit: Unit
+        /// Usage past the allowance, billed separately where the plan permits it.
+        let overage: Int
+        let overagePermitted: Bool
     }
 
     /// "Business", "Max", "Enterprise"; nil when the account names none.
     let plan: String?
     let windows: [Window]
+    /// Titles of quotas the plan does not meter: "Chat", "Completions".
+    var unlimited: [String] = []
 }
 
 /// Why a service's limits could not be read, worded for the popover.

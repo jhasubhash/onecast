@@ -94,6 +94,10 @@ struct AIUsagePopover: View {
                 trailing: model.limitsPlan)
             if let rows {
                 ForEach(rows) { limitRow($0, measure: measure, now: now) }
+                let unlimited = model.unlimitedQuotas
+                if !unlimited.isEmpty {
+                    detailRow("Unlimited", unlimited.formatted(.list(type: .and).locale(locale)))
+                }
             } else {
                 limitsStatus
             }
@@ -117,6 +121,7 @@ struct AIUsagePopover: View {
             }
             AIUsageBar(progress: window.fraction(measure), tint: AIUsageCell.limitTint(window))
                 .frame(height: Self.meterHeight)
+            if let amounts = row.amounts { amountRows(amounts) }
             if let resetsAt = window.resetsAt {
                 HStack {
                     Text(
@@ -130,6 +135,40 @@ struct AIUsagePopover: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func amountRows(_ amounts: PersonalAIUsageLimitsReport.Amounts) -> some View {
+        let unit = amounts.unit == .credits ? "AI credits" : "requests"
+        detailRow("Used", "\(count(amounts.used)) \(unit)")
+        detailRow("Remaining", "\(count(amounts.remaining)) of \(count(amounts.entitlement))")
+        if amounts.overage > 0 {
+            detailRow("Over the allowance", "\(count(amounts.overage)) \(unit)")
+        } else if amounts.overagePermitted {
+            detailRow("Over the allowance", "Allowed, none used")
+        }
+        if amounts.unit == .credits {
+            Text("Chat, agents and the CLI all draw from this allowance; code completions do not.")
+                .font(Theme.Typography.keyCap)
+                .foregroundStyle(Theme.Colors.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func detailRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+                .foregroundStyle(Theme.Colors.textTertiary)
+            Spacer(minLength: Theme.Spacing.md)
+            Text(value)
+                .monospacedDigit()
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .font(Theme.Typography.rowTrailing)
+    }
+
+    private func count(_ value: Int) -> String {
+        value.formatted(.number.locale(locale))
     }
 
     @ViewBuilder

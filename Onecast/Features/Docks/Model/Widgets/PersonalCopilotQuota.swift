@@ -43,8 +43,20 @@ struct PersonalCopilotQuota: Sendable, Equatable {
         let percentRemaining: Double
         let remaining: Int
         let entitlement: Int
+        let used: Int
+        let unit: PersonalAIUsageLimitsReport.Amounts.Unit
+        let overage: Int
+        let overagePermitted: Bool
 
         var usedPercent: Int { Int((100 - min(max(percentRemaining, 0), 100)).rounded()) }
+
+        /// Nil without an allowance to count against.
+        var amounts: PersonalAIUsageLimitsReport.Amounts? {
+            guard entitlement > 0 else { return nil }
+            return .init(
+                used: used, remaining: remaining, entitlement: entitlement, unit: unit,
+                overage: overage, overagePermitted: overagePermitted)
+        }
     }
 
     var report: PersonalAIUsageLimitsReport {
@@ -53,8 +65,9 @@ struct PersonalCopilotQuota: Sendable, Equatable {
             windows: buckets.map {
                 PersonalAIUsageLimitsReport.Window(
                     id: $0.id, fallbackTitle: $0.title, usedPercent: $0.usedPercent,
-                    durationMinutes: nil, resetsAt: resetsAt)
-            })
+                    durationMinutes: nil, resetsAt: resetsAt, amounts: $0.amounts)
+            },
+            unlimited: unlimited)
     }
 
     /// "Business", "Pro", "Free"; nil when the account names none.
@@ -62,6 +75,8 @@ struct PersonalCopilotQuota: Sendable, Equatable {
     let resetsAt: Date?
     /// Only metered quotas, premium requests first; an unlimited one has nothing to show.
     let buckets: [Bucket]
+    /// Titles of the quotas the plan leaves unmetered, in the same order.
+    let unlimited: [String]
 
     private static let order = ["premium_interactions", "chat", "completions"]
 
@@ -69,18 +84,34 @@ struct PersonalCopilotQuota: Sendable, Equatable {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
             let snapshots = root["quota_snapshots"] as? [String: Any]
         else { return nil }
-        let buckets = snapshots.compactMap { id, value -> Bucket? in
-            guard let fields = value as? [String: Any], fields["unlimited"] as? Bool != true,
-                let percent = number(fields["percent_remaining"])
-            else { return nil }
-            return Bucket(
-                id: id, title: title(of: id), percentRemaining: percent,
-                remaining: Int(number(fields["remaining"]) ?? 0),
-                entitlement: Int(number(fields["entitlement"]) ?? 0))
+        let quotas = snapshots.compactMap { id, value in
+            (value as? [String: Any]).map { (id: id, fields: $0) }
         }
         .sorted { rank($0.id) < rank($1.id) }
+        let buckets = quotas.compactMap { id, fields -> Bucket? in
+            guard fields["unlimited"] as? Bool != true, let percent = number(fields["percent_remaining"])
+            else { return nil }
+            let remaining = Int(number(fields["remaining"]) ?? 0)
+            let entitlement = Int(number(fields["entitlement"]) ?? 0)
+            let tokenBased =
+                (fields["token_based_billing"] as? Bool ?? root["token_based_billing"] as? Bool) == true
+            return Bucket(
+                id: id, title: title(of: id), percentRemaining: percent,
+                remaining: remaining, entitlement: entitlement,
+                used: Int(number(fields["credits_used"]) ?? Double(max(0, entitlement - remaining))),
+                unit: tokenBased ? .credits : .requests,
+                overage: Int(number(fields["overage_count"]) ?? 0),
+                overagePermitted: fields["overage_permitted"] as? Bool == true)
+        }
+        let creditBilled = root["token_based_billing"] as? Bool == true
+        // Credit billing charges chat by the token, though GitHub still flags its old quota unlimited.
+        let unlimited = quotas.filter {
+            $0.fields["unlimited"] as? Bool == true && !(creditBilled && $0.id == "chat")
+        }
+        .map { title(of: $0.id) }
         let plan = (root["copilot_plan"] as? String).flatMap { $0.isEmpty ? nil : $0.capitalized }
-        return PersonalCopilotQuota(plan: plan, resetsAt: resetDate(root), buckets: buckets)
+        return PersonalCopilotQuota(
+            plan: plan, resetsAt: resetDate(root), buckets: buckets, unlimited: unlimited)
     }
 
     private static func title(of id: String) -> String {

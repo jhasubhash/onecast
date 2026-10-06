@@ -25,13 +25,15 @@ enum AIUsageChecks {
     /// The shape `copilot_internal/user` returns: unlimited quotas carry no meter, premium leads.
     private static func copilotQuota() {
         let body = #"""
-            {"copilot_plan":"business","quota_reset_date":"2026-11-01",
+            {"copilot_plan":"business","quota_reset_date":"2026-11-01","token_based_billing":true,
              "quota_reset_date_utc":"2026-11-01T00:00:00.000Z",
              "quota_snapshots":{
                "chat":{"unlimited":true,"percent_remaining":100.0,"remaining":0,"entitlement":0},
-               "completions":{"unlimited":false,"percent_remaining":40,"remaining":800,"entitlement":2000},
+               "completions":{"unlimited":false,"percent_remaining":40,"remaining":800,"entitlement":2000,
+                 "token_based_billing":false,"overage_count":3},
                "premium_interactions":{"unlimited":false,"percent_remaining":75.7,
-                 "remaining":302940,"entitlement":400000}}}
+                 "remaining":302940,"entitlement":400000,"credits_used":97060.4,
+                 "overage_permitted":true,"overage_count":0}}}
             """#
         guard let quota = PersonalCopilotQuota.parse(Data(body.utf8)) else {
             return t.expect(false, "a Copilot quota response parses")
@@ -66,6 +68,29 @@ enum AIUsageChecks {
             report.plan == "Business" && report.windows.map(\.usedPercent) == [24, 60]
                 && report.windows.allSatisfy { $0.resetsAt == quota.resetsAt && $0.durationMinutes == nil },
             "a quota becomes a report whose windows share the monthly reset")
+        let requestBilled = #"""
+            {"quota_snapshots":{"chat":{"unlimited":true,"percent_remaining":100},
+              "completions":{"unlimited":true,"percent_remaining":100}}}
+            """#
+        t.expect(
+            report.unlimited.isEmpty
+                && PersonalCopilotQuota.parse(Data(requestBilled.utf8))?.unlimited == ["Chat", "Completions"],
+            "unlimited quotas are named, except chat once credit billing charges it")
+        t.expect(
+            report.windows.first?.amounts
+                == .init(
+                    used: 97060, remaining: 302940, entitlement: 400000, unit: .credits,
+                    overage: 0, overagePermitted: true),
+            "token-based premium usage counts credits used, left and allowed")
+        t.expect(
+            report.windows.last?.amounts
+                == .init(
+                    used: 1200, remaining: 800, entitlement: 2000, unit: .requests,
+                    overage: 3, overagePermitted: false),
+            "without credits, used is the allowance minus what is left, in requests")
+        t.expect(
+            PersonalCopilotQuota.parse(Data(over.utf8))?.report.windows.first?.amounts == nil,
+            "a quota without an allowance shows no counts")
     }
 
     /// Anthropic's `api/oauth/usage` shape, and Claude Code's keychain sign-in.
