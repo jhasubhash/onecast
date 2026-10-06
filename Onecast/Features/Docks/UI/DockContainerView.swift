@@ -25,11 +25,13 @@ struct DockDragPayload {
 ///
 /// Tiles carry no gestures. This view hit-tests the pointer against the dock's own layout, so a
 /// click, a drag, a right click and a scroll all land on the tile the user sees, magnified or
-/// not. The one exception is a widget tile, which keeps its own clicks.
+/// not. A widget tile keeps its own clicks: a press on one that never became a drag is replayed.
 final class DockContainerView: NSView, NSDraggingSource {
     weak var surface: DockSurface?
     private var trackingArea: NSTrackingArea?
     private var activeDrag: DockDragPayload?
+    /// Set while a widget's press is sent again, so it reaches the widget's own SwiftUI view.
+    private var isReplaying = false
 
     private static let dragSlop: CGFloat = 4
     private static let holdDelay: TimeInterval = 0.4
@@ -59,7 +61,7 @@ final class DockContainerView: NSView, NSDraggingSource {
         case .rightMouseDown, .rightMouseUp, .rightMouseDragged, .scrollWheel:
             return self
         case .leftMouseDown, .leftMouseUp, .leftMouseDragged:
-            return surface?.passesThrough(atScreen: NSEvent.mouseLocation) == true ? inside : self
+            return isReplaying ? inside : self
         default:
             return inside
         }
@@ -106,7 +108,7 @@ final class DockContainerView: NSView, NSDraggingSource {
     /// Follows the press itself: a click on release, a hold after a beat for a folder, a drag
     /// once it leaves the slop.
     override func mouseDown(with event: NSEvent) {
-        guard let surface, let window else { return }
+        guard !isReplaying, let surface, let window else { return }
         let start = NSEvent.mouseLocation
         if event.modifierFlags.contains(.control) {
             surface.showMenu(atScreen: start)
@@ -118,6 +120,7 @@ final class DockContainerView: NSView, NSDraggingSource {
         }
         guard let slotID = surface.slotID(atScreen: start) else { return }
         var outcome = Outcome.click
+        var release: NSEvent?
         let timeout = surface.opensOnHold(slotID: slotID) ? Self.holdDelay : NSEvent.foreverDuration
         window.trackEvents(
             matching: [.leftMouseDragged, .leftMouseUp], timeout: timeout, mode: .eventTracking
@@ -128,6 +131,7 @@ final class DockContainerView: NSView, NSDraggingSource {
                 return
             }
             guard tracked.type != .leftMouseUp else {
+                release = tracked
                 stop.pointee = true
                 return
             }
@@ -138,6 +142,8 @@ final class DockContainerView: NSView, NSDraggingSource {
             }
         }
         switch outcome {
+        case .click where surface.isWidget(slotID: slotID):
+            replay(event, release: release, in: window)
         case .click:
             surface.click(slotID: slotID)
         case .hold:
@@ -148,6 +154,19 @@ final class DockContainerView: NSView, NSDraggingSource {
         case .drag:
             beginDrag(slotID: slotID, event: event)
         }
+    }
+
+    /// The release goes ahead of the press, so a control that tracks the mouse itself finds it.
+    private func replay(_ press: NSEvent, release: NSEvent?, in window: NSWindow) {
+        isReplaying = true
+        defer { isReplaying = false }
+        if let release { NSApp.postEvent(release, atStart: true) }
+        window.sendEvent(press)
+        guard release != nil,
+            let pending = NSApp.nextEvent(
+                matching: .leftMouseUp, until: .distantPast, inMode: .default, dequeue: true)
+        else { return }
+        window.sendEvent(pending)
     }
 
     /// The handle follows the pointer until the button is released.

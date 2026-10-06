@@ -605,13 +605,12 @@ final class DockSurface {
 
     // MARK: - Clicks
 
-    func passesThrough(atScreen point: CGPoint) -> Bool {
-        let slots = model.slots
-        guard let index = hitIndex(atScreen: point, layout: currentLayout(slots)) else {
-            return false
-        }
-        if case .pinned(let item, _) = slots[index], case .widget = item.kind { return true }
-        return false
+    /// A widget tile takes its clicks itself, so the container replays a press that was no drag.
+    func isWidget(slotID: String) -> Bool {
+        guard let found = slot(id: slotID), case .pinned(let item, _) = found.slot,
+            case .widget = item.kind
+        else { return false }
+        return true
     }
 
     func slotID(atScreen point: CGPoint) -> String? {
@@ -869,11 +868,26 @@ final class DockSurface {
         }
         let layout = currentLayout(model.slots)
         let tile = layout.tiles[found.index]
+        let rect = screenRect(ofSlot: found.index, in: layout)
+        let snapshot: NSImage? = if case .widget = item.kind { image(ofScreenRect: rect) } else { nil }
         return DockDragPayload(
             source: DockDragItem(
                 dockID: dockID, layoutID: model.dock.activeLayoutID, item: item),
-            image: model.actions.dragImage(for: item, side: tile.cross),
-            screenRect: screenRect(ofSlot: found.index, in: layout))
+            image: snapshot ?? model.actions.dragImage(for: item, side: tile.cross),
+            screenRect: rect)
+    }
+
+    /// The tile as drawn, so a widget drags as itself rather than as a generic glyph.
+    private func image(ofScreenRect rect: CGRect) -> NSImage? {
+        guard let view = panel.contentView else { return nil }
+        let local = view.convert(panel.convertFromScreen(rect), from: nil)
+        guard !local.isEmpty, let bitmap = view.bitmapImageRepForCachingDisplay(in: local) else {
+            return nil
+        }
+        view.cacheDisplay(in: local, to: bitmap)
+        let image = NSImage(size: local.size)
+        image.addRepresentation(bitmap)
+        return image
     }
 
     func dragBegan(slotID: String) {
@@ -884,27 +898,22 @@ final class DockSurface {
         model.draggingSlotID = slotID
     }
 
-    /// Dropped on this dock it moved already; on another dock it was copied there, so it goes
-    /// from here; anywhere else it was dragged off, and is removed with a puff.
+    /// Dropped on a dock it moved already; dragged off, a tile is removed but a widget returns.
     func dragEnded(_ payload: DockDragPayload?, atScreen point: CGPoint, operation: NSDragOperation) {
         isDragging = false
         model.draggingSlotID = nil
         model.drop = nil
         defer { reorderedLocally = false }
-        guard let payload, !reorderedLocally else { return }
+        guard let payload, !reorderedLocally, !operation.contains(.move) else { return }
         let source = payload.source
-        let coordinator = core.dockCoordinator
-        if operation.contains(.move) {
-            coordinator.removeItem(id: source.item.id, dockID: source.dockID, layoutID: source.layoutID)
-            return
-        }
         let cancelled = CGEventSource.keyState(.combinedSessionState, key: Self.escapeKeyCode)
         let layout = currentLayout(model.slots)
-        guard !cancelled, !isOverPlate(point, layout: layout) else {
+        let isWidget = if case .widget = source.item.kind { true } else { false }
+        guard !cancelled, !isWidget, !isOverPlate(point, layout: layout) else {
             scheduleHide()
             return
         }
-        coordinator.removeItem(id: source.item.id, dockID: source.dockID, layoutID: source.layoutID)
+        core.dockCoordinator.removeItem(id: source.item.id, dockID: source.dockID, layoutID: source.layoutID)
         DockPoof.show(image: payload.image, atScreen: point)
     }
 
@@ -1012,11 +1021,9 @@ final class DockSurface {
             coordinator.moveItem(dockID: dock.id, layoutID: dock.activeLayoutID, from: from, to: to)
             reorderedLocally = true
         case .move(let drag, let to):
-            let copy = drag.item.copy
-            if case .widget(let widget) = copy.kind {
-                coordinator.widgets.registerDefaults(for: copy.id, widgetID: widget.widgetID)
-            }
-            coordinator.addItems([copy], dockID: dock.id, layoutID: dock.activeLayoutID, at: to)
+            coordinator.transferItem(
+                id: drag.item.id, fromDock: drag.dockID, layout: drag.layoutID,
+                toDock: dock.id, layout: dock.activeLayoutID, at: to)
         case .add(let urls, let index):
             coordinator.addItems(
                 DockCoordinator.items(for: urls), dockID: dock.id, layoutID: dock.activeLayoutID,

@@ -126,7 +126,8 @@ switches nothing back. `HotKeyAction.dockVisibility` shows or hides one dock. Se
   only while the pointer is near its edge.
 - **Popups are panels**, one at a time; Escape, a click elsewhere and losing key close them.
 - **A drag out removes, a drag within reorders, and Escape cancels.** Tiles drag as a private
-  pasteboard type; dropped on another dock a tile moves there. Files dropped on empty space are added,
+  pasteboard type; dropped on another dock a tile moves there as itself (`transferItem`, one write),
+  so a widget keeps its instance and settings. Files dropped on empty space are added,
   on an app open with it, on the Trash are trashed, on the AirDrop widget are sent.
 
 ## Minimized windows, previews and badges
@@ -162,5 +163,8 @@ Paddle, Shopify) are deliberately left to third-party DockWidgets.
 - **A tile's label is not the `tooltip` modifier**, which the dock's window would clip.
 - **Icons are `IconCache`'s 96-pixel bitmaps**; a tile above 96 points is upscaled.
 - **While a dock scrolls, it does not magnify.**
-- **A widget tile cannot be dragged** in the dock; reorder widgets in Settings › Docks.
+- **A widget tile's click is replayed.** The container claims every left press so a widget can drag
+  like any tile; a press that never leaves the slop is sent again, release posted first, to the
+  widget's own SwiftUI view. A widget dragged off a dock returns rather than being removed, since
+  removal deletes its settings and contents; it is removed from its menu or Settings › Docks.
 - **After a crash, launch restores then re-hides the macOS Dock**, so it restarts twice.

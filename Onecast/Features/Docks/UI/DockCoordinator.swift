@@ -214,6 +214,32 @@ final class DockCoordinator {
         }
     }
 
+    /// Moves an item between docks or layouts as itself; a widget keeps its instance and settings.
+    func transferItem(
+        id: UUID, fromDock sourceDockID: UUID, layout sourceLayoutID: UUID,
+        toDock dockID: UUID, layout layoutID: UUID, at index: Int
+    ) {
+        store.update { configuration in
+            guard let from = Self.layoutIndex(sourceDockID, sourceLayoutID, in: configuration),
+                let to = Self.layoutIndex(dockID, layoutID, in: configuration),
+                let position = configuration.docks[from.dock].layouts[from.layout].items
+                    .firstIndex(where: { $0.id == id })
+            else { return }
+            let item = configuration.docks[from.dock].layouts[from.layout].items.remove(at: position)
+            let count = configuration.docks[to.dock].layouts[to.layout].items.count
+            configuration.docks[to.dock].layouts[to.layout].items.insert(item, at: min(max(index, 0), count))
+        }
+    }
+
+    private static func layoutIndex(
+        _ dockID: UUID, _ layoutID: UUID, in configuration: DockConfiguration
+    ) -> (dock: Int, layout: Int)? {
+        guard let dock = configuration.docks.firstIndex(where: { $0.id == dockID }),
+            let layout = configuration.docks[dock].layouts.firstIndex(where: { $0.id == layoutID })
+        else { return nil }
+        return (dock, layout)
+    }
+
     /// Pins a running app at the end of a dock's active layout ("Keep in Dock").
     func keepInDock(_ app: DockRunningApp, dockID: UUID) {
         guard let dock = store.dock(id: dockID) else { return }
