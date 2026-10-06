@@ -254,6 +254,8 @@ enum Theme {
         static let hudWidth: CGFloat = 200
         static let hudHeight: CGFloat = 100
         static let dictationPanel = CGSize(width: 144, height: 44)
+        /// Live dictation's still-changing words, shown above the capsule.
+        static let dictationPreview = CGSize(width: 420, height: 32)
         static let dictationWaveBar: CGFloat = 2
         /// Volume slider geometry, shared by the Set Volume dialog and the HUD's read-only bar.
         static let volumeTrackHeight: CGFloat = 6

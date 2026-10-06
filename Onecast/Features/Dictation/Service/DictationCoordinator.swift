@@ -23,6 +23,7 @@ final class DictationCoordinator {
     @ObservationIgnored private var stopTask: Task<Void, Never>?
     @ObservationIgnored private var finishWhenStarted = false
     @ObservationIgnored private var target: InjectionTarget?
+    @ObservationIgnored private var live: LiveTyping?
     /// The field a mic button is dictating into; nil for a shortcut's session.
     private(set) var field: DictationField?
 
@@ -141,6 +142,9 @@ final class DictationCoordinator {
         phase = .starting
         finishWhenStarted = false
         self.target = target
+        panel.state.isLive =
+            settings.dictationTypesWhileSpeaking && !settings.dictationModel.isQwen
+            && (field != nil || settings.dictationDestination.pastes)
         audioDucker.begin()
         startTask = Task { [weak self] in
             guard let self else { return }
@@ -151,6 +155,7 @@ final class DictationCoordinator {
                     return
                 }
                 phase = .listening
+                if panel.state.isLive { startLiveTyping(token: current) }
                 panel.show()
                 if finishWhenStarted { accept() }
             } catch {
@@ -180,6 +185,10 @@ final class DictationCoordinator {
             guard let self else { return }
             let samples = await capture.stop()
             guard token == current else { return }
+            if let live {
+                await finishLiveTyping(live, samples: samples, token: current)
+                return
+            }
             guard samples.count >= 1_600 else {
                 reset(cancelTranscription: false)
                 showMessage("No speech was recorded", .danger)
@@ -236,6 +245,7 @@ final class DictationCoordinator {
         guard phase != .stopping, phase != .idle || !settings.dictationEnabled else { return }
         let pendingStart = startTask
         let pendingTranscription = transcriptionTask
+        let pendingLive = live?.task
         reset()
         phase = .stopping
         let current = token
@@ -244,6 +254,7 @@ final class DictationCoordinator {
             await pendingStart?.value
             _ = await capture.stop()
             await pendingTranscription?.value
+            await pendingLive?.value
             if !settings.dictationEnabled { await models.stop() }
             if token == current { phase = .idle; stopTask = nil }
         }
@@ -261,11 +272,142 @@ final class DictationCoordinator {
         if cancelTranscription { transcriptionTask?.cancel() }
         startTask = nil
         transcriptionTask = nil
+        live?.task?.cancel()
+        live = nil
         phase = .idle
         target = nil
         field = nil
         panel.close()
         audioDucker.end()
+    }
+
+    // MARK: - Typing while speaking
+
+    private static let livePassInterval = Duration.milliseconds(500)
+    /// Under the model's 15 s window, so a pass never splits its audio on its own.
+    private static let liveSegmentSamples = DictationWire.sampleRate * 12
+
+    private func startLiveTyping(token current: UUID) {
+        let session = LiveTyping(context: DictationInsertionContext.read(in: target))
+        live = session
+        session.task = Task { [weak self] in await self?.transcribeWhileListening(session, token: current) }
+    }
+
+    private func transcribeWhileListening(_ session: LiveTyping, token current: UUID) async {
+        let model = settings.dictationModel
+        let minimum = DictationWire.sampleRate / 2
+        while !Task.isCancelled {
+            try? await Task.sleep(for: Self.livePassInterval)
+            guard !Task.isCancelled, token == current else { return }
+            let samples = capture.samples(from: session.start)
+            guard samples.count >= minimum else { continue }
+            let cut =
+                samples.count >= Self.liveSegmentSamples
+                ? DictationAudioChunks.ranges(in: samples, maximum: Self.liveSegmentSamples)[0].upperBound : nil
+            let audio = cut.map { Array(samples[..<$0]) } ?? samples
+            // Unstructured, so finishing early waits for the pass instead of killing the helper.
+            let pass = Task { try await models.transcribe(audio, model: model, language: nil) }
+            let text: String
+            do { text = try await pass.value } catch {
+                guard token == current else { return }
+                cancel()
+                showMessage(error.localizedDescription, .danger)
+                return
+            }
+            guard !Task.isCancelled, token == current else { return }
+            if let cut {
+                type(session.transcript.close(text, carriesOver: true), in: session, token: current)
+                session.start += cut
+                panel.state.preview = ""
+                continue
+            }
+            let step = session.transcript.update(text)
+            type(step.typed, in: session, token: current)
+            panel.state.preview = step.pending.joined(separator: " ")
+            if step.isSettled {
+                _ = session.transcript.close(text, carriesOver: false)
+                session.start += DictationAudioChunks.quietPoint(
+                    in: samples, within: (samples.count - minimum)..<samples.count)
+            }
+        }
+    }
+
+    private func finishLiveTyping(_ session: LiveTyping, samples: [Float], token current: UUID) async {
+        session.task?.cancel()
+        await session.task?.value
+        guard token == current else { return }
+        let remaining = Array(samples.dropFirst(session.start))
+        var words: [String] = []
+        if remaining.count >= 1_600 {
+            do {
+                let text = try await models.transcribe(
+                    remaining, model: settings.dictationModel, language: nil)
+                words = session.transcript.close(text, carriesOver: false)
+            } catch {
+                guard token == current else { return }
+                reset(cancelTranscription: false)
+                showMessage(error.localizedDescription, .danger)
+                return
+            }
+            guard token == current else { return }
+        } else if session.typed.isEmpty {
+            reset(cancelTranscription: false)
+            showMessage("No speech was recorded", .danger)
+            return
+        }
+        panel.close()
+        type(words, in: session, token: current)
+        let complete = { [weak self] in
+            guard let self, token == current else { return }
+            let destination = field == nil ? settings.dictationDestination : .paste
+            let text = session.typed.trimmingCharacters(in: .whitespacesAndNewlines)
+            if destination.copies, !text.isEmpty { Paster.copyPlainText(text) }
+            reset(cancelTranscription: false)
+        }
+        if session.deliveries == 0 { complete() } else { session.onDrained = complete }
+    }
+
+    private func type(_ words: [String], in session: LiveTyping, token current: UUID) {
+        guard !words.isEmpty else { return }
+        let text = DictationTextFormatter.format(
+            words.joined(separator: " "),
+            context: .continuing(session.context, after: session.typed),
+            adaptCapitalization: settings.dictationAdaptsCapitalization)
+        guard !text.isEmpty else { return }
+        session.typed += text
+        session.deliveries += 1
+        injector.deliver(
+            InjectedText(text), target: target, expectedKeyword: nil,
+            keywordLength: 0, automaticGeneration: nil,
+            isValid: { [weak self] in self?.token == current },
+            onDelivered: { session.settle() },
+            onFailed: { [weak self] in
+                session.settle()
+                guard let self, token == current else { return }
+                cancel()
+                showMessage("Couldn't type dictation into this app", .danger)
+            })
+    }
+}
+
+/// One live session: what was typed, where the untyped audio starts, and the queued insertions.
+@MainActor
+private final class LiveTyping {
+    let context: DictationTextFormatter.Context?
+    var transcript = DictationLiveTranscript()
+    var start = 0
+    var typed = ""
+    var task: Task<Void, Never>?
+    var deliveries = 0
+    var onDrained: (() -> Void)?
+
+    init(context: DictationTextFormatter.Context?) { self.context = context }
+
+    func settle() {
+        deliveries -= 1
+        guard deliveries == 0, let drained = onDrained else { return }
+        onDrained = nil
+        drained()
     }
 }
 

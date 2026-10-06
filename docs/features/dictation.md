@@ -40,6 +40,15 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
   its temporary clipboard ownership, focus, secure-input and protected-target checks. Copy-only
   writes the plain transcript without reading the caret; paste-and-copy writes the persistent copy
   after delivery or a failed insertion.
+- **Type while speaking** (off by default; Parakeet, and a destination that pastes) re-transcribes
+  the audio since the last cut every 500 ms. `DictationLiveTranscript` types a word only once two
+  passes agree on it and every word before it, because typed text is never taken back; words still
+  changing show above the capsule. A repeated pass is a pause: the audio is cut at its quietest
+  point and the next words start fresh. Past 12 s without one, the audio is cut mid-speech below the
+  model's 15 s window and words already typed past the cut carry over rather than repeat. Passes
+  run outside the loop's task, so finishing waits for one rather than killing the helper. The
+  caret's context is read once at the start and continued over what was typed. Escape stops the
+  session but leaves typed words; copying, when chosen, takes the whole typed text at the end.
 - The Liquid Glass capsule displays 21 fixed frequency bands driven by the microphone, sampled at
   most 20 times per second through a reused 512-point Accelerate transform on the capture queue.
   Logarithmic bands span 32–5000 Hz so speech sits nearer the middle. Smoothed levels taper and
@@ -87,9 +96,10 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
 
 ## Validation
 
-`dictation-field-test` checks composer switching and teardown, scoped cancellation and delayed insertion
-with synthetic capture and real AppKit editors, without recording audio or touching the shared clipboard.
-`dictation-test` checks formatting and model options; `dictation-inference-test` checks score selection,
+`dictation-field-test` checks composer switching and teardown, scoped cancellation, delayed insertion and
+live typing with synthetic capture and real AppKit editors, without recording audio or touching the
+shared clipboard. `dictation-test` checks formatting, model options and live word agreement;
+`dictation-inference-test` checks score selection,
 byte BPE, Fourier/mel features, listening bands and audio partitioning without downloading a model. `dictation-worker-test`
 exercises framed IPC, worker reuse/switching, removal, cancellation and broken pipes with a fixture.
 An in-process URLProtocol fixture checks combined byte progress and atomic installation for both

@@ -47,6 +47,36 @@ struct DictationTest {
                 "world",
                 context: Context(
                     before: document.prefix(7), after: document.suffix(6))), " World ")
+
+        typealias Step = DictationLiveTranscript.Step
+        func step(_ actual: Step, _ typed: [String], _ pending: [String], settled: Bool = false) {
+            guard actual == Step(typed: typed, pending: pending, isSettled: settled) else {
+                print("Expected typed \(typed) pending \(pending) settled \(settled), got \(actual)")
+                exit(1)
+            }
+        }
+        var live = DictationLiveTranscript()
+        step(live.update("Send the"), [], ["Send", "the"])
+        step(live.update("Send the logs."), ["Send", "the"], ["logs."])
+        step(live.update("Send the logs from"), [], ["logs", "from"])
+        step(live.update("Send the logs from"), ["logs", "from"], [], settled: true)
+        step(live.update("Send a log"), [], [])
+        check(live.close("Send the log", carriesOver: true).description, "[]")
+        check(live.committed.description, "1")
+        step(live.update("from here"), [], ["here"])
+        step(live.update("from here now"), ["here"], ["now"])
+        check(live.close("from here now please", carriesOver: false).description, "[\"now\", \"please\"]")
+        check(live.committed.description, "0")
+        step(live.update("Ice cream"), [], ["Ice", "cream"])
+        step(live.update("I scream"), [], ["I", "scream"])
+
+        let base = Context(before: "Hello", after: "x")
+        check(DictationTextFormatter.format("There", context: .continuing(base, after: "")), " there ")
+        check(DictationTextFormatter.format("And", context: .continuing(base, after: " there ")), "and ")
+        check(DictationTextFormatter.format("next", context: .continuing(base, after: " done. ")), "Next ")
+        check(DictationTextFormatter.format("next", context: .continuing(base, after: " done.")), " Next ")
+        check(DictationTextFormatter.format("Hi", context: .continuing(nil, after: "")), "Hi")
+        check(DictationTextFormatter.format("World", context: .continuing(nil, after: "Hello")), " world")
         check(DictationModel.redux.folderName, "parakeet-redux")
         check(DictationModel.ultra.folderName, "parakeet-ultra")
         check(DictationModel.redux.title, "Parakeet · Redux")

@@ -82,6 +82,8 @@ enum SettingsBackupCoverage {
             "An import must not change where dictated text is sent.",
         AppSettingsKey.dictationAdaptsCapitalization.rawValue:
             "Dictation preferences stay local until backup supports them.",
+        AppSettingsKey.dictationTypesWhileSpeaking.rawValue:
+            "Dictation preferences stay local until backup supports them.",
         AppSettingsKey.dictationIdleRelease.rawValue:
             "Dictation memory use stays a device-local preference.",
         AppSettingsKey.clipboardTextSearchEnabled.rawValue:

@@ -181,6 +181,10 @@ struct DictationSettingsView: View {
                     } label: {
                         SettingsRowTitle(.dictationOutput, "When finished")
                     }
+                    Toggle(isOn: $settings.dictationTypesWhileSpeaking) {
+                        SettingsRowTitle(.dictationOutput, "Type while speaking")
+                        Text(liveTypingNote)
+                    }
                     Toggle(isOn: $settings.dictationAdaptsCapitalization) {
                         SettingsRowTitle(.dictationOutput, "Adapt capitalization")
                         Text("Match the first letter to the text before the cursor.")
@@ -224,6 +228,12 @@ struct DictationSettingsView: View {
         Binding(
             get: { settings.dictationEnabled },
             set: { coordinator.setEnabled($0) })
+    }
+
+    private var liveTypingNote: String {
+        if settings.dictationModel.isQwen { return "Parakeet only: Qwen types everything when you finish." }
+        if !settings.dictationDestination.pastes { return "Copying to the clipboard waits until you finish." }
+        return "Type each phrase as you say it, instead of all at once when you finish."
     }
 
     private var microphoneBinding: Binding<String> {

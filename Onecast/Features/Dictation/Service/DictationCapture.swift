@@ -93,6 +93,11 @@ final class DictationCapture {
         collector = nil
         return samples
     }
+
+    /// The audio recorded so far, from `start` on, while recording continues.
+    func samples(from start: Int) -> [Float] {
+        collector?.samples(from: start) ?? []
+    }
 }
 
 // Configuration stays on main; only start/stop run off-main, in sequence.
@@ -159,4 +164,8 @@ private final class AudioCollector: NSObject, AVCaptureAudioDataOutputSampleBuff
     }
 
     func finish() -> [Float] { queue.sync { samples } }
+
+    func samples(from start: Int) -> [Float] {
+        queue.sync { start < samples.count ? Array(samples[start...]) : [] }
+    }
 }

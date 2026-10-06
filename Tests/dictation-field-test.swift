@@ -12,6 +12,8 @@ struct DictationFieldTest {
         try await testWindowClose()
         try await testQueuedCancellation(closing: false)
         try await testQueuedCancellation(closing: true)
+        try await testLiveTyping()
+        try await testLiveCancellationKeepsTypedWords()
         print("ALL PASSED")
     }
 
@@ -127,6 +129,44 @@ struct DictationFieldTest {
         expect(fixture.messages.isEmpty, "Discarding queued speech is silent")
     }
 
+    private static func testLiveTyping() async throws {
+        let fixture = Fixture()
+        fixture.settings.dictationTypesWhileSpeaking = true
+        let editor = ComposerTextView()
+        try await fixture.start(into: editor)
+        expect(fixture.panel.state.isLive, "The setting turns a Parakeet session live")
+        for hypothesis in ["Send the", "Send the logs"] {
+            try await wait { fixture.models.pending != nil }
+            fixture.models.finish(hypothesis)
+        }
+        try await wait { editor.string == "Send the" }
+        expect(fixture.panel.state.preview == "logs", "A word still changing is shown, not typed")
+        fixture.coordinator.accept()
+        try await wait { fixture.models.pending != nil }
+        fixture.models.finish("Send the logs now.")
+        try await wait { fixture.coordinator.field == nil }
+        expect(editor.string == "Send the logs now.", "Finishing types only the words not yet typed")
+        expect(fixture.messages.isEmpty, "A live session finishes without a report")
+    }
+
+    private static func testLiveCancellationKeepsTypedWords() async throws {
+        let fixture = Fixture()
+        fixture.settings.dictationTypesWhileSpeaking = true
+        let editor = ComposerTextView()
+        try await fixture.start(into: editor)
+        for hypothesis in ["Draft one", "Draft one more"] {
+            try await wait { fixture.models.pending != nil }
+            fixture.models.finish(hypothesis)
+        }
+        try await wait { editor.string == "Draft one" }
+        fixture.coordinator.cancel(in: editor)
+        try await wait { fixture.models.pending != nil || !fixture.capture.isRecording }
+        fixture.models.finish("Draft one more words")
+        try await wait { !fixture.capture.isRecording && fixture.coordinator.field == nil }
+        await fixture.queue.drain()
+        expect(editor.string == "Draft one", "Escape keeps typed words and types nothing after it")
+    }
+
     private static func wait(until condition: () -> Bool) async throws {
         let deadline = ContinuousClock.now + .seconds(2)
         while !condition() {
@@ -235,6 +275,7 @@ final class AppSettings {
     var dictationLanguage: String?
     var dictationDestination = DictationDestination.copy
     var dictationAdaptsCapitalization = true
+    var dictationTypesWhileSpeaking = false
 }
 
 enum HotKeyAction { case dictation }
@@ -264,6 +305,7 @@ final class DictationCapture {
         stopCount += 1
         return [Float](repeating: 0, count: 1_600)
     }
+    func samples(from start: Int) -> [Float] { [Float](repeating: 0, count: max(0, 16_000 - start)) }
 }
 
 @MainActor
@@ -296,6 +338,8 @@ final class DictationPanelController {
     final class State {
         var phase = Phase.listening
         var levels: [Float] = []
+        var isLive = false
+        var preview = ""
     }
     static weak var latest: DictationPanelController?
     let state = State()

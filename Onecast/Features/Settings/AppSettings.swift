@@ -394,6 +394,10 @@ final class AppSettings {
         }
     }
 
+    var dictationTypesWhileSpeaking: Bool {
+        didSet { defaults.set(dictationTypesWhileSpeaking, forKey: Key.dictationTypesWhileSpeaking.rawValue) }
+    }
+
     var dictationIdleRelease: DictationIdleRelease {
         didSet { defaults.set(dictationIdleRelease.rawValue, forKey: Key.dictationIdleRelease.rawValue) }
     }
@@ -813,6 +817,7 @@ final class AppSettings {
         dictationAdaptsCapitalization =
             defaults.object(forKey: Key.dictationAdaptsCapitalization.rawValue) == nil
             || defaults.bool(forKey: Key.dictationAdaptsCapitalization.rawValue)
+        dictationTypesWhileSpeaking = defaults.bool(forKey: Key.dictationTypesWhileSpeaking.rawValue)
         dictationIdleRelease =
             defaults.object(forKey: Key.dictationIdleRelease.rawValue)
             .flatMap { $0 as? Int }

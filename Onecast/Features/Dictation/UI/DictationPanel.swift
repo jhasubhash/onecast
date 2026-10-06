@@ -8,6 +8,9 @@ final class DictationDisplayState {
     enum Phase { case listening, transcribing }
     var phase: Phase = .listening
     var levels = [Float](repeating: 0, count: DictationSpectrum.barCount)
+    /// Set before `show()`: a live session sizes the panel for its preview line.
+    var isLive = false
+    var preview = ""
 }
 
 private struct DictationWaveform: View {
@@ -54,6 +57,27 @@ private struct DictationPanelView: View {
     let state: DictationDisplayState
 
     var body: some View {
+        VStack(spacing: Theme.Spacing.sm) {
+            if state.isLive {
+                Text(state.preview)
+                    .font(.callout)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .frame(height: Theme.Size.dictationPreview.height)
+                    .glassEffect(.regular, in: .capsule)
+                    .opacity(state.preview.isEmpty ? 0 : 1)
+                    .frame(maxWidth: Theme.Size.dictationPreview.width)
+                    .accessibilityLabel("Words still being recognized")
+            }
+            capsule
+        }
+        .frame(
+            width: DictationPanelController.size(isLive: state.isLive).width,
+            height: DictationPanelController.size(isLive: state.isLive).height, alignment: .bottom)
+    }
+
+    private var capsule: some View {
         Group {
             if state.phase == .listening {
                 DictationWaveform(
@@ -78,9 +102,9 @@ private final class DictationPanel: NSPanel {
     var onAccept: (() -> Void)?
     var onCancel: (() -> Void)?
 
-    init(content: NSView) {
+    init(content: NSView, size: CGSize) {
         super.init(
-            contentRect: NSRect(origin: .zero, size: Theme.Size.dictationPanel),
+            contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         contentView = content
         isOpaque = false
@@ -115,20 +139,33 @@ final class DictationPanelController {
     var onAccept: (() -> Void)?
     var onCancel: (() -> Void)?
 
+    /// The capsule's place stays put; a live panel only grows upward and wider for its preview.
+    static func size(isLive: Bool) -> CGSize {
+        let capsule = Theme.Size.dictationPanel
+        guard isLive else { return capsule }
+        let preview = Theme.Size.dictationPreview
+        return CGSize(
+            width: max(capsule.width, preview.width),
+            height: capsule.height + Theme.Spacing.sm + preview.height)
+    }
+
     func show() {
         let screen = NSScreen.main ?? NSScreen.screens.first
         guard let frame = screen?.visibleFrame else { return }
+        let size = Self.size(isLive: state.isLive)
         let panel =
-            panel ?? DictationPanel(content: NSHostingView(rootView: DictationPanelView(state: state)))
+            panel
+            ?? DictationPanel(
+                content: NSHostingView(rootView: DictationPanelView(state: state)), size: size)
         panel.onAccept = onAccept
         panel.onCancel = onCancel
         self.panel = panel
-        let size = Theme.Size.dictationPanel
         panel.setFrameOrigin(
             NSPoint(
                 x: frame.midX - size.width / 2,
-                y: frame.minY + frame.height * 0.1 - size.height / 2))
+                y: frame.minY + frame.height * 0.1 - Theme.Size.dictationPanel.height / 2))
         state.phase = .listening
+        state.preview = ""
         state.levels = [Float](repeating: 0, count: DictationSpectrum.barCount)
         panel.makeKeyAndOrderFront(nil)
     }

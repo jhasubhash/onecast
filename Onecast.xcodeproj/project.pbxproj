@@ -371,6 +371,7 @@
 		50E7103214394CE72693FD41 /* MenuSearchShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B22BB59D49F75951240538 /* MenuSearchShortcut.swift */; };
 		50EE1F1904FF2F28A923E8DB /* WindowManagementFileFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CC3117070879698E931333 /* WindowManagementFileFormat.swift */; };
 		51DD6AC5A46B5D064312BB8A /* WeatherPopoverSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FABB275E4D3BCAE0013BA83 /* WeatherPopoverSummary.swift */; };
+		51E1A0BEC355BDFC7DC63B49 /* DictationLiveTranscript.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC765A20D7ECBFF87A81A193 /* DictationLiveTranscript.swift */; };
 		52901CFAB77D702BEFCF5C39 /* PersonalStockFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9455FE985AF037CA86729F /* PersonalStockFormat.swift */; };
 		5353F7607776974DD082A7B2 /* CommandOutputPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E3E1C51750962E2315A3A1 /* CommandOutputPresenter.swift */; };
 		539BE6DDB624CFCA7E937EB3 /* MarkdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C80A0ADBE8344E75247E622A /* MarkdownView.swift */; };
@@ -2105,6 +2106,7 @@
 		EC52918EDFD598585956DEE9 /* DoubleTapModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleTapModifier.swift; sourceTree = "<group>"; };
 		EC5FD6A301590DD62E329C56 /* KeychainSecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainSecretStore.swift; sourceTree = "<group>"; };
 		EC708BFCF13B4809A95C6239 /* QuickActionPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionPanelController.swift; sourceTree = "<group>"; };
+		EC765A20D7ECBFF87A81A193 /* DictationLiveTranscript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationLiveTranscript.swift; sourceTree = "<group>"; };
 		ECE11ECEA6CC6E8F645007E9 /* RootPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootPaletteView.swift; sourceTree = "<group>"; };
 		ECEAF879A50CCD22BFACAAB7 /* RaycastImportReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastImportReader.swift; sourceTree = "<group>"; };
 		ECF2D1211C8DAC4AFE19CA21 /* ExtensionPackageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionPackageManager.swift; sourceTree = "<group>"; };
@@ -2186,7 +2188,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_C3E151A0-213F-4DE2-BE17-FE9D93103A8D" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_889A8BE6-B1C3-472F-9362-3F07F45F26F2" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2995,6 +2997,7 @@
 				D546A9BDAF1B8AD1BDEE7904 /* DictationDestination.swift */,
 				E61F42C22CFB553A25771058 /* DictationIdleRelease.swift */,
 				90AF0192D3CD7EC55558E207 /* DictationLanguage.swift */,
+				EC765A20D7ECBFF87A81A193 /* DictationLiveTranscript.swift */,
 				EA36574C3BAF5C4526001FE8 /* DictationMode.swift */,
 				D048BF20644839D583A62E36 /* DictationModel.swift */,
 				C049CE4165A85AC933064EE0 /* DictationTextFormatter.swift */,
@@ -4682,10 +4685,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_CD2330A1-B6D6-4D40-9396-FDC2A59BAFFF" /* onecast */ = {
+		"TEMP_F8B0CEF7-C6C8-498E-B4CD-A057CC7E2BB0" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_C3E151A0-213F-4DE2-BE17-FE9D93103A8D" /* Signing.xcconfig */,
+				"TEMP_889A8BE6-B1C3-472F-9362-3F07F45F26F2" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -5139,6 +5142,7 @@
 				7B6956CF72B365B1B8049AED /* DictationIdleRelease.swift in Sources */,
 				FCC5EB8E3F1F4C8511799786 /* DictationInsertionContext.swift in Sources */,
 				D94AF6EF18FED1DB767B6CC1 /* DictationLanguage.swift in Sources */,
+				51E1A0BEC355BDFC7DC63B49 /* DictationLiveTranscript.swift in Sources */,
 				79F3CE412A56FE1A2EB89E0E /* DictationMode.swift in Sources */,
 				78B1C71456DDCF3BC81AAE2A /* DictationModel.swift in Sources */,
 				30CC2600BA02FE9CD4886268 /* DictationModelDownloader.swift in Sources */,
@@ -5991,7 +5995,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_C3E151A0-213F-4DE2-BE17-FE9D93103A8D" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_889A8BE6-B1C3-472F-9362-3F07F45F26F2" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6262,7 +6266,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_C3E151A0-213F-4DE2-BE17-FE9D93103A8D" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_889A8BE6-B1C3-472F-9362-3F07F45F26F2" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
