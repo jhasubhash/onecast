@@ -20,7 +20,8 @@ struct CommandsSettingsView: View {
                 anchor: .commandsCustomCommands,
                 enableTitle: "Enable custom commands",
                 enableSubtitle:
-                    "Commands run with your user account in /bin/zsh, so use full executable paths.",
+                    "Commands run with your user account in /bin/zsh, or the interpreter a #! line "
+                    + "names, so use full executable paths.",
                 launcherSubtitle: "Find your commands in launcher search.",
                 isEnabled: $settings.customCommandsEnabled,
                 showsInLauncher: $settings.customCommandsShowInLauncher)

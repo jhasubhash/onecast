@@ -413,6 +413,26 @@ live state back. A window chat keeps its own model (`ChatSession.model`, stored 
 Tools menu narrows `ChatToolScope`, turned into the `allowed` server set the tool loop already
 takes. Quitting remembers the open windows (`closeAllForQuit`), so they reopen, unfocused, at launch.
 
+Escape closes the window (`closesOnEscape` on its `AppWindowController`, like Command Output); an
+open composer menu, the Find field, a rename and the Actions menu take Escape first. The sidebar's
+filter clears a nonempty query on the first Escape and passes an empty one on to the window. Closing
+takes the same path as the red button, so the composer's draft goes with the window and a reply
+still arriving stops.
+
+**The window's composer is an `NSTextView`, and carries Dictation's mic.** `ChatComposerTextView`
+wraps a `ComposerTextView`, an `InjectableTextView`, not a `TextField`: its delegate sees
+`insertNewline:` only outside input-method composition, so Return sends and ⇧↩ breaks the line
+without Return ever stealing an IME's confirm, and the open menu claims ↑ ↓ ↵ and Escape first
+through `onMenuKey`. It grows to eight lines, then scrolls. The mic sits beside the context gauge
+and shows only while Dictation is on. A click runs `DictationCoordinator.toggle(into:)` for this
+field whatever the shortcut's hold-or-toggle mode or the window's focus; a second click or Return
+finishes, Escape cancels, and the transcript goes in at the caret, never to the clipboard. With no
+model installed the click opens Settings → Dictation. Because the field is injectable, the
+Dictation shortcut, snippets and Quick Actions also write into it in process, as they do into a
+note. Switching chats or closing the window cancels dictation targeting its composer before the
+editor is rebound or torn down, so a queued transcript cannot land in another chat or a closed
+editor. The floating bar's composer is the palette's own search field, which has no mic.
+
 **Choices, sources, titles and Find.** A reply's closing ```choices``` fence is hidden from its text
 and drawn as buttons under the last complete reply, in the bar and the window alike; the preamble
 asks for it. A complete reply lists the pages it linked as numbered source chips (`ChatReferences`).

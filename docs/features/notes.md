@@ -14,9 +14,9 @@ commands and global shortcuts can show, search, or extend the collection.
   file are identical; there is no parser, projection, preview, or hidden syntax.
 - **Only the active note can be dirty.** Switching, creating, renaming, and deleting first flush it, so
   collection navigation cannot abandon an in-memory draft.
-- **Onecast is the only writer.** There is no watcher and no revision check: a save replaces the file
-  with what is in the editor. Every show re-lists the folder, so a note added outside appears, but the
-  active draft is never re-read from disk.
+- **Onecast is the only writer while editing.** There is no watcher or disk revision check: a save
+  replaces the file with what is in the editor. Every show re-lists the folder and reloads the clean
+  active note; an unsaved draft is retained, including after a failed save.
 - **Search is on demand and unindexed.** An empty switcher query reads metadata plus the head of every
   unnamed note; a nonempty query reads bodies sequentially off-main and retains no collection-sized
   source cache.
@@ -26,10 +26,10 @@ commands and global shortcuts can show, search, or extend the collection.
   window shows its empty state and Create Note still works from there.
 - **The user owns the window size.** AppKit resizes and autosaves the frame; the controller only
   clamps it to the floor below which the title bar's own parts collide.
-- **The editor is the one surface snippets expand into.** `NoteTextView` adopts `InjectableTextView`,
+- **The editor is a surface snippets expand into.** `NoteTextView` adopts `InjectableTextView`,
   so a typed keyword — and the Snippets browser's ↵ — is written straight into the text storage
   rather than posted as events at whichever app happens to be frontmost. Quick Actions also read and
-  replace its selected text in process. Nothing else in Onecast adopts it: see
+  replace its selected text in process. Only AI Chat's composer adopts it too: see
   [snippets.md](snippets.md#text-delivery-and-pasteboard-safety).
 
 ## Storage and identity
@@ -136,9 +136,11 @@ Markdown markers remain visible and receive no syntax highlighting, rendered typ
 link behavior.
 
 AppKit owns typing, selection, Cut, Copy, Paste, Select All, Find, marked-text input, emoji, combining
-characters, and undo/redo. The only `NoteTextView` customization supplies a document-owned undo manager.
-Changing the note identity or editor epoch replaces the literal string and clears the previous
-document's undo history; ordinary edits keep native undo grouping.
+characters, and undo grouping. `NoteTextView` supplies a document-owned undo manager and handles ⌘Z and
+⇧⌘Z while focused, including in the non-activating panel. That manager holds one linear history in
+memory; editing after undo discards redo. The coordinator observes undo and redo completion with
+main-actor notifications, so both reach autosave and the character count. Changing the note identity
+or editor epoch replaces the literal string and clears the previous document's undo history.
 
 ⌘F opens the text view's inline find bar (`usesFindBar`); Escape closes it before it hides the window.
 An empty note shows a `Start writing…` placeholder that `NoteTextView` draws at its own text
@@ -156,16 +158,21 @@ vetoes the quit.
 **A save overwrites whatever is on disk.** There is no watcher, no revision comparison and no conflict
 state: editing the *active* note in another app while Onecast has it open loses that edit the next time
 the debounce fires. Open Notes Folder (⌘O) invites exactly that, and this is the accepted trade for a
-feature whose whole job is one local editor. Every other external change is picked up, because showing
-the window re-lists the folder before it presents anything.
+feature whose whole job is one local editor. Showing the window re-lists the folder and reloads the
+active note if it is clean, waiting for an in-flight save first. An unsaved draft, including one whose
+save failed, stays in the editor. Edits or selection changes during the read retire its result.
+Unchanged contents retain editor history; a changed source or note identity resets it. If the active
+file was removed, loading chooses a remaining note, or the empty state when none remain.
 
 ## Verification
 
 `Tests/notes-test.swift` compiles the shipped Notes model and service sources with the real fuzzy
 matcher. It covers repository safety, unique-name claiming, derived titles, search, selection,
-autosave, empty collections, switcher interaction, and cancellation.
+autosave, external reloads, draft preservation, empty collections, switcher interaction, and
+cancellation.
 
 `Tests/notes-editor-test.swift` uses real TextKit 2 and AppKit undo objects to cover literal source,
-native Cut/Copy/Paste, Unicode and marked text, and undo isolation. Window chrome is not automated:
+native Cut/Copy/Paste, Unicode and marked text, undo isolation, undo and redo shortcut routing, source
+publication and character count, and linear history. Window chrome is not automated:
 the Notes manual sweep in `docs/testing.md` covers commands, shortcuts, switcher, focus restoration,
 Finder, Trash recovery, and accessibility.

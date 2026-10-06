@@ -6,12 +6,14 @@ description: Math, units, live currency and crypto, dates and time zones, answer
 Type a calculation into the launcher and the answer appears on a card above the results. There is no
 mode to switch into. It works it out as you type.
 
-| Action           | Shortcut                                  |
-| ---------------- | ----------------------------------------- |
-| Copy Answer      | <kbd>return</kbd>                         |
-| Copy Calculation | <kbd>⇧</kbd><kbd>⌘</kbd><kbd>return</kbd> |
+| Action                   | Shortcut                                  |
+| ------------------------ | ----------------------------------------- |
+| Copy Answer              | <kbd>return</kbd>                         |
+| Put Answer in Search Bar | <kbd>⌘</kbd><kbd>return</kbd>             |
+| Copy Calculation         | <kbd>⇧</kbd><kbd>⌘</kbd><kbd>return</kbd> |
 
-Copying the answer also saves it to **Calculator History**.
+Copying the answer or putting it in the search bar also saves it to **Calculator History**. Only
+numbers, units and money go in the search bar; a date, a time or a true/false answer does not.
 
 A plain word never gets a card. `tomorrow`, `july` or `pi` on its own is a search, not a sum.
 
@@ -299,12 +301,13 @@ not a mistake. It is half typed.
 **Calculator History** is its own screen, opened by the command of that name. It stays out of the
 <kbd>tab</kbd> loop; leave with <kbd>esc</kbd> or <kbd>delete</kbd> in an empty search.
 
-| Action             | Shortcut                             |
-| ------------------ | ------------------------------------ |
-| Copy Answer        | <kbd>return</kbd>                    |
-| Copy Expression    | <kbd>⌘</kbd><kbd>return</kbd>        |
-| Delete Entry       | <kbd>⌃</kbd><kbd>X</kbd>             |
-| Delete All Entries | <kbd>⌃</kbd><kbd>⇧</kbd><kbd>X</kbd> |
+| Action                                         | Shortcut                             |
+| ---------------------------------------------- | ------------------------------------ |
+| Copy Answer                                    | <kbd>return</kbd>                    |
+| Copy Expression, on a past entry               | <kbd>⌘</kbd><kbd>return</kbd>        |
+| Put Answer in Search Bar, on a new calculation | <kbd>⌘</kbd><kbd>return</kbd>        |
+| Delete Entry                                   | <kbd>⌃</kbd><kbd>X</kbd>             |
+| Delete All Entries                             | <kbd>⌃</kbd><kbd>⇧</kbd><kbd>X</kbd> |
 
 ## Colors
 

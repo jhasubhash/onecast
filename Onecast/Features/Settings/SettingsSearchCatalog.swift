@@ -109,7 +109,8 @@ enum SettingsSearchCatalog {
 
     static let entries: [SettingsSearchEntry] =
         general + applications + systemSettings
-        + systemActions + commands + quicklinks + appleShortcuts + fallbacks + ai + quickActions + fileSearch
+        + systemActions + commands + quicklinks + appleShortcuts + fallbacks + ai + quickActions + dictation
+        + fileSearch
         + notes
         + snippets + navigation + windowManagement + docks + clipboard + emoji + calendar
         + extensions + plugins + scheduler + permissions + backup + about
@@ -164,6 +165,9 @@ enum SettingsSearchCatalog {
         .init(
             .generalGeneral, "Show in menu bar",
             keywords: ["menubar", "status item", "icon", "hide"]),
+        .init(
+            .generalGeneral, "Automatically check for updates",
+            keywords: ["software", "update", "automatic", "disable", "popup"]),
         .init(
             .generalGeneral, "Pop to Root Search",
             keywords: ["reset", "timeout", "back"]),
@@ -332,6 +336,20 @@ enum SettingsSearchCatalog {
         .init(
             group: .quickActionsTranslate, "Translate to",
             keywords: ["language", "locale"])
+    ]
+
+    private static let dictation: [SettingsSearchEntry] = [
+        .init(pane: .dictation, keywords: ["speech", "voice", "transcription", "microphone"]),
+        .init(.dictationDictation, "Enable Dictation"),
+        .init(.dictationCommands, "Shortcut behavior"),
+        .init(.dictationCommands, "Shortcut"),
+        .init(.dictationModel, "Model"),
+        .init(.dictationModel, "Engine", keywords: ["parakeet", "redux", "ultra", "qwen"]),
+        .init(.dictationModel, "Language"),
+        .init(.dictationMemory, "Release model from memory"),
+        .init(.dictationOutput, "Microphone"),
+        .init(.dictationOutput, "When finished"),
+        .init(.dictationOutput, "Adapt capitalization", keywords: ["uppercase", "lowercase", "sentence"])
     ]
 
     private static let fileSearch: [SettingsSearchEntry] = [
@@ -717,7 +735,10 @@ enum SettingsSearchCatalog {
             keywords: ["events", "privacy", "grant", "eventkit"]),
         .init(
             .permissionsReminders, "Reminders",
-            keywords: ["apple reminders", "privacy", "grant", "eventkit", "to-do"])
+            keywords: ["apple reminders", "privacy", "grant", "eventkit", "to-do"]),
+        .init(
+            .permissionsMicrophone, "Microphone",
+            keywords: ["dictation", "recording", "privacy", "grant"])
     ]
 
     private static let backup: [SettingsSearchEntry] = [

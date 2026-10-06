@@ -45,10 +45,25 @@ struct NoteEditorView: NSViewRepresentable {
 
         private var input: NoteEditorInput
         private var isInstalling = false
+        private var undoObservers: [NotificationCenter.ObservationToken] = []
 
         init(parent: NoteEditorView) {
             self.parent = parent
             input = parent.input
+            super.init()
+            let center = NotificationCenter.default
+            undoObservers = [
+                center.addObserver(of: editorUndoManager, for: .didUndoChange) { [weak self] _ in
+                    self?.sourceDidChange()
+                },
+                center.addObserver(of: editorUndoManager, for: .didRedoChange) { [weak self] _ in
+                    self?.sourceDidChange()
+                }
+            ]
+        }
+
+        deinit {
+            for observer in undoObservers { NotificationCenter.default.removeObserver(observer) }
         }
 
         func install(_ input: NoteEditorInput, resetUndo: Bool) {
@@ -78,6 +93,10 @@ struct NoteEditorView: NSViewRepresentable {
         }
 
         func textDidChange(_ notification: Notification) {
+            sourceDidChange()
+        }
+
+        private func sourceDidChange() {
             guard !isInstalling, let textView else { return }
             let source = textView.string
             guard source != input.source else { return }

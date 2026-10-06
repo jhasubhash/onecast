@@ -162,9 +162,8 @@ private struct AIChatWindowView: View {
     let handleMenuKey: (KeyEquivalent) -> Void
 
     @Environment(\.metrics) private var metrics
-    @State private var hostWindow: NSWindow?
     @State private var drafts: [UUID: String] = [:]
-    @FocusState private var focused: Bool
+    @State private var editor = ComposerTextViewHandle()
 
     private var chat: AIChatState { session.chat }
     private var coordinator: AIChatCoordinator { session.coordinator }
@@ -185,15 +184,12 @@ private struct AIChatWindowView: View {
                 onConfigure: coordinator.showSettings, onAppear: coordinator.prepareForChat)
             composer
         }
-        .background(WindowReader { hostWindow = $0 })
         // Above the composer's own controls, so it still fires once a menu button holds focus.
         .onKeyPress(keys: [.upArrow, .downArrow, .return, .escape], phases: .down) { press in
             guard openMenu != nil else { return .ignored }
             handleMenuKey(press.key)
             return .handled
         }
-        .onAppear { focused = true }
-        .onChange(of: chat.session.id) { focused = true }
     }
 
     private var composer: some View {
@@ -219,35 +215,32 @@ private struct AIChatWindowView: View {
         RoundedRectangle(cornerRadius: metrics.radius.barControl, style: .continuous)
     }
 
-    /// Its own prompt overlay: SwiftUI's placeholder distorts the caret on a vertical-axis field.
+    /// Its own prompt overlay: the field is an `NSTextView`, which draws no placeholder of its own.
     private var textField: some View {
-        TextField("", text: draft, axis: .vertical)
-            .textFieldStyle(.plain)
-            .lineLimit(1...8)
-            .font(.system(size: 16))
-            .tint(Theme.Colors.textPrimary)
-            .focused($focused)
-            .background(alignment: .topLeading) {
-                if draft.wrappedValue.isEmpty {
-                    Text("Ask anything…")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Theme.Colors.textTertiary)
-                        .allowsHitTesting(false)
-                }
-            }
+        ChatComposerTextView(
+            text: draft, focusKey: chat.session.id,
+            maximumTextHeight: ChatComposerTextView.lineHeight * Self.composerMaxLines,
+            handle: editor, onInvalidate: { coordinator.dictation.cancel(in: $0) },
+            onMenuKey: { key in
+                guard openMenu != nil else { return false }
+                handleMenuKey(key)
+                return true
+            },
             // Plain ↵ sends, or stops a streaming reply; ⇧↵ breaks the line instead.
-            .onKeyPress(keys: [.return], phases: .down) { press in
-                guard openMenu == nil else { return .ignored }
-                if press.modifiers == .shift {
-                    let editor = hostWindow?.firstResponder as? NSTextView
-                    editor?.insertText("\n", replacementRange: editor?.selectedRange() ?? NSRange())
-                    return .handled
-                }
-                guard press.modifiers.isEmpty else { return .ignored }
-                send()
-                return .handled
+            onSubmit: send
+        )
+        .background(alignment: .topLeading) {
+            if draft.wrappedValue.isEmpty {
+                Text("Ask anything…")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.Colors.textTertiary)
+                    .allowsHitTesting(false)
             }
+        }
     }
+
+    /// The composer grows to this many lines, then scrolls inside itself.
+    private static let composerMaxLines: CGFloat = 8
 
     private var statusRow: some View {
         HStack(spacing: metrics.spacing.xs) {
@@ -274,6 +267,11 @@ private struct AIChatWindowView: View {
             }
             Spacer(minLength: 0)
             ChatContextGauge(report: coordinator.contextReport)
+            if coordinator.dictation.isEnabled {
+                DictationButton(
+                    dictation: coordinator.dictation, editor: editor,
+                    onNeedsModel: coordinator.showDictationSettings)
+            }
         }
     }
 
@@ -292,6 +290,46 @@ private struct AIChatWindowView: View {
         }
         guard coordinator.send(draft.wrappedValue) else { return }
         draft.wrappedValue = ""
+    }
+}
+
+/// Only while Dictation is on: a click starts it into this field, another click inserts the text.
+private struct DictationButton: View {
+    let dictation: DictationCoordinator
+    let editor: ComposerTextViewHandle
+    let onNeedsModel: () -> Void
+    @Environment(\.metrics) private var metrics
+
+    var body: some View {
+        let field = dictation.field
+        let session = field?.editor == editor.textView.map(ObjectIdentifier.init) ? field : nil
+        BarButton(chrome: .rounded) {
+            guard dictation.hasModel else { return onNeedsModel() }
+            if let textView = editor.textView { dictation.toggle(into: textView) }
+        } label: {
+            Group {
+                if session?.isTranscribing == true {
+                    ProgressView().controlSize(.small)
+                } else if session != nil {
+                    Image(systemName: "waveform")
+                        .symbolEffect(.variableColor.iterative)
+                        .foregroundStyle(Color.accentColor)
+                } else {
+                    Image(systemName: "mic")
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
+            .font(metrics.typography.bar)
+        }
+        .disabled(session?.isTranscribing == true)
+        .help(help(session))
+        .accessibilityLabel(session == nil ? "Dictate" : "Stop Dictating")
+    }
+
+    private func help(_ session: DictationField?) -> String {
+        guard dictation.hasModel else { return "Download a dictation model in Settings" }
+        guard let session else { return "Dictate" }
+        return session.isTranscribing ? "Transcribing…" : "Stop and insert the text  ↵"
     }
 }
 

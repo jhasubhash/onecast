@@ -1,3 +1,4 @@
+import AVFoundation
 import Combine
 import SwiftUI
 
@@ -6,6 +7,7 @@ struct PermissionsSettingsView: View {
     @State private var accessibilityTrusted = Permissions.isAccessibilityTrusted()
     @State private var calendarAccess = Permissions.calendarAccess()
     @State private var remindersAccess = Permissions.remindersAccess()
+    @State private var microphoneAccess = Permissions.microphoneAccess()
     private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -95,6 +97,42 @@ struct PermissionsSettingsView: View {
             } header: {
                 SettingsSectionHeader(.permissionsReminders)
             }
+
+            Section {
+                LabeledContent {
+                    HStack(spacing: Theme.Spacing.lg) {
+                        statusLabel(microphoneStatus)
+                        Button(microphoneAccess == .notDetermined ? "Grant Access…" : "Open…") {
+                            if microphoneAccess == .notDetermined {
+                                Task {
+                                    _ = await Permissions.requestMicrophoneAccess()
+                                    refresh()
+                                }
+                            } else {
+                                Permissions.openMicrophoneSettings()
+                            }
+                        }
+                        .help(
+                            microphoneAccess == .notDetermined
+                                ? "Asks macOS for microphone access."
+                                : "Opens Privacy & Security › Microphone.")
+                    }
+                } label: {
+                    HStack(spacing: Theme.Spacing.lg) {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: SettingsListMetrics.iconSize - Theme.Spacing.xs))
+                            .frame(width: SettingsListMetrics.iconSize)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                            SettingsRowTitle(.permissionsMicrophone, "Microphone")
+                            Text("Records audio only while dictating.")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                SettingsSectionHeader(.permissionsMicrophone)
+            }
         }
         .formStyle(.grouped)
         .settingsScrollTarget(.permissions)
@@ -114,6 +152,10 @@ struct PermissionsSettingsView: View {
 
     private var remindersStatus: (title: String, symbol: String, tint: Color) {
         Self.status(of: remindersAccess == .granted, asked: remindersAccess != .notDetermined)
+    }
+
+    private var microphoneStatus: (title: String, symbol: String, tint: Color) {
+        Self.status(of: microphoneAccess == .authorized, asked: microphoneAccess != .notDetermined)
     }
 
     private static func status(of granted: Bool, asked: Bool) -> (title: String, symbol: String, tint: Color) {
@@ -139,6 +181,8 @@ struct PermissionsSettingsView: View {
         if access != calendarAccess { calendarAccess = access }
         let reminders = Permissions.remindersAccess()
         if reminders != remindersAccess { remindersAccess = reminders }
+        let microphone = Permissions.microphoneAccess()
+        if microphone != microphoneAccess { microphoneAccess = microphone }
     }
 }
 

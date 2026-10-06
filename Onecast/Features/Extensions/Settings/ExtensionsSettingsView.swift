@@ -907,7 +907,7 @@ private struct ExtensionImportSheet: View {
             }
             .overflowFade()
             .thinScrollbar()
-            .frame(minHeight: 220)
+            .frame(minHeight: 220, maxHeight: 360)
 
             HStack {
                 // Reads against what is selected, so it is never a button that does nothing.

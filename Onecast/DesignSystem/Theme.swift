@@ -5,6 +5,7 @@ import SwiftUI
 enum Theme {
     enum Spacing {
         static let xxs: CGFloat = 2
+        static let dictationWaveGap: CGFloat = 3
         static let xs: CGFloat = 4
         static let sm: CGFloat = 6
         static let md: CGFloat = 8
@@ -252,6 +253,8 @@ enum Theme {
         /// Transient volume HUD shown after any volume or mute command.
         static let hudWidth: CGFloat = 200
         static let hudHeight: CGFloat = 100
+        static let dictationPanel = CGSize(width: 144, height: 44)
+        static let dictationWaveBar: CGFloat = 2
         /// Volume slider geometry, shared by the Set Volume dialog and the HUD's read-only bar.
         static let volumeTrackHeight: CGFloat = 6
         static let volumeKnob: CGFloat = 16

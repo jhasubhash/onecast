@@ -25,6 +25,22 @@ final class NoteTextView: NSTextView, InjectableTextView {
         performTextFinderAction(item)
     }
 
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection([.command, .shift, .option, .control])
+        guard window?.firstResponder === self,
+            event.charactersIgnoringModifiers?.lowercased() == "z",
+            modifiers == .command || modifiers == [.command, .shift]
+        else { return super.performKeyEquivalent(with: event) }
+        guard !event.isARepeat else { return true }
+        breakUndoCoalescing()
+        if modifiers == .command {
+            editorUndoManager?.undo()
+        } else {
+            editorUndoManager?.redo()
+        }
+        return true
+    }
+
     /// Drawn in the text itself, so the find bar pushing the text down carries the placeholder too.
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)

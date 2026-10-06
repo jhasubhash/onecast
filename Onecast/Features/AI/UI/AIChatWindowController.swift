@@ -241,7 +241,8 @@ final class AIChatWindowController {
         let window = AppWindowController(
             title: "AI Chat", contentSize: Theme.Size.aiChatWindow,
             minimumSize: Theme.Size.aiChatWindowMinimum, resizable: true,
-            autosaveName: Self.autosaveName(for: key), activation: core.activationPolicy)
+            autosaveName: Self.autosaveName(for: key), activation: core.activationPolicy,
+            closesOnEscape: true)
         window.onClose = { [weak self] in self?.didClose(key: key) }
         return Entry(session: session, window: window)
     }

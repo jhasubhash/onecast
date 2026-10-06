@@ -18,7 +18,8 @@ where you can give it a global shortcut and an alias.
 | Switch Camera | Moves to your next camera; shown only if you have more than one |
 | Close         | Closes the preview. <kbd>esc</kbd> does the same                |
 
-Clicking anywhere outside the preview closes it too.
+Clicking anywhere outside the preview closes it too. Clicks in the menu bar and the Dock don't
+count, so you can change video effects in Control Center while you watch the preview.
 
 **What you see is what you get.** Mirroring flips the photo as well as the preview, so the photo
 always matches what you framed. Onecast remembers the Mirror choice until you quit.

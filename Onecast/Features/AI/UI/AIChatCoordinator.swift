@@ -985,6 +985,12 @@ final class AIChatCoordinator {
         settingsCoordinator.showSettings(tab: .ai)
     }
 
+    var dictation: DictationCoordinator { core.dictationCoordinator }
+
+    func showDictationSettings() {
+        settingsCoordinator.showSettings(tab: .dictation)
+    }
+
     func availability() -> String? {
         do {
             _ = try core.aiProvider()

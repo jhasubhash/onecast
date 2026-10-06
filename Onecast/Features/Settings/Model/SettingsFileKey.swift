@@ -4,6 +4,7 @@ import Foundation
 enum SettingsFileKey: String, CaseIterable, Sendable {
     // Spelled out, so renaming a case can never rename a key in someone's file.
     case showInMenuBar = "general.showInMenuBar"
+    case automaticallyCheckForUpdates = "general.automaticallyCheckForUpdates"
     case popToRootTimeout = "general.popToRootSeconds"
     case escapeKeyBehavior = "general.escapeKeyBehavior"
     case autoSwitchInputSource = "general.autoSwitchInputSource"
@@ -45,6 +46,13 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case quickActionAutoLanguageSwap = "quickActions.autoLanguageSwap"
     case quickActionPrimaryLanguage = "quickActions.primaryLanguage"
     case quickActionSecondaryLanguage = "quickActions.secondaryLanguage"
+    case dictationMode = "dictation.mode"
+    case dictationModel = "dictation.model"
+    case dictationMicrophone = "dictation.microphone"
+    case dictationDestination = "dictation.destination"
+    case dictationAdaptsCapitalization = "dictation.adaptsCapitalization"
+    case dictationIdleRelease = "dictation.releaseAfterMinutes"
+    case dictationLanguage = "dictation.language"
     case fileSearchEnabled = "fileSearch.enabled"
     case fileSearchScopes = "fileSearch.scopes"
     case fileSearchIgnorePatterns = "fileSearch.ignorePatterns"

@@ -81,8 +81,10 @@ that is _open in Onecast_ in another app, that edit is lost at the next autosave
 
 <kbd>⌘</kbd><kbd>O</kbd> invites exactly this, and it is the trade for having no database.
 
-Every _other_ change from outside is picked up, because showing the window reads the folder again
-first. A note you add or edit elsewhere shows up as expected.
+When you reopen the window, Onecast reads the folder again and reloads the active note if it has no
+unsaved changes. Notes you add or edit elsewhere appear as expected. An unsaved draft is kept,
+including after a failed save. Reloading changed contents clears that note's undo history; reopening
+unchanged contents keeps it.
 
 Quitting waits for the last save, but never blocks the quit.
 

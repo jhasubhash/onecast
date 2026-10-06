@@ -271,9 +271,38 @@ run fallback-test          Onecast/Features/Launcher/Model/Fallback.swift \
                            Onecast/Features/Snippets/Model/Snippet.swift \
                            Onecast/Features/Intent/Model/*.swift
 run intent-test            Onecast/Features/Intent/Model/*.swift
+run dictation-test         Onecast/Features/Dictation/Model/DictationModel.swift Onecast/Features/Dictation/Model/DictationIdleRelease.swift Onecast/Features/Dictation/Model/DictationTextFormatter.swift
+run dictation-field-test   Onecast/Features/Dictation/Model/DictationModel.swift \
+                           Onecast/Features/Dictation/Model/DictationMode.swift \
+                           Onecast/Features/Dictation/Model/DictationDestination.swift \
+                           Onecast/Features/Dictation/Model/DictationTextFormatter.swift \
+                           Onecast/Features/Dictation/Service/DictationCoordinator.swift \
+                           Onecast/Features/Dictation/Service/DictationInsertionContext.swift \
+                           Onecast/Features/AI/UI/ChatComposerTextView.swift \
+                           Onecast/Features/TextInjection/Service/*.swift \
+                           Onecast/Features/Snippets/Model/*.swift \
+                           Onecast/Platform/AccessibilityText.swift
+run dictation-volume-test  Onecast/Features/Dictation/Model/DictationVolumeSnapshot.swift \
+                           Onecast/Features/Dictation/Service/DictationAudioDucker.swift \
+                           Onecast/Platform/AppPaths.swift
+run index -O dictation-performance Onecast/Platform/ProcessExit.swift \
+                           Onecast/Features/Dictation/Model/DictationModel.swift \
+                           Onecast/Features/Dictation/Service/DictationWire.swift
+run dictation-inference-test Onecast/Features/Dictation/Model/DictationAudioChunks.swift \
+    Onecast/Features/Dictation/Service/DictationSpectrum.swift \
+    Onecast/Features/Dictation/Helper/DictationTensor.swift Onecast/Features/Dictation/Helper/DictationTokenizer.swift \
+    Onecast/Features/Dictation/Helper/DictationMel.swift
+run dictation-worker-test  Onecast/Features/Dictation/Model/DictationModel.swift \
+                           Onecast/Features/Dictation/Model/DictationIdleRelease.swift \
+                           Onecast/Features/Dictation/Service/DictationWire.swift \
+                           Onecast/Features/Dictation/Service/DictationWorker.swift \
+                           Onecast/Features/Dictation/Service/DictationModelStore.swift \
+                           Onecast/Features/Dictation/Service/DictationModelDownloader.swift \
+                           Onecast/Platform/ProcessExit.swift Onecast/Platform/AppPaths.swift
 run hotkey-test            Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Onecast/Features/HotKeys/Model/ModifierKey.swift \
+                           Onecast/Features/HotKeys/Model/ModifierKeyDetector.swift \
                            Onecast/Features/HotKeys/Model/DoubleTapDetector.swift \
-                           Onecast/Features/HotKeys/Model/GlobeTapDetector.swift \
                            Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
                            Onecast/Features/HotKeys/Model/HotKeySpelling.swift \
                            Onecast/Features/HotKeys/Model/HyperKey.swift \
@@ -324,6 +353,8 @@ run ext-icon-test          Onecast/Platform/Appearance.swift \
                            Onecast/Features/Clipboard/Model/ColorValue.swift \
                            Onecast/Features/Clipboard/Model/ColorSpaces.swift
 run system-action-test     Onecast/Features/SystemActions/Model/SystemAction.swift
+run microphone-mute-test   Onecast/Features/SystemActions/Service/SystemActionFailure.swift \
+                           Onecast/Features/SystemActions/Service/SystemActionRunner+Microphone.swift
 run volume-test            Onecast/Features/SystemActions/Model/VolumeLevel.swift
 run window-command-test    Onecast/Features/WindowManagement/Model/WindowCommand.swift \
                            Onecast/Features/WindowManagement/Model/WindowCycle.swift \
@@ -333,6 +364,7 @@ run window-command-test    Onecast/Features/WindowManagement/Model/WindowCommand
 run window-preset-test     Onecast/Features/WindowManagement/Model/WindowCommand.swift \
                            Onecast/Features/WindowManagement/Model/WindowShortcutPreset.swift \
                            Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Onecast/Features/HotKeys/Model/ModifierKey.swift \
                            Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
                            Onecast/Features/HotKeys/Model/HyperKey.swift \
                            Onecast/Platform/ASCIIKeyboardLayout.swift \
@@ -510,6 +542,9 @@ run settings-history-test  Onecast/Features/Settings/SettingsTab.swift \
                            $L/SearchRelevance.swift
 run updates-test           Onecast/Features/Updates/Model/*.swift \
                            Onecast/Features/Updates/Service/BundleSignature.swift
+run update-check-test      Onecast/Features/Updates/Model/*.swift \
+                           Onecast/Features/Updates/Service/UpdateCheckStore.swift \
+                           Onecast/Platform/AppPaths.swift
 run support-test           Onecast/Features/Support/Model/*.swift
 run scheduler-test         Onecast/Features/Notifications/Model/NotificationSpec.swift \
                            Onecast/Features/Notifications/Model/NotificationContrast.swift \

@@ -92,7 +92,14 @@ struct AIChatSidebarView: View {
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)
         .background(Capsule().fill(Theme.Colors.controlSurface))
-        .onExitCommand { query = "" }
+        .onExitCommand {
+            // An empty filter has nothing to cancel, so Escape goes on to the window.
+            if query.isEmpty {
+                NSApp.keyWindow?.cancelOperation(nil)
+            } else {
+                query = ""
+            }
+        }
     }
 
     @ViewBuilder

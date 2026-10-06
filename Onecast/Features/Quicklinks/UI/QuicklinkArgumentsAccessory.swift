@@ -25,7 +25,9 @@ enum QuicklinkArgumentsAccessory {
             width: QuicklinkArgumentsRow.totalWidth(
                 for: arguments, hasIcon: symbol != nil, metrics: metrics),
             fieldNames: arguments.map(\.name),
-            firstIncompleteField: arguments.first { value($0.name).wrappedValue.isEmpty }?.name,
+            firstIncompleteField: arguments.first {
+                !$0.isOptional && value($0.name).wrappedValue.isEmpty
+            }?.name,
             optionsMenu: { name in
                 guard let argument = arguments.first(where: { $0.name == name }),
                     !argument.options.isEmpty
@@ -63,7 +65,7 @@ enum QuicklinkArgumentsAccessory {
     }
 
     private static func menu(
-        for argument: SnippetTemplateEngine.MissingArgument, value: Binding<String>
+        for argument: SnippetTemplateEngine.DeclaredArgument, value: Binding<String>
     ) -> PopoverMenuContent {
         PopoverMenuContent(
             header: argument.name,

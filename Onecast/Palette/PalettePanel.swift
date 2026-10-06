@@ -40,6 +40,10 @@ final class PalettePanel: NSPanel {
         fieldEditor?.selectAll(nil)
     }
 
+    func moveFieldEditorCaretToEnd() {
+        fieldEditor?.moveToEndOfDocument(nil)
+    }
+
     /// Insert text at the field editor's caret — the AI composer's Shift+↵ line break.
     @discardableResult
     func insertIntoField(_ text: String) -> Bool {

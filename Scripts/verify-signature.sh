@@ -29,12 +29,20 @@ trap 'rm -f "$ENTITLEMENTS"' EXIT
 codesign -d --entitlements - --xml "$APP" > "$ENTITLEMENTS" 2>/dev/null
 
 # The helper is signed by its own embed phase, which is where the runtime flag goes missing.
+HELPER="$APP/Contents/Helpers/Onecast Dictation.app"
 for BIN in "$APP/Contents/MacOS/$NAME" "$APP/Contents/Helpers/ClipboardTextHelper" \
-    "$APP/Contents/Helpers/AIToolHelper"; do
+    "$APP/Contents/Helpers/AIToolHelper" "$HELPER/Contents/MacOS/Onecast Dictation"; do
     INFO="$(codesign -dv --verbose=2 "$BIN" 2>&1)"
     [[ "$INFO" =~ flags=0x[0-9a-f]+\([^\)]*runtime ]] ||
         fail "${BIN##*/}: hardened runtime not enabled"
 done
+
+APP_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")"
+HELPER_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$HELPER/Contents/Info.plist")"
+[ "$HELPER_ID" = "$APP_ID.dictation" ] || fail "Dictation helper has an incorrect bundle identifier"
+HELPER_SIGNATURE="$(codesign -dv "$HELPER" 2>&1)"
+grep -Fxq "Identifier=$HELPER_ID" <<< "$HELPER_SIGNATURE" ||
+    fail "Dictation helper's signature and bundle identifier disagree"
 
 codesign --verify --deep --strict "$APP" || fail "$NAME.app: the seal does not verify"
 
