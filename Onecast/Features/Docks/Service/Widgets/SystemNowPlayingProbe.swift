@@ -56,7 +56,9 @@ enum SystemNowPlayingProbe {
             """
         guard let script = NSAppleScript(source: source) else { return nil }
         let result = script.executeAndReturnError(&failure)
-        guard failure == nil, result.descriptorType != typeNull else { return nil }
+        // `missing value` comes back as a 4-byte type descriptor, not a null one.
+        guard failure == nil, result.descriptorType != typeNull, result.descriptorType != typeType
+        else { return nil }
         let data = result.data
         return data.isEmpty ? nil : data
     }

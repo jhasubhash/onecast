@@ -211,17 +211,33 @@ final class SystemNowPlayingMonitor {
     }
 
     private nonisolated static func fetchArtwork(for track: SystemNowPlaying.Track) async -> CGImage? {
-        let data: Data?
         switch track.source {
         case .spotify:
             guard let url = track.artworkURL,
                 let (body, response) = try? await session.data(from: url),
                 (response as? HTTPURLResponse)?.statusCode == 200
             else { return nil }
-            data = body
+            return SystemNowPlayingProbe.decodeArtwork(body)
         case .music:
-            data = SystemNowPlayingProbe.musicArtwork()
+            if let own = SystemNowPlayingProbe.musicArtwork().flatMap(SystemNowPlayingProbe.decodeArtwork) {
+                return own
+            }
+            return await catalogArtwork(for: track).flatMap(SystemNowPlayingProbe.decodeArtwork)
         }
-        return data.flatMap(SystemNowPlayingProbe.decodeArtwork)
+    }
+
+    /// A streamed track has no artwork for Apple Events; Apple's catalog has the same cover.
+    private nonisolated static func catalogArtwork(for track: SystemNowPlaying.Track) async -> Data? {
+        guard
+            let search = SystemNowPlayingCatalog.searchURL(
+                title: track.title, artist: track.artist,
+                region: Locale.autoupdatingCurrent.region?.identifier),
+            let (results, _) = try? await session.data(from: search),
+            let url = SystemNowPlayingCatalog.artworkURL(
+                in: results, title: track.title, artist: track.artist, album: track.album),
+            let (body, response) = try? await session.data(from: url),
+            (response as? HTTPURLResponse)?.statusCode == 200
+        else { return nil }
+        return body
     }
 }

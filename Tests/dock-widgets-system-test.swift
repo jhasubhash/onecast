@@ -45,6 +45,7 @@ struct DockWidgetsSystemTests {
         nowPlayingSkipStaysInsideTheTrack()
         nowPlayingPicksTheMostActiveSource()
         nowPlayingPollsFasterWhilePlaying()
+        nowPlayingCatalogPicksTheMatchingCover()
         nowPlayingSettingsReadDefaultsAndValues()
         nowPlayingLayoutFitsWhatThereIsRoomFor()
         print("\(passes) passed, \(failures) failed")
@@ -420,6 +421,38 @@ struct DockWidgetsSystemTests {
         expect(NowPlaying.pollInterval(for: status(.paused)) == 5, "paused polls slowly")
         expect(NowPlaying.pollInterval(for: .stopped) == 5 && NowPlaying.pollInterval(for: .denied) == 5, "idle polls slowly")
         expect(NowPlaying.pollInterval(for: .closed) == nil, "a closed player is never polled")
+    }
+
+    static func nowPlayingCatalogPicksTheMatchingCover() {
+        let json = Data(#"""
+            {"results":[
+              {"trackName":"Tum Ho Toh","artistName":"Vishal Mishra","collectionName":"Saiyaara (OST)",
+               "artworkUrl100":"https://is1-ssl.mzstatic.com/a/Album.jpg/100x100bb.jpg"},
+              {"trackName":"Tum Ho Toh","artistName":"Vishal Mishra","collectionName":"Tum Ho Toh - Single",
+               "artworkUrl100":"https://is1-ssl.mzstatic.com/a/Single.jpg/100x100bb.jpg"},
+              {"trackName":"Other","artistName":"Someone","collectionName":"Else"}
+            ]}
+            """#.utf8)
+        let url = SystemNowPlayingCatalog.artworkURL(
+            in: json, title: "tum ho toh", artist: "Vishal Mishra", album: "Tum Ho Toh - Single")
+        expect(url?.absoluteString.contains("Single.jpg") == true, "the release the track is on wins")
+        expect(url?.absoluteString.hasSuffix("/600x600bb.jpg") == true, "and is fetched at tile size")
+
+        let noAlbum = SystemNowPlayingCatalog.artworkURL(
+            in: json, title: "Tum Ho Toh", artist: "Vishal Mishra", album: "")
+        expect(noAlbum?.absoluteString.contains("Album.jpg") == true, "a tie keeps the catalog's order")
+
+        let stranger = SystemNowPlayingCatalog.artworkURL(
+            in: json, title: "Unrelated", artist: "Nobody", album: "Nothing")
+        expect(stranger == nil, "a result naming neither the track nor the artist is never shown")
+        expect(
+            SystemNowPlayingCatalog.artworkURL(in: Data("oops".utf8), title: "a", artist: "b", album: "c") == nil,
+            "a malformed answer finds nothing")
+
+        let search = SystemNowPlayingCatalog.searchURL(title: "Tum Ho Toh", artist: "Vishal", region: "IN")
+        let query = search.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems }
+        expect(query?.contains(URLQueryItem(name: "country", value: "IN")) == true, "the Mac's storefront is searched")
+        expect(query?.contains(URLQueryItem(name: "entity", value: "song")) == true, "songs only")
     }
 
     static func nowPlayingSettingsReadDefaultsAndValues() {

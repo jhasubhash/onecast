@@ -375,6 +375,18 @@ sets one that draws it in `DockLabelPresenter`'s own panel, anchored to the cont
 **Check.** Hover Now Playing's controls and the Presentation buttons, magnified and not: a whole
 label sits above the control, and the tile's name returns when the pointer leaves the control.
 
+### Now Playing showed a blank cover for some Music tracks — 2026-10
+
+**Symptom.** The Now Playing tile and popover kept the music-note placeholder for some Apple Music
+tracks and showed the cover for others.
+**Cause.** A streamed track often reports no artwork to Apple Events (`count of artworks` is 0). The
+script then returned `missing value`, which arrives as a 4-byte `typeType` descriptor rather than
+`typeNull`, so its bytes were taken for an image, failed to decode, and nothing else was tried.
+**Fix.** `musicArtwork()` treats `typeType` as none, and the monitor falls back to Apple's catalog
+search (`SystemNowPlayingCatalog`) whenever Music's own cover is missing or does not decode.
+**Check.** Play a streamed Apple Music track whose `count of artworks of current track` is 0: the
+tile and popover show its cover within a second or two.
+
 ### HUDs and notification cards slid under the custom dock — 2026-10
 
 **Symptom.** "Presentation ended" and scheduler cards near the bottom were drawn behind a dock.
