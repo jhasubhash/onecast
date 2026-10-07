@@ -707,6 +707,7 @@
 		A1F2FB1B3A22B994AED079A6 /* RaycastQuicklinkImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C4B8B6135D682C89FB5ECC /* RaycastQuicklinkImport.swift */; };
 		A2091BD4F738489730AE94C6 /* HUDPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84F8AC66109AFE7B326D6CC2 /* HUDPresenter.swift */; };
 		A2147C8740ABF6B6007BBD24 /* ExtensionAppearanceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9711BBB9515886B38F7BBD9 /* ExtensionAppearanceStore.swift */; };
+		A297A4B68751BF6C2B2AA2EB /* StickyNotePaper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E90E0597EF3CAB8A8C4B6C0 /* StickyNotePaper.swift */; };
 		A2B024E5398C6F201D1C0A89 /* QuicklinkDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C3818A8652EEBC57652ED49 /* QuicklinkDestination.swift */; };
 		A2BB3BCA374CB9444DBD451E /* RaycastImportSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101B42DB065D31D03BBC02BC /* RaycastImportSelection.swift */; };
 		A2FEFE3C67329ACFAE4664AA /* AppActionsMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = F586685F91C46C9463E2066E /* AppActionsMenu.swift */; };
@@ -1686,6 +1687,7 @@
 		8D8E94137F19D5EF4D5E0552 /* DialogRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogRequest.swift; sourceTree = "<group>"; };
 		8DA01F49B4B4D9951D9B7B70 /* MathLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathLayoutEngine.swift; sourceTree = "<group>"; };
 		8E86EBF525381B60A91DAEBA /* HyperKeyTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperKeyTap.swift; sourceTree = "<group>"; };
+		8E90E0597EF3CAB8A8C4B6C0 /* StickyNotePaper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickyNotePaper.swift; sourceTree = "<group>"; };
 		8E9911B1AC3C9C69C3125186 /* AIChatWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatWindowView.swift; sourceTree = "<group>"; };
 		8EBC2F816D0CBA388F68B36D /* DockMenus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockMenus.swift; sourceTree = "<group>"; };
 		8F70870705BDBCD0E4C01140 /* SystemBatteryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemBatteryProbe.swift; sourceTree = "<group>"; };
@@ -2190,7 +2192,7 @@
 		FEF5C276EA05742F0545CD96 /* KeyboardFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFocus.swift; sourceTree = "<group>"; };
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
-		"TEMP_7A009D9E-361A-4A8C-889C-0156F08DB600" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_0E22B4F0-0016-49EB-A56E-ECE23B998BCE" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -3214,6 +3216,7 @@
 				20B91119712D082082D49AF9 /* RemindersDockWidget.swift */,
 				B2B9280265522560CD11232A /* ShortcutDockWidget.swift */,
 				D7EA2577462649FD31AFB641 /* StickyNoteDockWidget.swift */,
+				8E90E0597EF3CAB8A8C4B6C0 /* StickyNotePaper.swift */,
 			);
 			path = Productivity;
 			sourceTree = "<group>";
@@ -4688,10 +4691,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_EAF26AF0-06EB-463B-86AF-1F9660947795" /* onecast */ = {
+		"TEMP_00C587D9-6678-48BA-8DCB-56D4729E8DB3" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_7A009D9E-361A-4A8C-889C-0156F08DB600" /* Signing.xcconfig */,
+				"TEMP_0E22B4F0-0016-49EB-A56E-ECE23B998BCE" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -5739,6 +5742,7 @@
 				311E6EB80F0C9CA1E84D1B37 /* SpaceSwitcher.swift in Sources */,
 				96765C5859AD89D69E21B27C /* SteadySegmentedPicker.swift in Sources */,
 				6AB9CC7922E6C98E1634EEA3 /* StickyNoteDockWidget.swift in Sources */,
+				A297A4B68751BF6C2B2AA2EB /* StickyNotePaper.swift in Sources */,
 				72C56DC1972E65D46C899B32 /* StockChangeLabel.swift in Sources */,
 				C4A7E62A49FED6DA724AECF0 /* StockChartModel.swift in Sources */,
 				97BFE90945F002EFC1EC5317 /* StockChartSectionView.swift in Sources */,
@@ -5999,7 +6003,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_7A009D9E-361A-4A8C-889C-0156F08DB600" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_0E22B4F0-0016-49EB-A56E-ECE23B998BCE" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6270,7 +6274,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_7A009D9E-361A-4A8C-889C-0156F08DB600" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_0E22B4F0-0016-49EB-A56E-ECE23B998BCE" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

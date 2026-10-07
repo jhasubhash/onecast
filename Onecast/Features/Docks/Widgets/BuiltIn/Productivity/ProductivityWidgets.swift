@@ -8,6 +8,8 @@ enum ProductivityPreferenceName {
     static let list = "list"
     static let mode = "mode"
     static let color = "color"
+    static let texture = "texture"
+    static let ink = "ink"
     static let text = "text"
     static let shortcut = "shortcut"
 }
@@ -61,12 +63,26 @@ private enum ProductivityPreferences {
 
     static let stickyNote: [PluginPreference] = [
         PluginPreference(
-            name: ProductivityPreferenceName.color, title: "Color",
+            name: ProductivityPreferenceName.color, title: "Paper color",
             kind: .dropdown,
-            options: DockColor.allCases.map {
-                PluginPreference.Option(title: $0.stickyTitle, value: $0.rawValue)
+            options: StickyPaperColor.allCases.map {
+                PluginPreference.Option(title: $0.title, value: $0.rawValue)
             },
-            defaultValue: .string(DockColor.yellow.rawValue))
+            defaultValue: .string(StickyPaperColor.yellow.rawValue)),
+        PluginPreference(
+            name: ProductivityPreferenceName.texture, title: "Paper texture",
+            kind: .dropdown,
+            options: StickyPaperTexture.allCases.map {
+                PluginPreference.Option(title: $0.title, value: $0.rawValue)
+            },
+            defaultValue: .string(StickyPaperTexture.plain.rawValue)),
+        PluginPreference(
+            name: ProductivityPreferenceName.ink, title: "Text color",
+            kind: .dropdown,
+            options: StickyInkColor.allCases.map {
+                PluginPreference.Option(title: $0.title, value: $0.rawValue)
+            },
+            defaultValue: .string(StickyInkColor.automatic.rawValue)),
     ]
 
     static let shortcut: [PluginPreference] = [
