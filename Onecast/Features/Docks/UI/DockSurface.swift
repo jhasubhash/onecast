@@ -898,7 +898,8 @@ final class DockSurface {
         model.draggingSlotID = slotID
     }
 
-    /// Dropped on a dock it moved already; dragged off, a tile is removed but a widget returns.
+    /// Dropped on a dock it moved already; dragged anywhere else off the dock, a tile is removed —
+    /// a widget too, with its settings. Escape cancels.
     func dragEnded(_ payload: DockDragPayload?, atScreen point: CGPoint, operation: NSDragOperation) {
         isDragging = false
         model.draggingSlotID = nil
@@ -908,8 +909,7 @@ final class DockSurface {
         let source = payload.source
         let cancelled = CGEventSource.keyState(.combinedSessionState, key: Self.escapeKeyCode)
         let layout = currentLayout(model.slots)
-        let isWidget = if case .widget = source.item.kind { true } else { false }
-        guard !cancelled, !isWidget, !isOverPlate(point, layout: layout) else {
+        guard !cancelled, !isOverPlate(point, layout: layout) else {
             scheduleHide()
             return
         }

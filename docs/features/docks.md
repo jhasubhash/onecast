@@ -165,6 +165,6 @@ Paddle, Shopify) are deliberately left to third-party DockWidgets.
 - **While a dock scrolls, it does not magnify.**
 - **A widget tile's click is replayed.** The container claims every left press so a widget can drag
   like any tile; a press that never leaves the slop is sent again, release posted first, to the
-  widget's own SwiftUI view. A widget dragged off a dock returns rather than being removed, since
-  removal deletes its settings and contents; it is removed from its menu or Settings › Docks.
+  widget's own SwiftUI view. A widget dragged off every dock is removed, like any tile, and its
+  settings go with it (an API key typed into a widget is gone); Escape cancels the drag.
 - **After a crash, launch restores then re-hides the macOS Dock**, so it restarts twice.
