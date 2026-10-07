@@ -383,7 +383,7 @@ class MarkdownCardBlock: NSTextBlock {
     }
 
     override func drawBackground(
-        withFrame frameRect: NSRect, in controlView: NSView, characterRange charRange: NSRange,
+        withFrame frameRect: NSRect, in controlView: NSView?, characterRange charRange: NSRange,
         layoutManager: NSLayoutManager
     ) {
         let card = cardRect(in: frameRect).insetBy(dx: 0.5, dy: 0.5)
@@ -414,7 +414,7 @@ final class MarkdownCodeBlock: MarkdownCardBlock {
     }
 
     override func drawBackground(
-        withFrame frameRect: NSRect, in controlView: NSView, characterRange charRange: NSRange,
+        withFrame frameRect: NSRect, in controlView: NSView?, characterRange charRange: NSRange,
         layoutManager: NSLayoutManager
     ) {
         super.drawBackground(
@@ -445,7 +445,7 @@ final class MarkdownTableBlock: NSTextTable {
     required init?(coder: NSCoder) { fatalError() }
 
     override func drawBackground(
-        withFrame frameRect: NSRect, in controlView: NSView, characterRange charRange: NSRange,
+        withFrame frameRect: NSRect, in controlView: NSView?, characterRange charRange: NSRange,
         layoutManager: NSLayoutManager
     ) {
         let left = width(for: .margin, edge: .minX)
@@ -477,7 +477,7 @@ final class MarkdownQuoteBlock: NSTextBlock {
     required init?(coder: NSCoder) { fatalError() }
 
     override func drawBackground(
-        withFrame frameRect: NSRect, in controlView: NSView, characterRange charRange: NSRange,
+        withFrame frameRect: NSRect, in controlView: NSView?, characterRange charRange: NSRange,
         layoutManager: NSLayoutManager
     ) {
         let left = width(for: .margin, edge: .minX)
@@ -505,7 +505,7 @@ final class MarkdownRuleBlock: NSTextBlock {
     required init?(coder: NSCoder) { fatalError() }
 
     override func drawBackground(
-        withFrame frameRect: NSRect, in controlView: NSView, characterRange charRange: NSRange,
+        withFrame frameRect: NSRect, in controlView: NSView?, characterRange charRange: NSRange,
         layoutManager: NSLayoutManager
     ) {
         let left = width(for: .margin, edge: .minX)
