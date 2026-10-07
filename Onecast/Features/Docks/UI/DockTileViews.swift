@@ -140,9 +140,12 @@ private struct DockAppTile: View {
 
     @ViewBuilder
     private var icon: some View {
-        if let customIcon {
-            EntryIconView(source: customIcon.entryIcon)
-        } else {
+        switch customIcon {
+        case .symbol(let name, let color):
+            DockSymbolCard(name: name, color: color, side: side)
+        case let custom?:
+            EntryIconView(source: custom.entryIcon)
+        case nil:
             EntryIconView(source: .file(stamp: 0), fileURL: URL(fileURLWithPath: path))
         }
     }

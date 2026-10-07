@@ -869,7 +869,16 @@ final class DockSurface {
         let layout = currentLayout(model.slots)
         let tile = layout.tiles[found.index]
         let rect = screenRect(ofSlot: found.index, in: layout)
-        let snapshot: NSImage? = if case .widget = item.kind { image(ofScreenRect: rect) } else { nil }
+        // A widget, and an app wearing a symbol card, are drawn by the dock itself, so they drag as
+        // they look rather than as the stock icon.
+        let drawnByDock: Bool =
+            switch item.kind {
+            case .widget: true
+            case .app(let reference):
+                if case .symbol = reference.customIcon { true } else { false }
+            default: false
+            }
+        let snapshot: NSImage? = drawnByDock ? image(ofScreenRect: rect) : nil
         return DockDragPayload(
             source: DockDragItem(
                 dockID: dockID, layoutID: model.dock.activeLayoutID, item: item),

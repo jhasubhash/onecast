@@ -181,13 +181,24 @@ struct DockItemGlyph: View {
     let widgets: DockWidgetManager
     let size: CGFloat
 
+    /// A custom app icon as the dock draws it, so the preview matches the tile.
+    @ViewBuilder
+    private func customGlyph(_ icon: DockCustomIcon) -> some View {
+        switch icon {
+        case .symbol(let name, let color):
+            DockSymbolCard(name: name, color: color, side: size)
+        case .image:
+            EntryIconView(source: icon.entryIcon)
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        }
+    }
+
     var body: some View {
         switch item.kind {
         case .app(let reference):
             if let custom = reference.customIcon {
-                EntryIconView(source: custom.entryIcon)
-                    .frame(width: size, height: size)
-                    .accessibilityHidden(true)
+                customGlyph(custom)
             } else {
                 DockFileIcon(path: reference.path, bundleID: reference.bundleID, size: size)
             }

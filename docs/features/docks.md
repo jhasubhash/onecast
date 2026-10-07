@@ -169,11 +169,12 @@ Paddle, Shopify) are deliberately left to third-party DockWidgets.
   settings go with it (an API key typed into a widget is gone); Escape cancels the drag.
 - **After a crash, launch restores then re-hides the macOS Dock**, so it restarts twice.
 - **An app's dock icon can be replaced.** `DockAppReference.customIcon` is an image file or an SF
-  Symbol (optionally on a coloured app-icon-shaped tile), drawn through `IconCache`'s `artwork` and
-  `tintedSymbol` sources at the same extent as an app icon, so it matches its neighbours. It is only
-  cosmetic: matching a tile to its running app still goes by bundle ID and path. An image is kept by
-  path, not copied, so moving the file leaves a dashed placeholder; its modification time is part of
-  the cache key, so editing the file refreshes the tile. Only pinned apps take one.
+  Symbol. An image goes through `IconCache`'s `artwork` source at app-icon extent, so it matches real
+  icons, whose artwork carries its own margin. A symbol is drawn as a card that fills the tile, like
+  a widget's (`DockSymbolCard`): at app-icon extent it read as undersized beside the widgets. It is
+  only cosmetic: matching a tile to its running app still goes by bundle ID and path. An image is
+  kept by path, not copied, so moving the file leaves a dashed placeholder; its modification time is
+  part of the cache key, so editing the file refreshes the tile. Only pinned apps take one.
 - **A Finder that was quit opens a window on the first click.** Launched from nothing, Finder shows
   only the desktop and opens a window only when told to open again, so `AppLauncher.launch` sends that
   second open once a freshly launched Finder is up.
