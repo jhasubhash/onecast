@@ -356,6 +356,30 @@ the palette with `restoreFocus: false`.
 **Check.** With another app in front, summon the bar: ⌘, opens Settings on AI; ⌘J leaves the chat
 window frontmost and key.
 
+### Ending a presentation left the other apps hidden — 2026-10
+
+**Symptom.** After Stop Presentation, the apps Presentation Mode had put away stayed hidden.
+**Cause.** `NSRunningApplication.hide()` (and `unhide()`) answer `false` on macOS 26 even when
+they work, and `PresentationSession` recorded an app only when `hide()` returned `true`.
+**Fix.** The request is recorded unconditionally; ending unhides every recorded app still running.
+**Check.** Start with several apps open, end, and every app that was visible is visible again.
+
+### A dock tile's tooltip came out as a clipped sliver — 2026-10
+
+**Symptom.** Hovering the Presentation tile's button drew a cut-off dark panel at the tile's top.
+**Cause.** The button carried `.tooltip`, which the dock's own window clips (docks.md says so).
+**Fix.** No tooltip on a tile control; the dock's label names the tile, `accessibilityLabel` the
+button.
+**Check.** Hover the 2- and 4-tile buttons: only the dock's own label appears.
+
+### HUDs and notification cards slid under the custom dock — 2026-10
+
+**Symptom.** "Presentation ended" and scheduler cards near the bottom were drawn behind a dock.
+**Cause.** `HUDPanel` sat at `.palette` (9) and `NotificationPanel` at `.floating` (3), both under a
+custom dock at the system Dock's level (20).
+**Fix.** Both use `NSWindow.Level.notice`, one above `.systemDock`.
+**Check.** With a bottom dock visible, show a HUD or post a notification: it draws over the dock.
+
 ## 8. Before you call a UI change done
 
 - Driver script ran end to end against a freshly restarted Debug build.

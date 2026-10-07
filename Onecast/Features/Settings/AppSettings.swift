@@ -452,6 +452,76 @@ final class AppSettings {
         }
     }
 
+    /// On out of the box: it only acts when the user starts a presentation, so there is no consent.
+    var presentationEnabled: Bool {
+        didSet { defaults.set(presentationEnabled, forKey: Key.presentationEnabled.rawValue) }
+    }
+
+    var presentationShowInLauncher: Bool {
+        didSet {
+            defaults.set(
+                presentationShowInLauncher, forKey: Key.presentationShowInLauncher.rawValue)
+        }
+    }
+
+    var presentationWindowSize: PresentationWindowSize {
+        didSet {
+            defaults.set(
+                presentationWindowSize.rawValue, forKey: Key.presentationWindowSize.rawValue)
+        }
+    }
+
+    /// Clamped on read, so a hand-edited value cannot size the presented window to nothing.
+    var presentationMarginPercent: Int {
+        didSet {
+            defaults.set(presentationMarginPercent, forKey: Key.presentationMarginPercent.rawValue)
+        }
+    }
+
+    var presentationOtherApps: PresentationOtherApps {
+        didSet {
+            defaults.set(presentationOtherApps.rawValue, forKey: Key.presentationOtherApps.rawValue)
+        }
+    }
+
+    var presentationAppSwitch: PresentationAppSwitch {
+        didSet {
+            defaults.set(presentationAppSwitch.rawValue, forKey: Key.presentationAppSwitch.rawValue)
+        }
+    }
+
+    var presentationRestoresWindows: Bool {
+        didSet {
+            defaults.set(
+                presentationRestoresWindows, forKey: Key.presentationRestoresWindows.rawValue)
+        }
+    }
+
+    /// Bundle IDs Presentation Mode never presents, hides, minimizes or resizes.
+    var presentationIgnoredApps: [String] {
+        didSet {
+            defaults.set(presentationIgnoredApps, forKey: Key.presentationIgnoredApps.rawValue)
+        }
+    }
+
+    /// The display mode to present in, per display; names this Mac's displays, so no file key.
+    var presentationResolutions: [String: String] {
+        didSet { defaults.set(presentationResolutions, forKey: Key.presentationResolutions.rawValue) }
+    }
+
+    /// Apple Shortcut names; empty runs nothing.
+    var presentationStartShortcut: String {
+        didSet {
+            defaults.set(presentationStartShortcut, forKey: Key.presentationStartShortcut.rawValue)
+        }
+    }
+
+    var presentationEndShortcut: String {
+        didSet {
+            defaults.set(presentationEndShortcut, forKey: Key.presentationEndShortcut.rawValue)
+        }
+    }
+
     /// With AI on, controls only whether the assistants' "Ask <Name>" rows appear in the launcher.
     var aiAssistantsShowInLauncher: Bool {
         didSet {
@@ -706,7 +776,7 @@ final class AppSettings {
     }
 
     init() {
-        // The only feature switch that defaults on, so absence has to outrank a stored `false`.
+        // A feature switch that defaults on: absence has to outrank a stored `false`.
         clipboardEnabled =
             defaults.object(forKey: Key.clipboardEnabled.rawValue) == nil
             || defaults.bool(forKey: Key.clipboardEnabled.rawValue)
@@ -934,6 +1004,36 @@ final class AppSettings {
         schedulerReminderApps = Set(
             (defaults.stringArray(forKey: Key.schedulerReminderApps.rawValue) ?? [])
                 .compactMap(ReminderApp.init(rawValue:)))
+        presentationEnabled =
+            defaults.object(forKey: Key.presentationEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.presentationEnabled.rawValue)
+        presentationShowInLauncher =
+            defaults.object(forKey: Key.presentationShowInLauncher.rawValue) == nil
+            || defaults.bool(forKey: Key.presentationShowInLauncher.rawValue)
+        presentationWindowSize =
+            defaults.string(forKey: Key.presentationWindowSize.rawValue)
+            .flatMap(PresentationWindowSize.init) ?? .margin
+        presentationMarginPercent =
+            (defaults.object(forKey: Key.presentationMarginPercent.rawValue) as? Int)
+            .map(PresentationMargin.clamped) ?? PresentationMargin.defaultPercent
+        presentationOtherApps =
+            defaults.string(forKey: Key.presentationOtherApps.rawValue)
+            .flatMap(PresentationOtherApps.init) ?? .hide
+        presentationAppSwitch =
+            defaults.string(forKey: Key.presentationAppSwitch.rawValue)
+            .flatMap(PresentationAppSwitch.init) ?? .replace
+        presentationRestoresWindows =
+            defaults.object(forKey: Key.presentationRestoresWindows.rawValue) == nil
+            || defaults.bool(forKey: Key.presentationRestoresWindows.rawValue)
+        // Unset seeds the meeting apps; a stored empty array is a deliberately cleared list.
+        presentationIgnoredApps =
+            defaults.stringArray(forKey: Key.presentationIgnoredApps.rawValue)
+            ?? PresentationIgnoredApps.defaults
+        presentationResolutions =
+            defaults.dictionary(forKey: Key.presentationResolutions.rawValue)
+            as? [String: String] ?? [:]
+        presentationStartShortcut = defaults.string(forKey: Key.presentationStartShortcut.rawValue) ?? ""
+        presentationEndShortcut = defaults.string(forKey: Key.presentationEndShortcut.rawValue) ?? ""
         settingsFileEnabled = defaults.bool(forKey: Key.settingsFileEnabled.rawValue)
     }
 }

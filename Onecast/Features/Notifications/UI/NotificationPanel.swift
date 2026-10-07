@@ -11,7 +11,7 @@ final class NotificationPanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true
-        level = .floating
+        level = .notice
         ignoresMouseEvents = false
         hidesOnDeactivate = false
         // Suppresses AppKit's own window animation; `fadeIn`/`fadeOut` replace it.

@@ -215,7 +215,7 @@ final class DockLabelPresenter {
 
     private func makePanel() -> HUDPanel {
         let panel = HUDPanel(acceptsMouseEvents: false)
-        // Above a dock at the system Dock's level, which the HUD's own level is under.
+        // Above a dock at the system Dock's level, and above the HUDs that clear it.
         panel.level = .popUpMenu
         self.panel = panel
         return panel

@@ -18,6 +18,10 @@ enum AppleShortcutRunner {
         _ = try await invoke(["run", id.uuidString], timeout: nil)
     }
 
+    static func run(name: String) async throws(Failure) {
+        _ = try await invoke(["run", name], timeout: nil)
+    }
+
     private static func invoke(
         _ arguments: [String], timeout: TimeInterval?
     ) async throws(Failure) -> ToolRunner.Result {

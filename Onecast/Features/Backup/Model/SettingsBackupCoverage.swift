@@ -217,6 +217,39 @@ enum SettingsBackupCoverage {
             + "arm the machine to fire on a timer by itself.",
         AppSettingsKey.schedulerReminderApps.rawValue:
             "Consent to write to Reminders or Things on this Mac; an import must not grant it.",
+        AppSettingsKey.presentationEnabled.rawValue:
+            "Presenting is tuned to this Mac's displays and screen-sharing setup; an import must not "
+            + "switch it on for a Mac that was never set up for it.",
+        AppSettingsKey.presentationShowInLauncher.rawValue:
+            "A launcher-visibility toggle for a feature tuned to this Mac's screen-sharing setup, "
+            + "kept with the switch it accompanies.",
+        AppSettingsKey.presentationWindowSize.rawValue:
+            "How large the shared window should be depends on this Mac's displays and the way it "
+            + "screen-shares, which another Mac may not match.",
+        AppSettingsKey.presentationMarginPercent.rawValue:
+            "A margin picked for this Mac's displays and screen-sharing setup, kept with the window "
+            + "size it applies to.",
+        AppSettingsKey.presentationOtherApps.rawValue:
+            "Decides which of the apps running on this Mac get hidden or minimized when presenting; "
+            + "an import must not choose that unseen.",
+        AppSettingsKey.presentationAppSwitch.rawValue:
+            "Tuned to how this Mac's user moves between apps while screen sharing, so it stays a "
+            + "per-Mac preference.",
+        AppSettingsKey.presentationRestoresWindows.rawValue:
+            "Governs whether this Mac's own window layout is put back after presenting, which is "
+            + "tied to its screen-sharing habits.",
+        AppSettingsKey.presentationIgnoredApps.rawValue:
+            "Names bundle identifiers of the meeting apps installed on this Mac, which another Mac "
+            + "may not have or may run under a different identifier.",
+        AppSettingsKey.presentationResolutions.rawValue:
+            "Names display modes of the displays attached to this Mac, which no other Mac has, and "
+            + "an import must not change a screen's resolution.",
+        AppSettingsKey.presentationStartShortcut.rawValue:
+            "Names an Apple Shortcut on this Mac and runs it unattended; an import must not choose "
+            + "which shortcut fires.",
+        AppSettingsKey.presentationEndShortcut.rawValue:
+            "Names an Apple Shortcut on this Mac and runs it unattended; an import must not choose "
+            + "which shortcut fires.",
         AppSettingsKey.aiComputerUse.rawValue:
             "Arms a model to drive the mouse and keyboard through Screen Recording and Accessibility; "
             + "a flag that grants a capability is never carried by a backup.",

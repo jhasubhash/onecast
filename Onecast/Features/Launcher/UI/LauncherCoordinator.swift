@@ -245,6 +245,9 @@ final class LauncherCoordinator {
         case .manageDocks:
             dismissPalette()
             settingsCoordinator.showSettings(tab: .docks)
+        case .togglePresentation:
+            dismissPalette()
+            core.presentationCoordinator.toggle()
         case .createWindowLayout:
             dismissPalette()
             windowLayoutCoordinator.editWindowLayout(nil)

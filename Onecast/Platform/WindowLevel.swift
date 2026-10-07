@@ -12,4 +12,6 @@ extension NSWindow.Level {
         rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
     /// Where the macOS Dock sits: above app windows, so a custom dock reads as one of its own.
     static let systemDock = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)))
+    /// Above the custom docks too, so a HUD or a notification card is never drawn under one.
+    static let notice = NSWindow.Level(rawValue: systemDock.rawValue + 1)
 }

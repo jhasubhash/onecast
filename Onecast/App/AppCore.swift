@@ -218,6 +218,8 @@ final class AppCore {
         appIndex: appIndex)
     @ObservationIgnored private(set) lazy var schedulerEditorCoordinator =
         SchedulerEditorCoordinator(store: scheduledTasks, core: self)
+    @ObservationIgnored private(set) lazy var presentationCoordinator = PresentationCoordinator(
+        settings: settings, appIndex: appIndex, core: self)
     @ObservationIgnored private(set) lazy var computerUseBridge =
         AIToolBridge(ComputerUseTool.toolset(controller: computerController))
     @ObservationIgnored private(set) lazy var browserRelayBridge = AIToolBridge(
@@ -428,6 +430,7 @@ final class AppCore {
                 self?.systemActionCoordinator.presentSystemActionFailure(id: id, failure: failure)
             }
             schedulerCoordinator.applyEnabled()
+            presentationCoordinator.applyEnabled()
             hotKeys.start(
                 customCommandIDs: Set(customCommands.commands.map(\.id)),
                 quicklinkIDs: Set(quicklinks.quicklinks.map(\.id)),
@@ -584,6 +587,7 @@ final class AppCore {
         hyperKeyTap.prepareForTermination()
         windowLayoutCoordinator.prepareForTermination()
         dockCoordinator.prepareForTermination()
+        presentationCoordinator.prepareForTermination()
         inputSourceSwitcher.endSession()
         textInjector.prepareForTermination()
         snippetListener.stop()
@@ -771,6 +775,16 @@ final class AppCore {
                 _ = $0.schedulerEnabled
                 _ = $0.schedulerShowInLauncher
             }, reproject: { $0.schedulerCoordinator.applySchedulerEnabled() })
+        track(
+            {
+                _ = $0.presentationEnabled
+                _ = $0.presentationShowInLauncher
+            }, reproject: { $0.presentationCoordinator.applyEnabled() })
+        track(
+            {
+                _ = $0.presentationWindowSize
+                _ = $0.presentationMarginPercent
+            }, reproject: { $0.presentationCoordinator.refit() })
         track({ _ = $0.appearance }, reproject: { $0.applyAppearance() })
         track({ _ = $0.interfaceSize }, reproject: { $0.windowController.applyInterfaceSize() })
         // Settings panes did these on change; settings.json can change them with no pane open.

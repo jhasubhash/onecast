@@ -58,6 +58,7 @@ final class SettingsCoordinator {
             .environment(core.aiSettings)
             .environment(core.mcpSettings)
             .environment(core.mcpCoordinator)
+            .environment(core.presentationCoordinator)
             .environment(core.assistants)
             .environment(core.skills)
             .environment(core.quickActionSettings)

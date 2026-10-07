@@ -1,6 +1,6 @@
 import AppKit
 
-/// Borderless panel for a transient readout: never key, always above the palette.
+/// Borderless panel for a transient readout: never key, above the palette and the custom docks.
 final class HUDPanel: NSPanel {
     init(acceptsMouseEvents: Bool = false) {
         super.init(
@@ -12,7 +12,7 @@ final class HUDPanel: NSPanel {
         backgroundColor = .clear
         // Both HUDs take the palette's surface recipe, so neither carries elevation.
         hasShadow = true
-        level = .palette
+        level = .notice
         ignoresMouseEvents = !acceptsMouseEvents
         hidesOnDeactivate = false
         // Suppresses AppKit's own window animation; `fadeIn`/`fadeOut` replace it.

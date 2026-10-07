@@ -187,12 +187,13 @@ The opt-in [settings file](settings-file.md) follows the same split: `scheduler.
 
 `Features/Notifications/` is the surface the scheduler (and the AI tool) post to, but it owns nothing
 scheduler-specific. `NotificationSpec` describes one notification (title, body, `style`, `corner`,
-`dwell`, `actions`, `tint`); `NotificationPresenter` stacks live cards per screen corner on a floating
-`NotificationPanel`; `NotificationPlacement` resolves the corner geometry; `NotificationCardView`
-draws one. Nothing here uses `NSAlert` or a system notification. `post(_:playsSound:)` takes the
-sound flag from the caller, so the module reads no scheduler setting. Cards anchor to
-`NSScreen.primary` (the menu-bar display), never `NSScreen.main` — for an accessory app that follows
-whichever display last held a key window, so cards landed on a secondary monitor.
+`dwell`, `actions`, `tint`); `NotificationPresenter` stacks live cards per screen corner on a
+`NotificationPanel` at the `.notice` level, above the custom docks; `NotificationPlacement` resolves
+the corner geometry; `NotificationCardView` draws one. Nothing here uses `NSAlert` or a system
+notification. `post(_:playsSound:)` takes the sound flag from the caller, so the module reads no
+scheduler setting. Cards anchor to `NSScreen.primary` (the menu-bar display), never `NSScreen.main`
+— for an accessory app that follows whichever display last held a key window, so cards landed on a
+secondary monitor.
 
 **Colour.** `NotificationTint` is a fixed palette (blue, purple, pink, red, orange, yellow, green,
 teal, gray), not a free colour: each stays legible on the glass card in both appearances, and

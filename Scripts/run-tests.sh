@@ -550,6 +550,7 @@ run update-check-test      Onecast/Features/Updates/Model/*.swift \
                            Onecast/Features/Updates/Service/UpdateCheckStore.swift \
                            Onecast/Platform/AppPaths.swift
 run support-test           Onecast/Features/Support/Model/*.swift
+run presentation-test      Onecast/Features/Presentation/Model/*.swift
 run scheduler-test         Onecast/Features/Notifications/Model/NotificationSpec.swift \
                            Onecast/Features/Notifications/Model/NotificationContrast.swift \
                            Onecast/Features/Scheduler/Model/*.swift

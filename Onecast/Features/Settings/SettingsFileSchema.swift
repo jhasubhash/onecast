@@ -110,6 +110,19 @@ enum SettingsFileSchema {
         case .windowShortcuts: return windowManagement.commandShortcutsBinding(for: key)
         case .customWindowSizes: return windowManagement.customSizesBinding(for: key)
         case .windowLayouts: return windowManagement.layoutsBinding(for: key)
+        case .presentationEnabled: return bind(settings, \.presentationEnabled)
+        case .presentationShowInLauncher: return bind(settings, \.presentationShowInLauncher)
+        case .presentationWindowSize: return bind(settings, \.presentationWindowSize)
+        case .presentationMarginPercent:
+            return bind(settings, \.presentationMarginPercent) {
+                PresentationMargin.range.contains($0) ? $0 : nil
+            }
+        case .presentationOtherApps: return bind(settings, \.presentationOtherApps)
+        case .presentationAppSwitch: return bind(settings, \.presentationAppSwitch)
+        case .presentationRestoresWindows: return bind(settings, \.presentationRestoresWindows)
+        case .presentationIgnoredApps: return bind(settings, \.presentationIgnoredApps)
+        case .presentationStartShortcut: return bind(settings, \.presentationStartShortcut)
+        case .presentationEndShortcut: return bind(settings, \.presentationEndShortcut)
         case .clipboardEnabled: return bind(settings, \.clipboardEnabled)
         case .clipboardRetention: return bind(settings, \.clipboardRetention)
         case .clipboardDefaultAction: return bind(settings, \.clipboardDefaultAction)
@@ -159,6 +172,9 @@ extension DictationMode: SettingsFileRawValue {}
 extension DictationDestination: SettingsFileRawValue {}
 extension DictationIdleRelease: SettingsFileRawValue {}
 extension JoinWindow: SettingsFileRawValue {}
+extension PresentationWindowSize: SettingsFileRawValue {}
+extension PresentationOtherApps: SettingsFileRawValue {}
+extension PresentationAppSwitch: SettingsFileRawValue {}
 
 extension ClipboardRetention: SettingsFileToken {
     var settingsToken: SettingsFileJSON {

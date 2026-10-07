@@ -118,6 +118,7 @@ Where a number has a special case, the case is a word:
 | `calendar.menuBarUpcomingEvents` | `"today"`, or 2, 5, 10, 30 minutes before |
 | `calendar.hideCurrentEventAfterMinutes` | `"never"`, 0 (as it starts), 5, 10, 30 |
 | `windowManagement.gap` | 0 to 64 |
+| `presentation.marginPercent` | 0 to 30 |
 | `snippets.folder`, `notes.folder` | an absolute or `~/` path, or `null` for Application Support |
 
 ## Shortcut chords

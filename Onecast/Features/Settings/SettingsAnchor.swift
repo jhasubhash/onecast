@@ -81,6 +81,12 @@ extension SettingsAnchor {
     static let windowManagementOptions = Self(tab: .windowManagement, title: "Options")
     static let windowManagementCustomSizes = Self(tab: .windowManagement, title: "Custom Sizes")
 
+    static let presentationPresentation = Self(tab: .presentation, title: "Presentation Mode")
+    static let presentationWindows = Self(tab: .presentation, title: "Windows")
+    static let presentationDisplays = Self(tab: .presentation, title: "Display Resolution")
+    static let presentationShortcuts = Self(tab: .presentation, title: "Shortcuts")
+    static let presentationCommands = Self(tab: .presentation, title: "Commands")
+
     static let docksDocks = Self(tab: .docks, title: "Docks")
     static let docksCommands = Self(tab: .docks, title: "Commands")
     static let docksCustomDocks = Self(tab: .docks, title: "Custom Docks")

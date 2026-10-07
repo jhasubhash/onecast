@@ -149,7 +149,7 @@ protocol in-process:
 | Group | Widgets |
 | --- | --- |
 | Time | Clock, World Clock, Focus Timer, Stopwatch, Countdown, Alarm, Time Progress |
-| Productivity | Calendar, Reminders, Sticky Note, Shortcut, AirDrop |
+| Productivity | Calendar, Reminders, Sticky Note, Shortcut, AirDrop, Presentation ([presentation.md](presentation.md#the-dockwidget)) |
 | System | Now Playing (Spotify and Music over Apple Events), Battery, System Activity, Network Activity |
 | Personal | Hydration, Weather (Open-Meteo), AI Usage (one service per tile: Codex limits and logs; Claude Code limits with its own keychain sign-in, never refreshed by Onecast, and logs; or GitHub Copilot quotas through the signed-in `gh`, which keeps no logs), Stock, Watchlist |
 

@@ -112,8 +112,8 @@ enum SettingsSearchCatalog {
         + systemActions + commands + quicklinks + appleShortcuts + fallbacks + ai + quickActions + dictation
         + fileSearch
         + notes
-        + snippets + navigation + windowManagement + docks + clipboard + emoji + calendar
-        + extensions + plugins + scheduler + permissions + backup + about
+        + snippets + navigation + windowManagement + presentation + docks + clipboard + emoji
+        + calendar + extensions + plugins + scheduler + permissions + backup + about
 
     private static let general: [SettingsSearchEntry] = [
         .init(pane: .general, keywords: ["preferences", "settings"]),
@@ -463,6 +463,45 @@ enum SettingsSearchCatalog {
         .init(
             .windowManagementCustomSizes, "New Custom Size",
             keywords: ["add", "create", "resize", "window size"])
+    ]
+
+    private static let presentation: [SettingsSearchEntry] = [
+        .init(
+            pane: .presentation,
+            keywords: ["screen share", "teams", "zoom", "meeting", "present", "resolution", "demo"]),
+        .init(
+            .presentationPresentation, "Enable Presentation Mode",
+            keywords: ["screen share", "present", "demo", "meeting", "hide apps"]),
+        .init(
+            .presentationWindows, "Presented window",
+            keywords: ["size", "fill", "full screen", "maximize", "resize", "frontmost"]),
+        .init(
+            .presentationWindows, "Margin",
+            keywords: ["padding", "percent", "border", "inset"]),
+        .init(
+            .presentationWindows, "Other apps",
+            keywords: ["hide", "minimize", "distractions", "clutter", "desktop"]),
+        .init(
+            .presentationWindows, "When you switch apps",
+            keywords: ["replace", "stack", "ignore", "follow", "app switcher"]),
+        .init(
+            .presentationWindows, "Restore windows afterwards",
+            keywords: ["undo", "put back", "end", "stop", "previous layout"]),
+        .init(
+            .presentationWindows, "Apps to leave alone",
+            keywords: ["teams", "zoom", "webex", "meeting app", "exclude"]),
+        .init(
+            group: .presentationDisplays, "Display resolution while presenting",
+            keywords: ["resolution", "scale", "4k", "retina", "text size", "monitor", "screen"]),
+        .init(
+            .presentationShortcuts, "When presenting starts",
+            keywords: ["focus", "do not disturb", "dnd", "shortcut", "automation", "begin"]),
+        .init(
+            .presentationShortcuts, "When presenting ends",
+            keywords: ["focus", "do not disturb", "dnd", "shortcut", "automation", "finish"]),
+        .init(
+            group: .presentationCommands, "Presentation commands",
+            keywords: ["shortcut", "hotkey", "launcher", "alias"])
     ]
 
     private static let docks: [SettingsSearchEntry] = [

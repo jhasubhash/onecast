@@ -25,6 +25,7 @@ extension BuiltInDockWidgets {
         BuiltInDockWidget(
             "shortcut", ShortcutDockWidget.self, preferences: ProductivityPreferences.shortcut),
         BuiltInDockWidget("airDrop", AirDropDockWidget.self),
+        BuiltInDockWidget("presentation", PresentationDockWidget.self),
     ]
 }
 
