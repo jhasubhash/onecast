@@ -248,6 +248,12 @@ final class LauncherCoordinator {
         case .togglePresentation:
             dismissPalette()
             core.presentationCoordinator.toggle()
+        case .startPresentation:
+            dismissPalette()
+            core.presentationCoordinator.start()
+        case .stopPresentation:
+            dismissPalette()
+            core.presentationCoordinator.stop()
         case .createWindowLayout:
             dismissPalette()
             windowLayoutCoordinator.editWindowLayout(nil)

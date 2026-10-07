@@ -51,9 +51,9 @@ final class PresentationCoordinator {
 
     func applyEnabled() {
         appIndex.setCommandsVisible(
-            [.togglePresentation],
+            [.togglePresentation, .startPresentation, .stopPresentation],
             settings.presentationEnabled && settings.presentationShowInLauncher)
-        if !settings.presentationEnabled { stop() }
+        if !settings.presentationEnabled, phase == .presenting { stop() }
     }
 
     func toggle() {
@@ -65,6 +65,7 @@ final class PresentationCoordinator {
     }
 
     func start() {
+        if phase == .presenting { core.showMessage("Already presenting", tone: .neutral) }
         guard phase == .idle else { return }
         guard settings.presentationEnabled else {
             core.showMessage("Turn on Presentation Mode in Settings", tone: .danger)
@@ -80,6 +81,7 @@ final class PresentationCoordinator {
     }
 
     func stop() {
+        if phase == .idle { core.showMessage("Not presenting", tone: .neutral) }
         guard phase == .presenting else { return }
         phase = .stopping
         pendingPresent?.cancel()

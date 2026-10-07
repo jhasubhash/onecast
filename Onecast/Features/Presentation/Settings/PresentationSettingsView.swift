@@ -14,7 +14,7 @@ struct PresentationSettingsView: View {
                 enableSubtitle:
                     "One click puts other apps away, sizes the front window for screen sharing and can "
                     + "switch the display to a larger-text resolution, then puts everything back.",
-                launcherSubtitle: "Find Toggle Presentation Mode in launcher search.",
+                launcherSubtitle: "Find Start, Stop and Toggle Presentation in launcher search.",
                 isEnabled: $settings.presentationEnabled,
                 showsInLauncher: $settings.presentationShowInLauncher)
 

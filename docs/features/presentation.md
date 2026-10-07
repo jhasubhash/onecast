@@ -2,8 +2,10 @@
 
 One click before a screen share: every other app is put away, the front app's window is sized for
 the people watching, and the display can switch to a resolution whose text reads at their end.
-Ending it puts everything back. Started from the Presentation DockWidget, the launcher's **Toggle
-Presentation Mode** (bindable to a shortcut) or the button in Settings › Presentation.
+Ending it puts everything back. Started from the Presentation DockWidget, the button in Settings ›
+Presentation, or three launcher commands, each bindable to a shortcut: **Start Presentation**,
+**Stop Presentation** and **Toggle Presentation Mode**. They run the same coordinator calls as the
+widget's button, so the widget follows; Start while presenting and Stop while idle only say so.
 
 Ships **on**: it is inert until started, and starting it is always an explicit gesture.
 
