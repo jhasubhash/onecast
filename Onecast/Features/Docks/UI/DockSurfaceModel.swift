@@ -39,7 +39,7 @@ final class DockSurfaceModel {
     /// The most the lens ever adds along the axis: the plate's one width while it is hovered.
     private(set) var plateGrowth: CGFloat = 0
 
-    @ObservationIgnored private var names: [String: String?] = [:]
+    @ObservationIgnored private var names: [String: String] = [:]
     @ObservationIgnored private var resolved: [UUID: URL?] = [:]
     @ObservationIgnored var onWidgetTap: ((UUID) -> Void)?
     /// What VoiceOver's press does on a tile, since the tile itself carries no gesture.
@@ -230,7 +230,10 @@ final class DockSurfaceModel {
         case .divider:
             name = nil
         }
-        names[slot.id] = .some(name)
+        // A name that isn't known yet stays unknown only until it is: a DockWidget's descriptor
+        // arrives once the catalog has scanned, after the dock first drew, and caching the nil
+        // would leave that widget without a label until the dock's configuration next changed.
+        if let name { names[slot.id] = name }
         return name
     }
 }

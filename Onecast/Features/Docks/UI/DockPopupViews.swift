@@ -54,11 +54,22 @@ struct DockLabelView: View {
     let text: String
     @Environment(\.metrics) private var metrics
 
+    /// Past this a name is cut here, since the label is sized to its whole text: a minimized
+    /// window's title can run to a line of its own.
+    private static let characterLimit = 60
+
+    private var shown: String {
+        text.count <= Self.characterLimit ? text : String(text.prefix(Self.characterLimit - 1)) + "…"
+    }
+
     var body: some View {
-        Text(text)
+        Text(shown)
             .font(metrics.typography.keyCap)
             .foregroundStyle(Theme.Colors.textPrimary)
             .lineLimit(1)
+            // The panel is sized from this view's fitting size; without this, a name with a space
+            // measured narrower than it draws and came out cut ("New Re…").
+            .fixedSize()
             .padding(.horizontal, metrics.spacing.lg)
             .padding(.vertical, metrics.spacing.xs)
             .background(Theme.Colors.panelScrim)
