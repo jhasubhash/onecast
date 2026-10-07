@@ -184,7 +184,13 @@ struct DockItemGlyph: View {
     var body: some View {
         switch item.kind {
         case .app(let reference):
-            DockFileIcon(path: reference.path, bundleID: reference.bundleID, size: size)
+            if let custom = reference.customIcon {
+                EntryIconView(source: custom.entryIcon)
+                    .frame(width: size, height: size)
+                    .accessibilityHidden(true)
+            } else {
+                DockFileIcon(path: reference.path, bundleID: reference.bundleID, size: size)
+            }
         case .file(let path):
             DockFileIcon(path: path, size: size)
         case .folder(let reference):

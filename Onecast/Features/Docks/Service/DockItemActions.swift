@@ -177,7 +177,11 @@ final class DockItemActions {
         let source: NSImage
         switch item.kind {
         case .app(let reference):
-            source = IconCache.icon(forFile: resolvedURL(for: reference)?.path ?? reference.path)
+            if let custom = reference.customIcon {
+                source = IconCache.icon(for: custom.entryIcon, fileURL: URL(fileURLWithPath: reference.path))
+            } else {
+                source = IconCache.icon(forFile: resolvedURL(for: reference)?.path ?? reference.path)
+            }
         case .folder(let folder):
             source = IconCache.icon(forFile: folder.path)
         case .file(let path):

@@ -32,6 +32,7 @@ struct DocksTests {
         sanitizeRepairsReferences()
         sanitizeDropsDuplicates()
         decodingToleratesMissingKeys()
+        customIconsRoundTripAndOldConfigsDecode()
         arrangeGroupsPinnedRunningAndTrailing()
         arrangeRespectsContentOptions()
         arrangeMatchesAppsByBundleThenPath()
@@ -258,6 +259,36 @@ struct DocksTests {
             try? JSONDecoder().decode(DockConfiguration.self, from: $0)
         }
         expect(round == full, "a full configuration survives an encode/decode round-trip")
+    }
+
+    static func customIconsRoundTripAndOldConfigsDecode() {
+        // A layout saved before custom icons existed has no key for it.
+        let legacy = Data(
+            #"{"bundleID":"com.apple.finder","path":"/System/Library/CoreServices/Finder.app"}"#.utf8)
+        let old = try? JSONDecoder().decode(DockAppReference.self, from: legacy)
+        expect(old?.customIcon == nil, "an app saved without a custom icon keeps the app's own")
+        expect(old?.bundleID == "com.apple.finder", "the rest of an old reference survives")
+
+        for icon in [
+            DockCustomIcon.image(path: "/tmp/finder-flat.png"),
+            .symbol(name: "folder.fill", color: .teal),
+            .symbol(name: "star.fill", color: nil)
+        ] {
+            let reference = DockAppReference(
+                bundleID: "com.apple.finder", path: "/System/Library/CoreServices/Finder.app",
+                customIcon: icon)
+            let data = try? JSONEncoder().encode(DockItem(kind: .app(reference)))
+            let back = data.flatMap { try? JSONDecoder().decode(DockItem.self, from: $0) }
+            expect(back?.kind == .app(reference), "\(icon) survives an encode/decode round-trip")
+        }
+
+        // The icon is cosmetic: it never decides which running app a pinned item is.
+        let finder = DockAppReference(bundleID: "com.apple.finder", path: "/F.app")
+        var themed = finder
+        themed.customIcon = .symbol(name: "star.fill", color: .red)
+        expect(
+            DockSlots.matches(themed, app("Finder", bundle: "com.apple.finder", path: "/F.app", pid: 1)),
+            "a custom icon does not change which app a tile matches")
     }
 
     // MARK: - DockSlots

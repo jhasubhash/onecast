@@ -82,10 +82,20 @@ struct DockPlacement: Codable, Sendable, Hashable {
     }
 }
 
+/// A picture drawn in place of an app's own icon, so a dock can follow a custom theme.
+enum DockCustomIcon: Codable, Sendable, Hashable {
+    /// An image file (PNG, JPEG, ICNS, PDF, SVG), drawn at the size of an app icon.
+    case image(path: String)
+    /// An SF Symbol on an app-icon-shaped tile; the colour fills the tile, none leaves it plain.
+    case symbol(name: String, color: DockColor?)
+}
+
 struct DockAppReference: Codable, Sendable, Hashable {
     var bundleID: String?
     /// The bundle's path when it was added; re-resolved through `bundleID` if it moved.
     var path: String
+    /// Drawn in the dock instead of the app's own icon; nil keeps the app's.
+    var customIcon: DockCustomIcon?
 }
 
 struct DockFolderReference: Codable, Sendable, Hashable {

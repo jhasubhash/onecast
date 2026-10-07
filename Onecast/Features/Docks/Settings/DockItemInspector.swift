@@ -1,3 +1,4 @@
+import UniformTypeIdentifiers
 import OnecastPluginKit
 import SwiftUI
 
@@ -19,7 +20,7 @@ struct DockItemInspector: View {
         Group {
             header
             switch item.kind {
-            case .app(let reference): locationRow(reference.path)
+            case .app(let reference): appRows(reference)
             case .file(let path): locationRow(path)
             case .folder(let reference): folderRows(reference)
             case .link(let reference): linkRows(reference)
@@ -125,6 +126,117 @@ struct DockItemInspector: View {
                 Text(size.settingsTitle).tag(size)
             }
         }
+    }
+
+    // MARK: - App icon
+
+    private enum IconMode: Hashable {
+        case app, image, symbol
+
+        init(_ icon: DockCustomIcon?) {
+            switch icon {
+            case nil: self = .app
+            case .image: self = .image
+            case .symbol: self = .symbol
+            }
+        }
+    }
+
+    private func updateApp(
+        _ reference: DockAppReference, _ change: (inout DockAppReference) -> Void
+    ) {
+        var updated = reference
+        change(&updated)
+        save(.app(updated))
+    }
+
+    @ViewBuilder
+    private func appRows(_ reference: DockAppReference) -> some View {
+        locationRow(reference.path)
+
+        LabeledContent {
+            Picker(
+                "Icon",
+                selection: Binding(
+                    get: { IconMode(reference.customIcon) },
+                    set: { mode in setIcon(mode, for: reference) })
+            ) {
+                Text("App").tag(IconMode.app)
+                Text("Image").tag(IconMode.image)
+                Text("Symbol").tag(IconMode.symbol)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        } label: {
+            Text("Icon")
+            Text("Draw something else in the dock to suit its theme; the app is unchanged.")
+        }
+
+        switch reference.customIcon {
+        case .image(let path):
+            LabeledContent("Image") {
+                HStack(spacing: Theme.Spacing.md) {
+                    Text((path as NSString).lastPathComponent)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .foregroundStyle(
+                            FileManager.default.fileExists(atPath: path)
+                                ? Color.secondary : Color.orange)
+                    Button("Choose…") { chooseImage(for: reference) }
+                }
+            }
+        case .symbol(let name, let color):
+            LabeledContent {
+                DockTextField(
+                    value: name, prompt: "star.fill", accessibilityName: "App symbol",
+                    commit: { symbol in
+                        updateApp(reference) { $0.customIcon = .symbol(name: symbol, color: color) }
+                    })
+            } label: {
+                Text("Symbol")
+                if DockLinkInput.isSymbol(name) {
+                    Text("An SF Symbol name.")
+                } else {
+                    Text("Not an SF Symbol, so the tile is blank.")
+                        .foregroundStyle(.orange)
+                }
+            }
+            LabeledContent("Tile colour") {
+                DockColorSwatches(selection: color, allowsNone: true) { choice in
+                    updateApp(reference) { $0.customIcon = .symbol(name: name, color: choice) }
+                }
+            }
+        case nil:
+            EmptyView()
+        }
+    }
+
+    /// Picking Image asks for the file at once; backing out leaves the icon as it was.
+    private func setIcon(_ mode: IconMode, for reference: DockAppReference) {
+        switch mode {
+        case .app:
+            updateApp(reference) { $0.customIcon = nil }
+        case .image:
+            if case .image = reference.customIcon { return }
+            chooseImage(for: reference)
+        case .symbol:
+            if case .symbol = reference.customIcon { return }
+            updateApp(reference) { $0.customIcon = .symbol(name: "star.fill", color: nil) }
+        }
+    }
+
+    private func chooseImage(for reference: DockAppReference) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.image, .pdf]
+        panel.prompt = "Use Image"
+        panel.message = "Choose the picture this app shows in the dock."
+        // Onecast is an accessory app, so the panel opens behind the frontmost app without this.
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        updateApp(reference) { $0.customIcon = .image(path: url.path) }
     }
 
     // MARK: - Folders

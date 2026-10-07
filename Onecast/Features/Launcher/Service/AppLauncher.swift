@@ -2,9 +2,26 @@ import AppKit
 
 enum AppLauncher {
 
+    private static let finderBundleID = "com.apple.finder"
+
     @MainActor
     static func launch(_ url: URL) {
-        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+        let bundleID = Bundle(url: url)?.bundleIdentifier
+        let wasRunning =
+            bundleID.map {
+                !NSRunningApplication.runningApplications(withBundleIdentifier: $0).isEmpty
+            } ?? true
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) {
+            app, _ in
+            // Finder, launched from nothing, comes up with only the desktop: no window until it is
+            // opened again, which is why a click on a quit Finder took two. The Dock asks Finder
+            // for its window itself; a second open is that request (a "reopen" to a running app).
+            guard !wasRunning, app?.bundleIdentifier == finderBundleID else { return }
+            Task { @MainActor in
+                NSWorkspace.shared.openApplication(
+                    at: url, configuration: NSWorkspace.OpenConfiguration())
+            }
+        }
     }
 
     /// Hands the URL to whatever the system registers for its scheme — the default browser, for web.

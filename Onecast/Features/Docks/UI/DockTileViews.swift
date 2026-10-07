@@ -30,7 +30,7 @@ struct DockTileView: View {
             DockAppTile(
                 path: app.path, isMissing: false, running: app,
                 badge: model.badge(for: app.bundleID), model: model, side: side,
-                renderScale: renderScale)
+                renderScale: renderScale, customIcon: nil)
         case .minimized(let window):
             DockMinimizedTile(
                 window: window, preview: model.windows.preview(for: window.token), side: side)
@@ -49,7 +49,7 @@ struct DockTileView: View {
                 path: model.iconPath(for: item, reference: reference, running: running),
                 isMissing: model.isMissing(item, reference: reference, running: running),
                 running: running, badge: model.badge(for: running?.bundleID ?? reference.bundleID),
-                model: model, side: side, renderScale: renderScale)
+                model: model, side: side, renderScale: renderScale, customIcon: reference.customIcon)
         case .folder(let folder):
             DockFolderTile(folder: folder, side: side)
         case .file(let path):
@@ -123,6 +123,8 @@ private struct DockAppTile: View {
     let side: CGFloat
     /// The tile is drawn this much larger than rest and scaled down, so rest sizes are scaled up.
     let renderScale: CGFloat
+    /// Drawn in place of the app's own icon when the item has one.
+    let customIcon: DockCustomIcon?
 
     private static let dotRatio: CGFloat = 0.08
     private static let minimumDot: CGFloat = 3
@@ -130,10 +132,19 @@ private struct DockAppTile: View {
     private static let missingOpacity = 0.4
 
     var body: some View {
-        EntryIconView(source: .file(stamp: 0), fileURL: URL(fileURLWithPath: path))
+        icon
             .opacity(isMissing ? Self.missingOpacity : 1)
             .overlay(alignment: .topTrailing) { badgeView }
             .overlay(alignment: dotAlignment) { dot }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        if let customIcon {
+            EntryIconView(source: customIcon.entryIcon)
+        } else {
+            EntryIconView(source: .file(stamp: 0), fileURL: URL(fileURLWithPath: path))
+        }
     }
 
     private var dotSize: CGFloat { max(model.tileSize * Self.dotRatio, Self.minimumDot) * renderScale }
