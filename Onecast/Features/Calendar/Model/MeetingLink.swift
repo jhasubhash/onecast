@@ -17,7 +17,8 @@ struct MeetingLink: Hashable, Sendable {
     static func detect(fields: [String?], account: String? = nil) -> MeetingLink? {
         var fallback: MeetingLink?
         for field in fields.compactMap({ $0 }) {
-            for url in webURLs(in: field) {
+            for scanned in webURLs(in: field) {
+                let url = unwrapped(scanned)
                 guard let provider = classify(url) else { continue }
                 let link = MeetingLink(provider: provider, url: url, account: account)
                 if provider != .generic { return link }
@@ -25,6 +26,22 @@ struct MeetingLink: Hashable, Sendable {
             }
         }
         return fallback
+    }
+
+    /// An invite that passed through Microsoft's mail scanner carries every link wrapped as
+    /// `https://<region>.safelinks.protection.outlook.com/?url=<the real link, percent-encoded>`.
+    /// Classified as it stands, a Teams join link reads as a bare link on the scanner's host and a
+    /// Jira link earlier in the notes wins; the target is what names the provider.
+    private static func unwrapped(_ url: URL) -> URL {
+        guard let host = url.host()?.lowercased(),
+            host == "safelinks.protection.outlook.com"
+                || host.hasSuffix(".safelinks.protection.outlook.com"),
+            let target = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+                .first(where: { $0.name.lowercased() == "url" })?.value,
+            let real = URL(string: target), let scheme = real.scheme?.lowercased(),
+            scheme == "http" || scheme == "https"
+        else { return url }
+        return real
     }
 
     static func detect(in text: String) -> MeetingLink? {

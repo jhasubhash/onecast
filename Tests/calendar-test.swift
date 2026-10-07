@@ -19,6 +19,7 @@ struct CalendarTests {
         rejectsNonMeetingPages()
         fieldPrecedence()
         linkScanning()
+        scannerWrappedLinksNameTheirTarget()
         appURLRewrites()
         accountPrefill()
         agendaFiltering()
@@ -121,6 +122,36 @@ struct CalendarTests {
         expect(
             MeetingLink.detect(in: "HTTPS://WHEREBY.COM/Acme")?.provider == .whereby,
             "the scheme and host match case-insensitively")
+    }
+
+    static func scannerWrappedLinksNameTheirTarget() {
+        let wrapped = { (target: String) in
+            "https://nam04.safelinks.protection.outlook.com/?url="
+                + target.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+                + "&data=05%7C02&sdata=abc"
+        }
+        let notes = [
+            "Sprint board: " + wrapped("https://jira.example.com/secure/RapidBoard.jspa"),
+            "Need help? " + wrapped("https://aka.ms/JoinTeamsMeeting?omkt=en-US"),
+            "Join: " + wrapped("https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc/0?context=x"),
+        ].joined(separator: "\n")
+        let link = MeetingLink.detect(fields: [nil, "Microsoft Teams Meeting", notes])
+        expect(link?.provider == .teams, "a Teams link behind the scanner still names Teams")
+        expect(
+            link?.url.host() == "teams.microsoft.com",
+            "the link joined is the real one, not the scanner's wrapper")
+
+        let onlyBare = MeetingLink.detect(
+            in: wrapped("https://jira.example.com/browse/X-1"))
+        expect(onlyBare?.provider == .generic, "a wrapped bare link stays a bare link")
+        expect(
+            onlyBare?.url.host() == "jira.example.com", "and is unwrapped to its target")
+
+        let notWrapped = MeetingLink.detect(
+            in: "https://example.com/safelinks?url=https%3A%2F%2Fzoom.us%2Fj%2F42")
+        expect(
+            notWrapped?.provider == .generic,
+            "only the scanner's own host is unwrapped, never an arbitrary url= parameter")
     }
 
     static func appURLRewrites() {

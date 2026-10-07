@@ -59,19 +59,26 @@ struct CalendarEventPanel: View {
             CalendarAllowPrompt(geometry: geometry)
         } else if let event = source.featured {
             let link = source.showsCallButton ? event.link : nil
-            ProductivityTileFace(
-                geometry: geometry, color: event.tint, label: event.calendarName,
-                caption: event.title,
-                captionLines: min(3, geometry.lines(of: 0.14, in: size.height * 0.4))
-            ) {
-                ProductivityValueText(
-                    geometry: geometry,
-                    text: DockCalendarPlan.startLabel(
-                        for: event, now: source.now, calendar: .current),
-                    ratio: 0.26)
-            } footer: {
-                if let link {
-                    CalendarJoinButton(geometry: geometry, event: event, link: link, now: source.now)
+            // Wide enough for a row on a horizontal dock; anything narrower, or on a side dock,
+            // stacks and drops the title and button when the slot is too short for them.
+            if !geometry.isVertical && !geometry.isNarrow(size) {
+                CalendarEventRow(geometry: geometry, event: event, link: link, now: source.now)
+            } else {
+                ProductivityTileFace(
+                    geometry: geometry, color: event.tint, label: event.calendarName,
+                    caption: event.title,
+                    captionLines: min(3, geometry.lines(of: 0.14, in: size.height * 0.4))
+                ) {
+                    ProductivityValueText(
+                        geometry: geometry,
+                        text: DockCalendarPlan.startLabel(
+                            for: event, now: source.now, calendar: .current),
+                        ratio: 0.26)
+                } footer: {
+                    if let link {
+                        CalendarJoinButton(
+                            geometry: geometry, event: event, link: link, now: source.now)
+                    }
                 }
             }
         } else {
@@ -89,6 +96,8 @@ private struct CalendarJoinButton: View {
     let event: MeetingEvent
     let link: MeetingLink
     let now: Date
+    /// The circle's width as a share of the tile unit; the glyph is half of it.
+    var diameter: CGFloat = 0.3
 
     private var isDue: Bool {
         event.isInProgress(now: now)
@@ -99,14 +108,54 @@ private struct CalendarJoinButton: View {
         Button {
             AppCore.shared.calendarCoordinator.join(event)
         } label: {
-            SymbolImage(name: link.provider.sfSymbol, size: geometry.pointSize(0.15))
+            SymbolImage(name: link.provider.sfSymbol, size: geometry.pointSize(diameter / 2))
                 .foregroundStyle(isDue ? Color.white : Theme.Colors.textPrimary)
-                .frame(width: geometry.unit * 0.3, height: geometry.unit * 0.3)
+                .frame(width: geometry.unit * diameter, height: geometry.unit * diameter)
                 .background(Circle().fill(isDue ? Color.accentColor : Theme.Colors.controlHover))
                 .contentShape(Circle())
         }
         .buttonStyle(ProductivityPressStyle())
         .accessibilityLabel("Join \(event.title)")
+    }
+}
+
+/// A wide tile's event on one row, since a tile one slot tall has no room to stack it: the title
+/// and when it starts, with the join button at the end.
+private struct CalendarEventRow: View {
+    let geometry: ProductivityTileGeometry
+    let event: MeetingEvent
+    let link: MeetingLink?
+    let now: Date
+
+    var body: some View {
+        HStack(spacing: geometry.gap * 2) {
+            VStack(alignment: .leading, spacing: geometry.gap / 2) {
+                HStack(spacing: geometry.gap) {
+                    Circle()
+                        .fill(event.tint)
+                        .frame(width: geometry.dotSize, height: geometry.dotSize)
+                    Text(event.title)
+                        .font(geometry.font(0.27))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                }
+                Text(DockCalendarPlan.startLabel(for: event, now: now, calendar: .current))
+                    .font(geometry.font(0.21).monospacedDigit())
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                    // Under the title's first letter, not under its dot.
+                    .padding(.leading, geometry.dotSize + geometry.gap)
+            }
+            Spacer(minLength: 0)
+            if let link {
+                CalendarJoinButton(
+                    geometry: geometry, event: event, link: link, now: now, diameter: 0.5
+                )
+                // The tile's own inset leaves the circle hard against the card's edge.
+                .padding(.trailing, geometry.gap * 2)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 }
 
