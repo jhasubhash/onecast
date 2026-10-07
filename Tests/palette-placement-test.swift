@@ -99,34 +99,53 @@ struct PalettePlacementTests {
             "the default placement is always restorable on its own screen")
     }
 
-    /// Stored against the display, so rearranging or rescaling it keeps the drop.
+    /// Stored as a share of the bar's travel, so rearranging or rescaling keeps the same spot.
     static func offsetsFollowTheirDisplay() {
-        let dropped = CGPoint(x: external.minX + 400, y: external.maxY - 260)
-        let offset = PalettePlacement.offset(of: dropped, on: external)
-        expect(offset.x, 400, "the offset runs rightward from the display's own left edge")
-        expect(offset.y, 260, "and downward from its top edge")
-        expect(
-            PalettePlacement.anchor(for: offset, on: external) == dropped,
-            "reading it back on the unchanged display returns the point that was dropped")
+        let travel = CGSize(
+            width: external.width - graspable.width, height: external.height - graspable.height)
+        let dropped = CGPoint(
+            x: external.minX + travel.width / 4, y: external.maxY - travel.height / 2)
+        let offset = PalettePlacement.offset(of: dropped, on: external, bar: graspable)
+        expect(offset.x, 0.25, "a quarter of the way across the room the bar can travel")
+        expect(offset.y, 0.5, "and halfway down it")
+        let readBack = PalettePlacement.anchor(for: offset, on: external, bar: graspable)
+        expect(readBack.x, dropped.x, "reading it back on the unchanged display returns the drop")
+        expect(readBack.y, dropped.y, "on both axes")
 
         // Same display, moved to the other side in Displays settings.
         let rearranged = CGRect(x: -1920, y: 0, width: 1920, height: 1055)
-        let moved = PalettePlacement.anchor(for: offset, on: rearranged)
-        expect(moved.x, rearranged.minX + 400, "a rearranged display keeps the drop on itself")
-        expect(moved.y, rearranged.maxY - 260, "wherever the global origin left it")
+        let moved = PalettePlacement.anchor(for: offset, on: rearranged, bar: graspable)
+        expect(moved.x, rearranged.minX + travel.width / 4, "a rearranged display keeps the drop")
+        expect(moved.y, rearranged.maxY - travel.height / 2, "wherever the global origin left it")
         expect(restored(moved, on: rearranged) != nil, "and the bar is grabbable there")
 
-        // A resolution change shortens it from the bottom, so a top offset holds.
+        // A resolution change: the bar keeps its place on the screen, not its points from a corner.
         let scaled = CGRect(x: 2560, y: 0, width: 1440, height: 775)
-        let resized = PalettePlacement.anchor(for: offset, on: scaled)
-        expect(resized.y, scaled.maxY - 260, "a rescaled display keeps the distance from the top")
+        let resized = PalettePlacement.anchor(for: offset, on: scaled, bar: graspable)
+        expect(
+            resized.x, scaled.minX + (scaled.width - graspable.width) / 4,
+            "a rescaled display keeps the bar a quarter of the way across")
+        expect(
+            resized.y, scaled.maxY - (scaled.height - graspable.height) / 2,
+            "and halfway down")
         expect(restored(resized, on: scaled) != nil, "and still shows enough of the bar to grab")
 
-        let edge = PalettePlacement.offset(
-            of: CGPoint(x: external.maxX - 10, y: external.maxY - 260), on: external)
+        let centred = PalettePlacement.offset(of: home(external), on: external, bar: graspable)
+        let recentred = PalettePlacement.anchor(for: centred, on: scaled, bar: graspable)
+        expect(recentred.x, home(scaled).x, "a centred bar stays centred at another resolution")
+
+        let narrower = CGSize(width: graspable.width - 100, height: graspable.height)
+        let resizedBar = PalettePlacement.anchor(for: centred, on: external, bar: narrower)
         expect(
-            restored(PalettePlacement.anchor(for: edge, on: scaled), on: scaled) == nil,
-            "an offset past the edge of a shrunken display falls home instead")
+            resizedBar.x + narrower.width / 2, external.midX,
+            "and at another Interface Size, with no stored value rewritten")
+
+        let flush = CGPoint(x: external.maxX - graspable.width, y: external.maxY - 260)
+        let edge = PalettePlacement.offset(of: flush, on: external, bar: graspable)
+        let stillFlush = PalettePlacement.anchor(for: edge, on: scaled, bar: graspable)
+        expect(
+            stillFlush.x + graspable.width, scaled.maxX,
+            "a bar against the right edge stays against it on a smaller display")
     }
 
     static func restoringPartlyOffscreen() {

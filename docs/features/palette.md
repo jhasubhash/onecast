@@ -308,11 +308,12 @@ the horizontal guide. Crossing displays recalculates both the guides and the sna
 ### Remembering where it was left
 
 A drop away from the home detent writes the panel's top-left to `AppSettings.palettePositions`, **one entry per
-display**, keyed by `NSScreen.displayKey` and held **relative to that display's visible top-left**. Per
-display stops a drop made on one screen pulling the palette back there when it is summoned on another;
-relative survives rearranging that display or rescaling it, so no key goes stale.
-Changing Interface Size shifts each saved left edge by half the width difference, preserving the
-launcher's horizontal centre on every display.
+display**, keyed by `NSScreen.displayKey` and held **as a share of the room the compact bar can travel
+on that display** (`PalettePlacement.offset(of:on:bar:)`): 0 at the left or top edge, 1 with the bar
+against the right or bottom. Per display stops a drop made on one screen pulling the palette back
+there when it is summoned on another; a share survives rearranging that display, and a resolution
+change or a new Interface Size puts the bar back in the same place on the screen rather than the same
+number of points from a corner, so a centred bar stays centred.
 
 **The display is chosen first, by the setting below.** `PalettePlacement.restored` drops the corner once
 that display shows less than `Theme.Size.paletteMinimumVisible` of the compact bar. Dropping at the

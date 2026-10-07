@@ -290,7 +290,8 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         defer { resizeStartAnchor = nil }
         guard moved != resizeStartAnchor, let screen = panel.screen else { return }
         setStoredPosition(
-            PalettePlacement.offset(of: moved, on: screen.visibleFrame), on: screen.displayKey,
+            PalettePlacement.offset(of: moved, on: screen.visibleFrame, bar: graspable),
+            on: screen.displayKey,
             expandedCenter: false)
     }
 
@@ -333,7 +334,8 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         guard let session, session.moved, let anchor else { return }
         let home = session.snap.centeredX && session.snap.height == .home
         setStoredPosition(
-            home ? nil : PalettePlacement.offset(of: anchor, on: session.visibleFrame),
+            home
+                ? nil : PalettePlacement.offset(of: anchor, on: session.visibleFrame, bar: graspable),
             on: session.displayKey,
             expandedCenter: session.snap.centeredX && session.snap.height == .expandedCenter)
         // A drag can carry the bar across the fold; re-resolve which way it grows so the menus
@@ -674,7 +676,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     /// This display's own corner, unless too little of the bar would stay grabbable.
     private func restoredAnchor(on screen: NSScreen) -> CGPoint? {
         guard let offset = storedPosition(on: screen.displayKey) else { return nil }
-        let stored = PalettePlacement.anchor(for: offset, on: screen.visibleFrame)
+        let stored = PalettePlacement.anchor(for: offset, on: screen.visibleFrame, bar: graspable)
         let position =
             !usesAIBarPlacement && core.settings.paletteExpandedCenterDisplays.contains(screen.displayKey)
             ? CGPoint(
@@ -684,7 +686,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             : stored
         return PalettePlacement.restored(
             position,
-            graspable: CGSize(width: barWidth, height: metrics.size.compactHeight),
+            graspable: graspable,
             visibleFrame: screen.visibleFrame,
             minimumVisible: Theme.Size.paletteMinimumVisible)
     }
@@ -695,6 +697,9 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             in: screen.visibleFrame, width: barWidth,
             topMarginFraction: Theme.Size.paletteTopMarginFraction)
     }
+
+    /// The compact bar: what must stay grabbable, and the size a stored position travels by.
+    private var graspable: CGSize { CGSize(width: barWidth, height: metrics.size.compactHeight) }
 
     private var metrics: InterfaceMetrics { core.settings.interfaceSize.metrics }
 }

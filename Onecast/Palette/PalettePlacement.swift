@@ -15,13 +15,22 @@ enum PalettePlacement {
             y: visibleFrame.maxY - visibleFrame.height * topMarginFraction)
     }
 
-    /// Kept against its display: right of its left edge, down from its top.
-    static func offset(of anchor: CGPoint, on visibleFrame: CGRect) -> CGPoint {
-        CGPoint(x: anchor.x - visibleFrame.minX, y: visibleFrame.maxY - anchor.y)
+    /// Kept against its display as a share of the room the bar can travel in, so a resolution
+    /// change puts it back in the same place on the screen rather than the same points from a corner.
+    static func offset(of anchor: CGPoint, on visibleFrame: CGRect, bar: CGSize) -> CGPoint {
+        CGPoint(
+            x: share(anchor.x - visibleFrame.minX, of: visibleFrame.width - bar.width),
+            y: share(visibleFrame.maxY - anchor.y, of: visibleFrame.height - bar.height))
     }
 
-    static func anchor(for offset: CGPoint, on visibleFrame: CGRect) -> CGPoint {
-        CGPoint(x: visibleFrame.minX + offset.x, y: visibleFrame.maxY - offset.y)
+    static func anchor(for offset: CGPoint, on visibleFrame: CGRect, bar: CGSize) -> CGPoint {
+        CGPoint(
+            x: visibleFrame.minX + offset.x * max(0, visibleFrame.width - bar.width),
+            y: visibleFrame.maxY - offset.y * max(0, visibleFrame.height - bar.height))
+    }
+
+    private static func share(_ distance: CGFloat, of room: CGFloat) -> CGFloat {
+        room > 0 ? distance / room : 0
     }
 
     static func expandedCenterY(in visibleFrame: CGRect, expandedHeight: CGFloat) -> CGFloat {
