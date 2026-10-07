@@ -259,6 +259,18 @@ struct DocksTests {
             try? JSONDecoder().decode(DockConfiguration.self, from: $0)
         }
         expect(round == full, "a full configuration survives an encode/decode round-trip")
+
+        let saved = Data(#"{"material":"frosted","tileSize":64,"magnifiedSize":80,"autoHides":true}"#.utf8)
+        let appearance = try? JSONDecoder().decode(DockAppearance.self, from: saved)
+        expect(appearance?.tileSize == 64, "an appearance saved before newer keys keeps its values")
+        expect(appearance?.autoHides == true, "including its flags")
+        expect(appearance?.showsWidgetLabels == true, "and a key it never had takes its default")
+        var labelsOff = DockAppearance()
+        labelsOff.showsWidgetLabels = false
+        let back = (try? JSONEncoder().encode(labelsOff)).flatMap {
+            try? JSONDecoder().decode(DockAppearance.self, from: $0)
+        }
+        expect(back?.showsWidgetLabels == false, "turning widget labels off survives a round-trip")
     }
 
     static func customIconsRoundTripAndOldConfigsDecode() {

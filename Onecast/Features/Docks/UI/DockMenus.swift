@@ -60,6 +60,12 @@ enum DockMenus {
                     coordinator.updateAppearance(dockID: dock.id) { $0.autoHides.toggle() }
                 }),
             PopoverMenuItem(
+                title: dock.appearance.showsWidgetLabels ? "Hide Widget Labels" : "Show Widget Labels",
+                systemImage: dock.appearance.showsWidgetLabels ? "text.badge.minus" : "text.badge.plus",
+                action: {
+                    coordinator.updateAppearance(dockID: dock.id) { $0.showsWidgetLabels.toggle() }
+                }),
+            PopoverMenuItem(
                 title: "Hide Dock", systemImage: "eye.slash",
                 action: { coordinator.setDockVisible(id: dock.id, false) }),
             PopoverMenuItem(

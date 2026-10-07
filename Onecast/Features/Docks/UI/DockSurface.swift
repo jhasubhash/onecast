@@ -81,6 +81,7 @@ final class DockSurface {
         container.surface = self
         model.onWidgetTap = { [weak self] id in self?.widgetTapped(id) }
         model.onActivate = { [weak self] id in self?.click(slotID: id) }
+        hosting.rootView = DockRoot(model: model, core: core, tooltips: tooltipPresenter(in: hosting))
         isSettledTucked = dock.appearance.autoHides
         place()
         observeContent()
@@ -88,6 +89,17 @@ final class DockSurface {
 
     var dockID: UUID { model.dockID }
     private var edge: DockEdge { model.edge }
+
+    /// Widget controls' hover labels go to the label's own panel: this window would clip them.
+    private func tooltipPresenter(in hosting: NSView) -> TooltipPresenter {
+        TooltipPresenter(
+            show: { [weak self, weak hosting] owner, text, frame in
+                guard let self, let hosting, let window = hosting.window else { return }
+                let anchor = window.convertToScreen(hosting.convert(frame, to: nil))
+                floating.label.showControl(text, owner: owner, anchor: anchor, edge: edge)
+            },
+            hide: { [weak self] owner in self?.floating.label.hideControl(owner: owner) })
+    }
 
     /// Docks that take space from other windows: shown, floating, and not tucking away.
     var reservedFrame: CGRect? {
@@ -121,7 +133,7 @@ final class DockSurface {
         for task in [hideTask, settleTask, dwellTask, labelTask] { task?.cancel() }
         lensDriver.stop()
         if model.openSlotID != nil || floating.isOpen(.menu(dockID: dockID)) { floating.close() }
-        floating.label.hide()
+        floating.label.hideAll()
         container.surface = nil
         panel.orderOut(nil)
         panel.contentView = nil
@@ -265,7 +277,7 @@ final class DockSurface {
         if wantsTucked {
             guard !model.isTucked || model.tuckedVisible != handleVisible else { return }
             isOverDock = false
-            floating.label.hide()
+            floating.label.hideAll()
             settleLens(at: 0)
             model.setTucked(true, visible: handleVisible)
             guard panel.isVisible else {
@@ -570,7 +582,9 @@ final class DockSurface {
     // MARK: - Label
 
     private func updateLabel(hit: Int?, slots: [DockSlot]) {
-        guard let hit, !floating.isOpen, let name = model.name(of: slots[hit]) else {
+        guard let hit, !floating.isOpen, let name = model.name(of: slots[hit]),
+            model.dock.appearance.showsWidgetLabels || !isWidget(slotID: slots[hit].id)
+        else {
             hideLabel()
             return
         }
@@ -1052,8 +1066,9 @@ final class DockSurface {
 private struct DockRoot: View {
     let model: DockSurfaceModel
     let core: AppCore
+    var tooltips: TooltipPresenter?
 
     var body: some View {
-        DockView(model: model).dockEnvironment(core)
+        DockView(model: model).dockEnvironment(core).environment(\.tooltipPresenter, tooltips)
     }
 }

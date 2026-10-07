@@ -160,7 +160,14 @@ Paddle, Shopify) are deliberately left to third-party DockWidgets.
 
 - **`~/.Trash` is protected.** Without Full Disk Access the Trash tile keeps its empty icon; dropping
   a file on it still moves it there.
-- **A tile's label is not the `tooltip` modifier**, which the dock's window would clip.
+- **A tile's label is not the `tooltip` modifier**, which the dock's window would clip. A widget's own
+  controls do use `tooltip`, but the dock injects a `TooltipPresenter` (`DockSurface.tooltipPresenter`)
+  that draws it in the label's panel instead, anchored to the control's frame and re-placed as the
+  lens moves it; while one is up the tile's name waits, and only the control that raised it hides it.
+- **Widget names can be turned off per dock** (`DockAppearance.showsWidgetLabels`, Settings › Docks ›
+  Appearance › Show widget labels, or the dock's right-click menu); app, folder and link tiles keep
+  theirs, and a widget's control labels still show. `DockAppearance` decodes field by field, so a
+  dock saved before a key existed keeps its other settings.
 - **Icons are `IconCache`'s 96-pixel bitmaps**; a tile above 96 points is upscaled.
 - **While a dock scrolls, it does not magnify.**
 - **A widget tile's click is replayed.** The container claims every left press so a widget can drag

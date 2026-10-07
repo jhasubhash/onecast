@@ -78,6 +78,19 @@ struct DockLabelView: View {
     }
 }
 
+/// A widget control's hover label: Onecast's tooltip chip on the dock's own glass, so it reads as it
+/// would hung over the plate, not as a tile's name.
+struct DockControlTooltipView: View {
+    let text: String
+
+    var body: some View {
+        TooltipChip(text: text)
+            .background(Theme.Colors.panelScrim, in: Capsule())
+            .background(GlassEffectView())
+            .clipShape(Capsule())
+    }
+}
+
 // MARK: - Folder
 
 @MainActor

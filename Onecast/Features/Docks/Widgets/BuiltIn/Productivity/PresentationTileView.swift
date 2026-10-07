@@ -124,7 +124,7 @@ struct PresentationTileView: View {
     }
 }
 
-/// A quiet circle with one glyph, lifting on hover; no tooltip, which the dock's window would clip.
+/// A quiet circle with one glyph, lifting on hover.
 private struct PresentationTileButton: View {
     let symbol: String
     let ink: Color
@@ -150,6 +150,7 @@ private struct PresentationTileButton: View {
             hovered = hovering
             onHover(hovering)
         }
+        .tooltip(label)
         .accessibilityLabel(label)
     }
 }

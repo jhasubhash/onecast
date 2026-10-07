@@ -364,13 +364,16 @@ they work, and `PresentationSession` recorded an app only when `hide()` returned
 **Fix.** The request is recorded unconditionally; ending unhides every recorded app still running.
 **Check.** Start with several apps open, end, and every app that was visible is visible again.
 
-### A dock tile's tooltip came out as a clipped sliver — 2026-10
+### A dock widget's tooltip came out as a clipped sliver — 2026-10
 
-**Symptom.** Hovering the Presentation tile's button drew a cut-off dark panel at the tile's top.
-**Cause.** The button carried `.tooltip`, which the dock's own window clips (docks.md says so).
-**Fix.** No tooltip on a tile control; the dock's label names the tile, `accessibilityLabel` the
-button.
-**Check.** Hover the 2- and 4-tile buttons: only the dock's own label appears.
+**Symptom.** Hovering a widget control (Now Playing's Pause, the Presentation button) drew a
+cut-off label at the dock's top edge.
+**Cause.** `tooltip` drew the label as an overlay inside the control's own window, which for a
+dock is barely taller than its tiles, so everything above the plate was clipped.
+**Fix.** `TooltipModifier` hands the label to an injected `TooltipPresenter` when one is set; the dock
+sets one that draws it in `DockLabelPresenter`'s own panel, anchored to the control on screen.
+**Check.** Hover Now Playing's controls and the Presentation buttons, magnified and not: a whole
+label sits above the control, and the tile's name returns when the pointer leaves the control.
 
 ### HUDs and notification cards slid under the custom dock — 2026-10
 

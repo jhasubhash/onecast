@@ -49,6 +49,8 @@ struct DockAppearance: Codable, Sendable, Hashable {
     var showsHandleWhenHidden = true
     var layer: DockLayer = .floating
     var hidesWhenMacOSDockAppears = false
+    /// A widget tile's name on hover; its own controls' labels show either way.
+    var showsWidgetLabels = true
 
     static let tileSizeRange: ClosedRange<Double> = 24...128
     static let magnifiedSizeRange: ClosedRange<Double> = 24...192
@@ -58,6 +60,28 @@ struct DockAppearance: Codable, Sendable, Hashable {
     mutating func sanitize() {
         tileSize = tileSize.clamped(to: Self.tileSizeRange)
         magnifiedSize = max(magnifiedSize.clamped(to: Self.magnifiedSizeRange), tileSize)
+    }
+}
+
+extension DockAppearance {
+    /// Decodes field by field, so a key added later never discards a saved dock.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = DockAppearance()
+        material = (try? c.decodeIfPresent(DockMaterial.self, forKey: .material)) ?? defaults.material
+        tileSize = try c.decodeIfPresent(Double.self, forKey: .tileSize) ?? defaults.tileSize
+        magnifiedSize =
+            try c.decodeIfPresent(Double.self, forKey: .magnifiedSize) ?? defaults.magnifiedSize
+        autoHides = try c.decodeIfPresent(Bool.self, forKey: .autoHides) ?? defaults.autoHides
+        showsHandleWhenHidden =
+            try c.decodeIfPresent(Bool.self, forKey: .showsHandleWhenHidden)
+            ?? defaults.showsHandleWhenHidden
+        layer = (try? c.decodeIfPresent(DockLayer.self, forKey: .layer)) ?? defaults.layer
+        hidesWhenMacOSDockAppears =
+            try c.decodeIfPresent(Bool.self, forKey: .hidesWhenMacOSDockAppears)
+            ?? defaults.hidesWhenMacOSDockAppears
+        showsWidgetLabels =
+            try c.decodeIfPresent(Bool.self, forKey: .showsWidgetLabels) ?? defaults.showsWidgetLabels
     }
 }
 

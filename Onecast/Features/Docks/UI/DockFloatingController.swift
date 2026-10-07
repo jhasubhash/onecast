@@ -51,7 +51,7 @@ final class DockFloatingController {
         keys: ((NSEvent) -> Void)? = nil, onDismiss: @escaping () -> Void
     ) {
         dismiss(animated: false)
-        label.hide()
+        label.hideAll()
         let panel = DockFloatingPanel()
         let host = NSHostingView(rootView: wrapped(content))
         host.sizingOptions = [.intrinsicContentSize]
@@ -169,28 +169,73 @@ final class DockFloatingController {
     }
 }
 
-/// A tile's name, shown beside it in a panel of its own.
+/// A tile's name, or the hover label of a widget's control, shown beside it in a panel of its own.
 @MainActor
 final class DockLabelPresenter {
     private unowned let core: AppCore
     private var panel: HUDPanel?
     private var host: NSHostingView<AnyView>?
-    private var text: String?
+    private var shown: Shown?
+
+    private struct Shown: Equatable {
+        let text: String
+        let isControl: Bool
+    }
+    /// While a widget control's label is up, the tile's name waits rather than replacing it.
+    private var controlOwner: UUID?
 
     init(core: AppCore) {
         self.core = core
     }
 
     func show(_ text: String, anchor: CGRect, edge: DockEdge) {
+        guard controlOwner == nil else { return }
+        present(Shown(text: text, isControl: false), anchor: anchor, edge: edge)
+    }
+
+    func showControl(_ text: String, owner: UUID, anchor: CGRect, edge: DockEdge) {
+        controlOwner = owner
+        present(Shown(text: text, isControl: true), anchor: anchor, edge: edge)
+    }
+
+    /// Only the control that put the label up takes it down, whichever hover event lands first.
+    func hideControl(owner: UUID) {
+        guard controlOwner == owner else { return }
+        controlOwner = nil
+        dismiss()
+    }
+
+    /// The tile's name only: a control's label is the control's to take down.
+    func hide() {
+        guard controlOwner == nil else { return }
+        dismiss()
+    }
+
+    /// Everything, a control's label included: a popup opened, or the dock went away.
+    func hideAll() {
+        controlOwner = nil
+        dismiss()
+    }
+
+    private func dismiss() {
+        shown = nil
+        guard let panel, panel.isVisible else { return }
+        panel.fadeOut(duration: Theme.Duration.exit)
+    }
+
+    private func present(_ label: Shown, anchor: CGRect, edge: DockEdge) {
         let metrics = core.settings.interfaceSize.metrics
         let panel = panel ?? makePanel()
-        if self.text != text || host == nil {
-            let host = NSHostingView(
-                rootView: AnyView(DockLabelView(text: text).environment(\.metrics, metrics)))
+        if shown != label || host == nil {
+            let view =
+                label.isControl
+                ? AnyView(DockControlTooltipView(text: label.text))
+                : AnyView(DockLabelView(text: label.text))
+            let host = NSHostingView(rootView: AnyView(view.environment(\.metrics, metrics)))
             host.sizingOptions = [.intrinsicContentSize]
             panel.contentView = host
             self.host = host
-            self.text = text
+            shown = label
         }
         guard let host else { return }
         let size = host.fittingSize
@@ -205,12 +250,6 @@ final class DockLabelPresenter {
         } else {
             panel.fadeIn(duration: Theme.Duration.tooltip) { panel.orderFrontRegardless() }
         }
-    }
-
-    func hide() {
-        text = nil
-        guard let panel, panel.isVisible else { return }
-        panel.fadeOut(duration: Theme.Duration.exit)
     }
 
     private func makePanel() -> HUDPanel {

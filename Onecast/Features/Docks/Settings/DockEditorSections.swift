@@ -208,6 +208,11 @@ struct DockAppearanceSection: View {
                     SettingsRowTitle(.docksAppearance, "Hide when macOS Dock appears")
                     Text("Steps aside while the macOS Dock is showing on the same edge.")
                 }
+
+                Toggle(isOn: appearanceBinding(dock, \.showsWidgetLabels)) {
+                    SettingsRowTitle(.docksAppearance, "Show widget labels")
+                    Text("Names a widget above it on hover. Labels on its own buttons show either way.")
+                }
             } header: {
                 DockEditorHeader(anchor: .docksAppearance, dock: dock)
             }

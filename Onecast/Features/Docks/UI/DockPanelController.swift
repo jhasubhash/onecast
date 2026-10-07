@@ -70,7 +70,7 @@ final class DockPanelController {
 
     func closeAll() {
         floating.close()
-        floating.label.hide()
+        floating.label.hideAll()
         for surface in surfaces.values { surface.close() }
         surfaces.removeAll()
         disarmPointerMonitors()

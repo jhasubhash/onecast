@@ -93,8 +93,8 @@ once) and a link to Settings › Presentation. The clock ticks per second only w
 
 - **`NSRunningApplication.hide()` and `unhide()` answer `false` even when they work** (macOS 26), so
   a hide is recorded as requested, never by its return value; trusting it left every app hidden.
-- **Tile buttons carry no `.tooltip`**: the dock's window clips it to a sliver. They are quiet
-  `controlSurface` circles like the Calendar tile's call button; only *stop* is tinted, in red.
+- **Tile buttons are quiet `controlSurface` circles** like the Calendar tile's call button; only
+  *stop* is tinted, in red. Their tooltips draw in the dock's label panel (see docks.md).
 - **Its HUDs draw over the dock** because `HUDPanel` sits at `.notice`, one level above the custom
   docks; earlier it sat at the palette's level, under them.
 - **`kCGDisplayShowDuplicateLowResolutionModes` is not its own name.** Its value is

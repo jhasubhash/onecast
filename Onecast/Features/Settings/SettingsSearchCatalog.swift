@@ -557,6 +557,9 @@ enum SettingsSearchCatalog {
             .docksAppearance, "Hide when macOS Dock appears",
             keywords: ["overlap", "collide", "both docks", "same edge"]),
         .init(
+            .docksAppearance, "Show widget labels",
+            keywords: ["tooltip", "name", "hover", "widget title"]),
+        .init(
             .docksContent, "Show running apps",
             keywords: ["open apps", "unpinned", "running"]),
         .init(
