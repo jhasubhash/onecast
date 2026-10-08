@@ -55,6 +55,8 @@ final class PluginManager {
     @ObservationIgnored private weak var appIndex: AppIndex?
     @ObservationIgnored private var loaded: (any OnecastPlugin)?
     @ObservationIgnored private var runningID: String?
+    /// The build the last launch mapped, so a diagnostic can tell it from today's sources.
+    @ObservationIgnored private(set) var loadedBuild: (sourceHash: String, dylib: URL, at: Date)?
     @ObservationIgnored private var launchToken = 0
     @ObservationIgnored private var environment = PluginEnvironment()
     @ObservationIgnored private var directoryWatcher: DispatchSourceFileSystemObject?
@@ -246,6 +248,7 @@ final class PluginManager {
             do {
                 let plugin = try PluginLoader.load(install, builtDylib: dylib)
                 loaded = plugin
+                loadedBuild = (install.sourceHash, dylib, Date())
                 metadata = type(of: plugin).metadata
                 // A surface plugin opens straight into its screen; no root row list to step through.
                 if let root = plugin.rootSurface(context: context(query: "", route: route)) {

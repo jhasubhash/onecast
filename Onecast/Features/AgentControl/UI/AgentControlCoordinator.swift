@@ -47,6 +47,10 @@ final class AgentControlCoordinator {
                 return AgentReply.success(entries(query: query, kind: kind, limit: limit))
             case .logs(let query):
                 return AgentReply.success(try await AgentLogReader.entries(query))
+            case .extensionState:
+                return AgentReply.success(json: core.extensions.diagnostics)
+            case .plugins:
+                return AgentReply.success(json: core.plugins.diagnostics)
             case .capture(let id, let path):
                 guard let window = AgentWindowInspector.window(id: id) else {
                     throw Failure("No visible window \"\(id)\".")
@@ -73,7 +77,7 @@ final class AgentControlCoordinator {
 
     private func perform(_ command: AgentCommand) async throws -> String? {
         switch command {
-        case .ping, .state, .entries, .waitFor, .logs, .capture:
+        case .ping, .state, .entries, .waitFor, .logs, .capture, .extensionState, .plugins:
             return nil
         case .show(let name, let query):
             guard let mode = PaletteMode(rawValue: name) else {

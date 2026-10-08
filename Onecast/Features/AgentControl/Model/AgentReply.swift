@@ -16,6 +16,15 @@ enum AgentReply {
         (try? encoder.encode(Success(result: result))) ?? failure("The reply could not be encoded.")
     }
 
+    /// For a feature that reports itself as plain JSON values rather than an `Encodable`.
+    static func success(json result: Any) -> Data {
+        guard JSONSerialization.isValidJSONObject(["result": result]),
+            let data = try? JSONSerialization.data(
+                withJSONObject: ["ok": true, "result": result], options: [.sortedKeys])
+        else { return failure("The reply could not be encoded.") }
+        return data
+    }
+
     static func failure(_ message: String) -> Data {
         (try? encoder.encode(Failure(error: message))) ?? Data("{\"ok\":false}".utf8)
     }

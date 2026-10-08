@@ -55,7 +55,10 @@ check_signing() {
     team=$(printf '%s' "$identities" | sed -E 's/.*\(([A-Z0-9]+)\)$/\1/')
     printf 'CODE_SIGN_IDENTITY = %s\nDEVELOPMENT_TEAM = %s\n' "$identities" "$team" \
         > Signing.local.xcconfig
-    echo "› signed '$authority'; wrote Signing.local.xcconfig for '$identities', rebuilding"
+    echo "› signed '$authority'; wrote Signing.local.xcconfig for '$identities', rebuilding clean"
+    # An incremental build keeps the helpers' old signatures, which the embed step then refuses.
+    xcodebuild -project Onecast.xcodeproj -scheme Onecast -configuration Debug \
+        -derivedDataPath build/DerivedData clean > /dev/null 2>&1
     run_build
 }
 

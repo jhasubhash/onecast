@@ -91,6 +91,8 @@ the palette after it, plus `waited` seconds when it carried an `until`.
 | `press` | `match`, `window` | AX-presses the first element whose identifier, label or title matches |
 | `waitFor` | any condition fields, `timeout` | waits until the condition holds |
 | `capture` | `window` (`palette`), `path` | a PNG of exactly that window; the palette's reply adds its `rows` |
+| `extension` | — | the running Raycast command: `state`, `failure`, `navigationDepth`, its render tree as `screens` |
+| `plugins` | — | installed plugins with source hashes; the running one's state and `loaded.matchesSources` |
 | `logs` | `since` (60 s), `level`, `category`, `contains`, `allSubsystems`, `limit` (200) | this process's unified log, oldest first |
 
 Any action also takes `until: {…condition…}` and `timeout` (seconds, default 5, at most 60).
@@ -112,6 +114,22 @@ desktop-independent window capture that matches the screen, glass included; with
 Glass or vibrancy. The palette's capture also returns `rows`, whose frames locate each row in the
 image after subtracting the window's origin. [UI_TESTS.md](UI_TESTS.md) §4's rule still holds: look
 at the picture, and check the selection against `state` rather than reading a wash off pixels.
+
+## Extensions and plugins
+
+`extension` answers what `ExtensionManager` holds for the running command, reported by the extension
+feature itself (`ExtensionManager+Diagnostics`), so nothing about how an extension renders leaves
+`Features/Extensions/`. `screens` is the tree the JS produced, the one the native renderer consumed,
+slot nodes included — the line between "the extension built the wrong tree" and "we drew the right
+tree wrongly". An extension's `console.*` and uncaught exceptions are `Logger` entries in category
+`ExtensionConsole`, prefixed with its name: `logs category=ExtensionConsole`.
+
+`plugins` lists installed plugins with the source hash the catalog last read, and for the running
+one the build it actually mapped: `loaded.matchesSources: false` is "my fix did not take" stated as
+data.
+
+`runEntry` on a **menu-bar** command enables it, as running it from the launcher would, and the
+setting persists; switch it off in Settings → Extensions.
 
 ## Logs
 
@@ -142,6 +160,7 @@ rates, the update check and extension remote icons now say why they came back em
 | `Model/AgentCondition.swift` | what `waitFor` checks, evaluated over a snapshot |
 | `Model/AgentSnapshot.swift`, `AgentElement.swift` | the snapshot and tree pruning |
 | `Model/AgentReply.swift` | the reply envelope |
+| `Extensions/Service/ExtensionManager+Diagnostics.swift`, `Extensions/Model/RenderNode+Inspection.swift`, `Plugins/Service/PluginManager+Diagnostics.swift` | each feature reporting itself |
 | `Service/AgentWindowCapture.swift` | one window to PNG, ScreenCaptureKit or `cacheDisplay` |
 | `Model/AgentLogQuery.swift`, `Service/AgentLogReader.swift` | what `logs` admits, and the `OSLogStore` read |
 | `Service/AgentControlServer.swift` | listener, handshake, token check |

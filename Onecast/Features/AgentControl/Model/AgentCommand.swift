@@ -25,6 +25,9 @@ enum AgentCommand: Equatable, Sendable {
     case logs(AgentLogQuery)
     /// A PNG of one window, written to `path` or a temporary file.
     case capture(window: String, path: String?)
+    /// The running Raycast extension's state and render tree, as the extension feature reports it.
+    case extensionState
+    case plugins
 
     enum DecodeError: Error, Equatable, LocalizedError {
         case unknownAction(String)
@@ -83,6 +86,8 @@ enum AgentCommand: Equatable, Sendable {
             return .press(try arguments.required("match"), window: try arguments.optional("window"))
         case "waitFor": return .waitFor
         case "logs": return .logs(try AgentLogQuery(arguments))
+        case "extension": return .extensionState
+        case "plugins": return .plugins
         case "capture":
             return .capture(
                 window: try arguments.optional("window") ?? "palette",

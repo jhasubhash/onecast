@@ -109,6 +109,16 @@ struct AgentControlTests {
         } else {
             expect(false, "waitFor without a condition is refused")
         }
+        expect(
+            (try? decode(#"{"action":"extension"}"#).get().command) == .extensionState,
+            "extension decodes")
+        expect(
+            (try? decode(#"{"action":"capture"}"#).get().command) == .capture(window: "palette", path: nil),
+            "capture defaults to the palette")
+        let wrapped = String(decoding: AgentReply.success(json: ["a": NSNull(), "b": [1, 2]]), as: UTF8.self)
+        expect(wrapped == #"{"ok":true,"result":{"a":null,"b":[1,2]}}"#, "plain JSON values wrap")
+        let invalid = String(decoding: AgentReply.success(json: ["date": Date()]), as: UTF8.self)
+        expect(invalid.contains(#""ok":false"#), "a value JSON can't hold fails instead of crashing")
         if case .failure = decode(#"{"action":"hide","timeout":600}"#) {
             passes += 1
         } else {
@@ -245,7 +255,8 @@ struct AgentControlTests {
             AgentElement(
                 role: "AXGroup",
                 children: [
-                    AgentElement(role: "AXButton", identifier: AgentElement.barIdentifier, label: "Open, ↵"),
+                    AgentElement(
+                        role: "AXButton", identifier: AgentElement.barIdentifier, label: "Open, ↵"),
                     AgentElement(role: "AXButton", label: "Elsewhere"),
                 ])
         ]

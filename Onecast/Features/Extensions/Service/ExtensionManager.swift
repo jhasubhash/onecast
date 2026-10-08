@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import os
 
 /// What the palette is showing for the running command.
 enum ExtensionSessionState: Equatable {
@@ -947,9 +948,17 @@ final class ExtensionManager: ExtensionRuntimeDelegate, ExtensionHostContext {
 
     func runtime(_ runtime: ExtensionRuntime, log level: String, message: String) {
         #if DEBUG
-            print("[extension \(level)] \(message)")
+            let name = activeExtensionName ?? "?"
+            let type: OSLogType = level == "error" ? .error : level == "warn" ? .default : .info
+            Self.consoleLogger.log(level: type, "[\(name, privacy: .public)] \(message, privacy: .public)")
         #endif
     }
+
+    #if DEBUG
+        /// An extension's `console.*`, readable through `log` or the agent channel's `logs`.
+        private static let consoleLogger = Logger(
+            subsystem: Bundle.main.bundleIdentifier ?? "com.onecast.app", category: "ExtensionConsole")
+    #endif
 
     // MARK: - ExtensionHostContext
 
