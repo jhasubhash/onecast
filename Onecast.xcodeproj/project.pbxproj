@@ -743,6 +743,7 @@
 		A704A1AC64AAF342CE1BE9D4 /* SettingsNavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6266F058D489BD69BE2F3DDF /* SettingsNavigationState.swift */; };
 		A70C7FEF724106A1DC5A7FFE /* AIProvidersPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A168C0F6A0064FF87999C3CE /* AIProvidersPanel.swift */; };
 		A725D4C5CB797933B029153D /* DockAppObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C8AC2F66B4620B60D1D4F44 /* DockAppObserver.swift */; };
+		A73DD6E89E93183672493DB6 /* NSWindow+AccessibilityName.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC125855DDEAEC8E00EC6599 /* NSWindow+AccessibilityName.swift */; };
 		A76AD4809D45B4A6657014E1 /* MCPOAuthListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7CB1B2487E0F7D6FA2D390 /* MCPOAuthListener.swift */; };
 		A76DCB6ADB51DEDA9787C7DB /* PersonalStockQuote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 403809ED610D8C2F2DDC0C95 /* PersonalStockQuote.swift */; };
 		A85F53625108B088FA117AA9 /* StockModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5F0F7D08DDEFA1B61AADBE /* StockModel.swift */; };
@@ -1852,6 +1853,7 @@
 		AB7126FCD749F6505106C74B /* QuickActionPanelState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionPanelState.swift; sourceTree = "<group>"; };
 		AC018385C4139760A5295BDA /* WindowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowChrome.swift; sourceTree = "<group>"; };
 		AC0A54B318D3E192519AE0ED /* TimeBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeBarView.swift; sourceTree = "<group>"; };
+		AC125855DDEAEC8E00EC6599 /* NSWindow+AccessibilityName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSWindow+AccessibilityName.swift"; sourceTree = "<group>"; };
 		AC1EFED3B9FAF532B250F7C4 /* CustomWindowSizeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWindowSizeStore.swift; sourceTree = "<group>"; };
 		ACE6EF2509796773E0330D76 /* SystemActivityPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemActivityPopoverView.swift; sourceTree = "<group>"; };
 		ACEDFEAEBAC412BC8B212D23 /* CalcTimeZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalcTimeZone.swift; sourceTree = "<group>"; };
@@ -2811,6 +2813,7 @@
 				716BEC81D2F47C5AC9343894 /* LaunchAtLogin.swift */,
 				7DBEC3B2674B62AAAB52E632 /* Memo.swift */,
 				C12E17E2859C6FDFE23A59ED /* NotificationToken.swift */,
+				AC125855DDEAEC8E00EC6599 /* NSWindow+AccessibilityName.swift */,
 				A6D7A2A83E8681D4A7AA899E /* PasteboardFiles.swift */,
 				4EDD40F66BC06D5E944D88BD /* Permissions.swift */,
 				8310EFA8936C72D2202E7874 /* ProcessExit.swift */,
@@ -5561,6 +5564,7 @@
 				D6378C3492E75D3C212AE771 /* ModifierKey.swift in Sources */,
 				7D28ED7E34366750F6A0046E /* ModifierKeyDetector.swift in Sources */,
 				8A13CF7C50168A7FB25622BB /* ModifierTapMonitor.swift in Sources */,
+				A73DD6E89E93183672493DB6 /* NSWindow+AccessibilityName.swift in Sources */,
 				4DF41F0FA04C8CE3FBFF9286 /* NativeDockError.swift in Sources */,
 				BF1DBFBBC2E2E82BCCC8E623 /* NativeDockHidingPlan.swift in Sources */,
 				0F134F213ABE69E5F5FFF4B7 /* NativeDockLayoutsSection.swift in Sources */,

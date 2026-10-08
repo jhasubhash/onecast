@@ -14,6 +14,7 @@ final class DockFloatingPanel: NSPanel {
         super.init(
             contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered,
             defer: false)
+        nameForAccessibility("dock-floating", title: "Dock Popover")
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true

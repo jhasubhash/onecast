@@ -18,6 +18,7 @@ final class QuickActionPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
+        nameForAccessibility("quick-action", title: "Quick Action")
         isFloatingPanel = true
         // Above the palette, below a dialog: a failure report must still land on top of it.
         level = .floating

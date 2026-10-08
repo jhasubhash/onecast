@@ -61,6 +61,7 @@ final class PopOutWindowPanel: NSPanel {
             styleMask: [.borderless, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false)
+        nameForAccessibility("pop-out", title: "Pop-Out")
         // A plain window by default: it sits among normal windows on its own space, so other apps
         // can cover it — "keep in front" and "show on all spaces" are opt-in, via the menu.
         isFloatingPanel = false

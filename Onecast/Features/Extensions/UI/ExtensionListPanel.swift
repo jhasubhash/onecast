@@ -12,6 +12,7 @@ final class ExtensionListPanel: NSPanel {
         super.init(
             contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered, defer: false)
+        nameForAccessibility("extension-list", title: "Extension List")
         isFloatingPanel = true
         backgroundColor = .clear
         isOpaque = false

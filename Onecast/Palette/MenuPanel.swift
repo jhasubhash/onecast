@@ -12,6 +12,7 @@ final class MenuPanel: NSPanel {
         super.init(
             contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered, defer: false)
+        nameForAccessibility("menu", title: "Palette Menu")
         isFloatingPanel = true
         animationBehavior = .none
         backgroundColor = .clear

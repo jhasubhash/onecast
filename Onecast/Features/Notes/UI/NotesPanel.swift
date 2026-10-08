@@ -19,6 +19,7 @@ final class NotesPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
+        nameForAccessibility("notes", title: "Notes")
         isFloatingPanel = true
         hidesOnDeactivate = false
         level = .floating

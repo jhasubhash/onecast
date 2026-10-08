@@ -8,6 +8,7 @@ final class HUDPanel: NSPanel {
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false)
+        nameForAccessibility("hud", title: "HUD")
         isOpaque = false
         backgroundColor = .clear
         // Both HUDs take the palette's surface recipe, so neither carries elevation.

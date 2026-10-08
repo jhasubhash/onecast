@@ -268,6 +268,7 @@ final class PalettePanel: NSPanel {
             backing: .buffered,
             defer: false
         )
+        nameForAccessibility("palette", title: "Palette")
 
         isFloatingPanel = true
         acceptsMouseMovedEvents = true

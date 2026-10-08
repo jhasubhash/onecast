@@ -22,6 +22,7 @@ final class DialogPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
+        nameForAccessibility("dialog", title: "Dialog")
         isFloatingPanel = true
         level = .dialog
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]

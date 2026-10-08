@@ -121,6 +121,7 @@ private final class PaletteDropGuidePanel: NSPanel {
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false)
+        nameForAccessibility("drop-guide", title: "Drop Guide")
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false

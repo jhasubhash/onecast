@@ -39,8 +39,8 @@ already running keeps its old mapped image, so `pkill` and relaunch to be sure. 
 alone leaves the loaded dylib mapped.
 
 ```sh
-pkill -f "Onecast Dev.app/Contents/MacOS"; sleep 2
-open -a "$PWD/build/DerivedData/Build/Products/Debug/Onecast Dev.app"; sleep 6
+./Scripts/dev-run.sh             # build, check signing, quit the running copy, relaunch
+./Scripts/dev-run.sh --no-build  # relaunch the last build
 ```
 
 ## 3. Drive the real keyboard
@@ -78,12 +78,14 @@ in-script.
 
 ## 4. Capture the panel, not the screen
 
+Every panel carries an `AXIdentifier` (`onecast.palette`, `onecast.menu`, `onecast.dock`,
+`onecast.hud`, `onecast.dialog`, …) and a title, so pick the window by name, not by guessing.
 Ask the window its own rect and capture that — `screencapture -R` and the accessibility API's
 `position`/`size` both use points:
 
 ```sh
 osascript -e 'tell application "System Events" to tell process "Onecast Dev" \
-  to get {position, size} of windows'
+  to get {position, size} of (first window whose name is "Palette")'
 # 1844, 416, 750, 475
 screencapture -x -R1844,416,750,475 /tmp/panel.png
 ```

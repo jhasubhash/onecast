@@ -106,6 +106,7 @@ private final class DictationPanel: NSPanel {
         super.init(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        nameForAccessibility("dictation", title: "Dictation")
         contentView = content
         isOpaque = false
         backgroundColor = .clear

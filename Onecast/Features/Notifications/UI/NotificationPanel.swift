@@ -8,6 +8,7 @@ final class NotificationPanel: NSPanel {
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false)
+        nameForAccessibility("notification", title: "Notification")
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true

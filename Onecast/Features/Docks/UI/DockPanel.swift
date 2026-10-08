@@ -7,6 +7,7 @@ final class DockPanel: NSPanel {
         super.init(
             contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered,
             defer: false)
+        nameForAccessibility("dock", title: "Dock")
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false

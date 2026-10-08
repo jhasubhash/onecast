@@ -18,6 +18,7 @@ final class CameraPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
+        nameForAccessibility("camera", title: "Camera Preview")
         isFloatingPanel = true
         // Above the palette, below a dialog: a confirmation must still land on top of it.
         level = .floating
