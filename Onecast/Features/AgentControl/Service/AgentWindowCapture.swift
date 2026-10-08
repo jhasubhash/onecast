@@ -42,8 +42,8 @@ enum AgentWindowCapture {
         if Permissions.isScreenRecordingTrusted() {
             do {
                 return (try await screenCapture(window), "screenCaptureKit")
-            } catch Failure.notOnScreen {
-                // ScreenCaptureKit lists only composited windows; one on another Space still draws.
+            } catch {
+                // Another Space, or a locked session with the display asleep: the view still draws.
             }
         }
         return (try cachedDrawing(window), "cacheDisplay")

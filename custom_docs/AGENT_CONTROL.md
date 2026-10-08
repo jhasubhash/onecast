@@ -124,9 +124,10 @@ temporary `onecast-agent/<window>-<ms>.png`, and answers the file, its frame in 
 `method` used. With Onecast Dev granted **Screen Recording** it is `screenCaptureKit`, a
 desktop-independent window capture that matches the screen, glass included; without it
 `cacheDisplay`, the content view drawing itself, right for layout and text but not for Liquid
-Glass or vibrancy. A window ScreenCaptureKit cannot see, such as one on another Space, falls back
-to `cacheDisplay` too. The palette's capture also returns `rows`, whose frames locate each row in
-the image after subtracting the window's origin. [UI_TESTS.md](UI_TESTS.md) §4's rule still holds: look
+Glass or vibrancy. A window ScreenCaptureKit cannot see or capture, such as one on another Space
+or in a locked session with the display asleep, falls back to `cacheDisplay` too. The palette's
+capture also returns `rows`, whose frames locate each row in the image after subtracting the
+window's origin. [UI_TESTS.md](UI_TESTS.md) §4's rule still holds: look
 at the picture, and check the selection against `state` rather than reading a wash off pixels.
 
 ## Extensions and plugins
