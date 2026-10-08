@@ -84,6 +84,7 @@ final class QuicklinkCoordinator {
             QuicklinkDestination.usesURLEncoding(quicklink.link) ? .percentEncoding : .none
         var context = injector.captureExpansionContext(
             target: target, clipboardHistory: clipboardHistory())
+        var needsSelection = false
 
         // An unreadable selection is missing, not empty: substitute the clipboard, or take the field.
         if context.selection.isEmpty, SnippetTemplateEngine.usesSelection(quicklink.link) {
@@ -92,6 +93,7 @@ final class QuicklinkCoordinator {
                 context = context.replacingSelection(with: context.clipboard)
             case .ask:
                 let typed = values[Self.selectionArgument.name] ?? ""
+                needsSelection = typed.isEmpty
                 if !typed.isEmpty { context = context.replacingSelection(with: typed) }
             }
         }
@@ -100,7 +102,7 @@ final class QuicklinkCoordinator {
         let forcesDefault = forcingDefaultApp || pendingDefaultAppOverride == id
         let expansion = SnippetTemplateEngine.expand(
             text: quicklink.link, context: context, userArguments: values, encoding: encoding)
-        guard expansion.missingArguments.isEmpty else {
+        guard expansion.missingArguments.isEmpty, !needsSelection else {
             pendingDefaultAppOverride = forcesDefault ? id : nil
             promptForArguments(quicklink, values: values)
             return

@@ -1,10 +1,10 @@
 # Settings file
 
-An opt-in mirror of Onecast's preferences and all of window management in
+An opt-in mirror of Onecast's preferences, the launcher's items and all of window management in
 `~/.config/onecast/settings.json`, switched on in **Settings → Backup → Settings File**. `UserDefaults`
 stays the store; the file follows it, and an edit made to the file applies at once. The machinery lives
-in `Features/Settings/` (`Model/`, `Service/`, `SettingsFileSchema.swift`), and window management's part
-in `Features/WindowManagement/`.
+in `Features/Settings/` (`Model/`, `Service/`, `SettingsFileSchema.swift`), the launcher's part in
+`Features/Launcher/`, and window management's in `Features/WindowManagement/`.
 
 ## Invariants
 
@@ -21,13 +21,18 @@ in `Features/WindowManagement/`.
   is bound to a property.
 - **A bad edit never costs a setting.** A key the file leaves out keeps its value; a value Onecast
   can't use keeps the current one and is reported; an unknown key is reported and ignored; invalid JSON
-  applies nothing. An invalid record in a list is skipped and reported, and the rest still apply.
+  applies nothing. An invalid record in a list is skipped and reported, and the rest still apply. A
+  record's field left out or of the wrong type keeps its value, and `null` clears it.
 - **Applying the file never writes it.** Only a change made in the app rewrites the file, so hand
   formatting stays until then.
 - **Content and machine state never enter it.** Notes, snippets, custom commands, quicklinks,
   scheduled tasks, MCP servers, AI connections, assistants and skills stay where they are — the file
   can say which folder notes and snippets live in, never what is in them — as do the palette's and the
-  AI bar's position and size, the extension toolchain, and every shortcut outside window management.
+  AI bar's position and size, the extension toolchain, and the shortcuts and aliases of content,
+  extensions, plugins, docks, assistants and Apple Shortcuts.
+- **A shortcut or a visibility flag never switches a feature on.** A command of a disabled feature
+  stays out of the launcher and its chord stays inert, so launcher records cannot grant what only the
+  app may ask for.
 
 ## Layout
 
@@ -44,8 +49,11 @@ in `Features/WindowManagement/`.
 | `Settings/Service/SettingsFileMonitor.swift` | Watches the folder and the file, a save-by-rename included |
 | `Settings/SettingsFileSchema.swift` | Each key's binding, and the enum conformances |
 | `HotKeys/Model/HotKeySpelling.swift` | A binding as typed text |
-| `WindowManagement/Model/WindowManagementFileFormat.swift` | Command shortcuts, custom sizes and layouts as JSON |
-| `WindowManagement/Service/WindowManagementSettingsFile.swift` | Their three bindings, shortcuts included |
+| `HotKeys/Service/HotKeySettingsFile.swift` | Applies chords through `HotKeyManager`, conflicts reported |
+| `Launcher/Model/LauncherFileFormat.swift` | A launcher item's shortcut, alias and visibility as JSON |
+| `Launcher/Service/LauncherSettingsFile.swift` | Apps, panes, system actions and built-in commands |
+| `WindowManagement/Model/WindowManagementFileFormat.swift` | Command shortcuts and aliases, custom sizes and layouts as JSON |
+| `WindowManagement/Service/WindowManagementSettingsFile.swift` | Their four bindings, shortcuts and aliases included |
 
 ## Location
 
@@ -60,8 +68,9 @@ target, so a file linked from a dotfiles repository stays linked.
 
 - **Turning it on** with no file writes one from the current settings. Over an existing file, a dialog
   asks: **Import** applies the file, **Replace** overwrites it.
-- **At launch**, while on, the file is applied last in `start()`, so an edit made while Onecast was
-  quit reaches every sink. A missing file is written again; an unreadable one is reported and left alone.
+- **At launch**, while on, the file is applied after `AppIndex`'s first scan: every sink is wired by
+  then, and the file's apps and panes have entries to match. A missing file is written again; an
+  unreadable one is reported and left alone.
 - **App → file.** Every bound value is read inside `withObservationTracking`; a change saves 300 ms
   later, and the save writes only when the whole render differs from the one the two sides last agreed
   on. Writes are atomic. Quitting or turning the switch off flushes a pending save.
@@ -132,15 +141,48 @@ plus key. Keyless bindings are `left|right ctrl|option|shift|cmd`, their `double
 `double-tap ctrl|option|shift|cmd`, `globe` and `double-tap globe`. The
 recorder's rule holds: a chord needs ⌘, ⌥, ⌃ or fn unless its key is an F-key.
 
+Every key clears the bindings it changes before any is set, and `HotKeySettingsFile.commit` sets them
+once all keys have applied, so a chord the file moves — even between sections — never collides with
+where it was. A chord another action still holds is reported, and the old binding stays.
+
+## Launcher items
+
+Each pane that lists items writes the ones with something set, as records keyed by ID:
+`applications.apps` and `systemSettings.panes` by bundle ID, `systemActions.actions` by action ID, and
+built-in commands under the pane that lists them — `clipboard.commands`, `presentation.commands`,
+`docks.commands`, `scheduler.commands` and the rest of those panes, with every other command in
+`commands.builtIn` — by their ID after `command:`. Which pane lists a command is
+`SettingsTab.ownedCommands`, so a command moved there moves in the file, and a pane that gains its
+first command needs a `<pane>.commands` key, which `launcher-settings-file-test` enforces. Three
+fixed actions have no row to carry a shortcut, so each has a key of its own: `general.launcherShortcut`
+for App Launcher, `ai.barShortcut` for the floating AI bar and `dictation.shortcut`.
+
+```json
+"clipboard-history": { "shortcut": "cmd+shift+v", "alias": "ch", "showInLauncher": true }
+```
+
+- **A record left out has no shortcut, no alias, and is shown.**
+- **An invalid launcher record keeps its current values** and is reported; it is never a deletion.
+- **An app or pane Settings doesn't list waits** — not installed here, or outside the search scopes.
+  Its record is not applied, is written back as read so a dotfile shared between Macs keeps it, and
+  applies after the scan that finds it.
+- Partial edits to a waiting record keep its other fields. An applied record stays in the mirror
+  after its last shortcut is cleared, even outside the search scopes.
+- A command that can't take a shortcut, such as Quit, keeps its alias and visibility and reports the
+  shortcut.
+- `applications.enabled`, `systemSettings.enabled`, `systemActions.enabled` and
+  `commands.builtInEnabled` are each pane's category switch; `commands.enabled` stays custom commands'.
+
 ## Window management
 
 - **`shortcuts`** lists all 35 commands by ID, `null` when unbound; one left out is unbound too.
-- **`customSizes` and `layouts`** each carry their record's `shortcut`. A record keeps its `id`,
-  because favorites, aliases, ranking and visibility key on it; one written without an `id` gets a
-  stable one derived from its name.
+- **`aliases`** lists only the commands that have one.
+- **`customSizes` and `layouts`** each carry their record's `shortcut` and `alias`. A record keeps its
+  `id`, because favorites, aliases, ranking and visibility key on it; one written without an `id` gets
+  a stable one derived from its name.
 - A custom size's `width` and `height` are `"60%"` or `"900pt"`, a bare number read as points. A layout
   app's `width` and `height` are fractions of its display, in full precision.
-- A shortcut the file sets that another action already holds is reported, and the old one stays.
+- `windowManagement.commands` holds Create and Capture Window Layout, like any pane's commands.
 
 ## Adding a setting
 
@@ -150,5 +192,8 @@ recorder's rule holds: a chord needs ⌘, ⌥, ⌃ or fn unless its key is an F-
 3. Bind it in `SettingsFileSchema`; an enum conforms to `SettingsFileRawValue`, or to
    `SettingsFileToken` when its file spelling differs from its raw value.
 4. Run its side effect from a `track` sink in `AppCore`.
+5. A pane that lists built-in commands gets a `<pane>.commands` key bound with
+   `launcher.commandsBinding(for:owner:)`; an app, pane, system action or built-in command needs no
+   key of its own.
 
 A consent flag, content or machine state gets no key.

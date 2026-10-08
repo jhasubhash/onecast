@@ -92,6 +92,24 @@ struct ExtensionCommandScreen: PaletteScreen {
         return false
     }
 
+    /// The rows the panel shows for its typed filter, so a shortcut never reaches a hidden one.
+    private static func panelActions(
+        _ all: [ExtensionAction], matching query: String
+    ) -> [ExtensionAction] {
+        let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !needle.isEmpty else { return all }
+        return all.filter { $0.title.lowercased().contains(needle) }
+    }
+
+    /// The open panel's row an action's own shortcut fires; filtered-out rows stay silent.
+    func panelRow(
+        matching key: KeyEquivalent, modifiers: EventModifiers, at selection: Int, query: String
+    ) -> Int? {
+        let all = ExtensionScreen.actions(in: screen.actionPanel(forItemAt: selection))
+        return Self.panelActions(all, matching: query)
+            .firstIndex { $0.matches(key: key, modifiers: modifiers) }
+    }
+
     /// A command's rows carry tinted icons and its panel scrolls; a menu row cannot.
     func menuContent(
         at selection: Int, menuSelection: Binding<Int>, query: String,
@@ -99,12 +117,7 @@ struct ExtensionCommandScreen: PaletteScreen {
     ) -> PaletteMenuContent? {
         let all = ExtensionScreen.actions(in: screen.actionPanel(forItemAt: selection))
         guard !all.isEmpty else { return nil }
-        let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
-        let matches =
-            needle.isEmpty
-            ? Array(all.indices)
-            : all.indices.filter { all[$0].title.lowercased().contains(needle) }
-        let actions = matches.map { all[$0] }
+        let actions = Self.panelActions(all, matching: query)
         let screen = screen
         let assetsPath = assetsPath
         let extensions = extensions

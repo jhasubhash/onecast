@@ -16,8 +16,38 @@ struct NotesEditorTests {
         testUndoIsolation(afterUndo: true)
         testQuickActionReplacement()
         testCharacterCountReports()
+        testTextHeight()
         print(failures == 0 ? "Notes editor tests passed" : "\(failures) tests failed")
         exit(failures == 0 ? 0 : 1)
+    }
+
+    private static func testTextHeight() {
+        let input = NoteEditorInput(id: NoteID(rawValue: "Sizing.md"), source: "", epoch: 0)
+        let editor = makeEditor(input: input)
+        let emptyHeight = editor.textView.textHeight()
+        check(
+            "an empty note measures shorter than the visible area", emptyHeight < editor.textView.frame.height
+        )
+
+        let lines = String(repeating: "A line of text\n", count: 20)
+        editor.textView.insertText(lines, replacementRange: editor.textView.selectedRange())
+        let multilineHeight = editor.textView.textHeight()
+        check("new lines grow the measured height at once", multilineHeight > emptyHeight)
+
+        let wrappedText = String(repeating: "wrapped words ", count: 80)
+        editor.textView.insertText(wrappedText, replacementRange: editor.textView.selectedRange())
+        let wrappedHeight = editor.textView.textHeight()
+        check("wrapped text grows the measured height without a newline", wrappedHeight > multilineHeight)
+
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        paste("\n" + lines, into: editor.textView, from: pasteboard)
+        check("paste grows the measured height", editor.textView.textHeight() > wrappedHeight)
+
+        editor.textView.selectAll(nil)
+        editor.textView.deleteBackward(nil)
+        check(
+            "deleting the text shrinks the measured height back", editor.textView.textHeight() == emptyHeight)
     }
 
     private static func testLiteralEditingAndNativeCommands() {

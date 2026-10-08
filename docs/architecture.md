@@ -28,7 +28,7 @@ Independently of the folder tree, every mature subsystem has converged on the sa
 │ ShellCommandRunner · DoubleTap{Modifier,Detector} · ClipboardStore ·       │
 │ RaycastDecoder · Scrypt · AppSettingsKey · SettingsBackupCoverage          │
 │ SettingsFile{JSON,Key,Value,Format,Binding,Issue,Identity} ·               │
-│ HotKeySpelling · WindowManagementFileFormat ·                              │
+│ HotKeySpelling · LauncherFileFormat · WindowManagementFileFormat ·         │
 │ MeetingLink · MeetingEvent · UpcomingWindow · MeetingDay · MenuBarSummary  │
 │ AutoJoinPolicy · EventDraft · SupportReminderSchedule ·                    │
 │ MenuSearch{Item,Shortcut,Query,TreeNode,SnapshotPolicy,Target} ·           │
@@ -140,9 +140,9 @@ driven imperatively from AppKit. Extension menu extras are dynamic `NSStatusItem
   unreliable for accessory apps, so this is deliberate. Their lifecycles are independent of the
   palette's in both directions.
 - **Notes** — a persistent, titled, non-activating `NotesPanel` managed by `NotesWindowController`.
-  The user owns its size and AppKit autosaves the frame; its literal-source TextKit 2 editor switches
-  among local Markdown files and stays visible on focus loss. The displayed string is the canonical
-  file source; Notes has no parser, rendered preview, or source/display mapping.
+  Its height fits the note up to 860pt and AppKit autosaves the frame; its literal-source TextKit 2
+  editor switches among local Markdown files and stays visible on focus loss. The displayed string is
+  the canonical file source; Notes has no parser, rendered preview, or source/display mapping.
   See [features/notes.md](features/notes.md).
 - **The main menu** — shaped by `OnecastApp`'s `.commands`, which rebinds ⌘Q to Close Settings. It is
   only ever on screen while a titled window is open, so it is Settings' menu bar. It must stay

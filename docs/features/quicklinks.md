@@ -103,7 +103,8 @@ is expanded and no clipboard is read to draw a chip — plus the synthetic **"Se
 the setting says ask. An argument with a `default=` is still offered, as an optional chip: left
 empty, the default fills it, so a default is a starting value rather than a fixed one. It stays owed
 if any occurrence of that name lacks a `default=`, because expansion falls back per occurrence. An
-optional chip is never the first incomplete field and never takes the red edge below.
+optional chip is never the first incomplete field, except "Selected Text" below, and never takes the
+red edge.
 `QuicklinkArgumentsAccessory` turns that list into the strip; a field declaring `options=` is chosen
 from the palette's own menu rather than typed. **A chip marks nothing up front.** It draws like every
 other field until the caret has been in it and left it empty, and only then takes a red edge — a row
@@ -113,12 +114,11 @@ glyph, then the chips, right after the typed text — and `.besideSearchField` o
 where the field stays a filter with its prompt intact and the row below already carries the glyph.
 
 **"Selected Text" is asked for up front, not after a failed read.** A chip cannot capture a selection,
-so the field appears whenever the link reads `{selection}` and the setting is `.ask`. Left empty it
-changes nothing — a selection the frontmost app *does* expose is still used — and only a typed value
-replaces it. So it is never owed: `QuicklinkCoordinator.selectionArgument` is optional, which keeps it
-out of the first incomplete field, and ↵ opens a selected-text link at once instead of focusing the
-empty chip first. That is the one behavioural difference from the two-screen form it replaced, and it
-is what lets the strip be drawn without capturing anything.
+so the field appears whenever the link reads `{selection}` and the setting is `.ask`.
+`QuicklinkCoordinator.selectionArgument` stays optional during ordinary navigation so ↵ can read
+the frontmost app's selection without requiring typed input first. If that read returns nothing and
+the field is empty, opening shows Search Quicklinks with the field focused and waits for input.
+A typed value supplies the missing selection. Drawing the strip never captures anything.
 
 `openQuicklink(id:forcingDefaultApp:values:)` is the single funnel, and it captures the expansion
 context on **every** call rather than holding one across a session, so `{clipboard}`, `{selection}` and

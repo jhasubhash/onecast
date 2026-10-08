@@ -32,6 +32,8 @@ final class AppCore {
     let settings: AppSettings
     /// Mirrors settings into settings.json; nil while the Backup pane's switch is off.
     @ObservationIgnored private var settingsFile: SettingsFileRepository?
+    /// The file's launcher items, kept to apply a waiting record once its app is installed.
+    @ObservationIgnored private var launcherSettingsFile: LauncherSettingsFile?
     @ObservationIgnored private var appearanceObservation: NSKeyValueObservation?
     @ObservationIgnored private let iconStyle = IconStyleMonitor()
     let favorites = FavoritesStore()
@@ -83,7 +85,7 @@ final class AppCore {
         store: snippetsStore, listener: snippetListener, injector: textInjector,
         clipboardStore: clipboardStore, appIndex: appIndex, settings: settings,
         windowController: windowController, paletteCoordinator: paletteCoordinator,
-        showMessage: { [unowned self] in self.showMessage($0) }, core: self)
+        showMessage: { [unowned self] in self.showMessage($0, tone: $1) }, core: self)
     @ObservationIgnored private(set) lazy var dictationCoordinator = DictationCoordinator(
         settings: settings, hotKeys: hotKeys, models: dictationModels, injector: textInjector,
         audioDucker: dictationAudioDucker,
@@ -410,6 +412,12 @@ final class AppCore {
             appIndex.onScan = { [weak self] in
                 guard let self else { return }
                 hotKeys.removeAppBindings(where: appIndex.isUninstalled)
+                // After the first scan, so the file's apps and panes have entries to match.
+                if settings.settingsFileEnabled, settingsFile == nil {
+                    startSettingsFile(importing: true)
+                } else if let launcherSettingsFile {
+                    reportSettingsFileIssues(launcherSettingsFile.applyInstalled())
+                }
             }
             plugins.onDidUninstall = { [weak self] entryIDs in
                 self?.pluginCoordinator.removePluginReferences(entryIDs: entryIDs)
@@ -459,8 +467,6 @@ final class AppCore {
             snippetCoordinator.applySnippetsLauncherPresence()
 
             observeFeatureSwitches()
-            // Last, so an edit made while Onecast was quit reaches every sink wired above.
-            if settings.settingsFileEnabled { startSettingsFile(importing: true) }
 
             // First launch binds no hotkey, so guide once; the marker is written at show-time.
             if !OnboardingState.hasOnboarded {
@@ -880,17 +886,21 @@ final class AppCore {
     /// Mirrors settings into settings.json from now on; `importing` applies the file's own first.
     func startSettingsFile(importing: Bool) {
         guard settingsFile == nil else { return }
+        let shortcuts = HotKeySettingsFile(hotKeys: hotKeys)
+        let launcher = LauncherSettingsFile(
+            appIndex: appIndex, aliases: aliases, visibility: visibility, shortcuts: shortcuts)
         let file = SettingsFileRepository(
             fileURL: AppPaths.settingsFile(),
             bindings: SettingsFileSchema.bindings(
                 settings: settings, ai: aiSettings, quickActions: quickActionSettings,
+                shortcuts: shortcuts, launcher: launcher,
                 windowManagement: WindowManagementSettingsFile(
-                    sizes: customWindowSizes, layouts: windowLayouts, hotKeys: hotKeys)))
-        file.onIssues = { [weak self] issues in
-            guard let summary = SettingsFileIssue.summary(issues) else { return }
-            self?.showMessage(summary, tone: .danger)
-        }
+                    sizes: customWindowSizes, layouts: windowLayouts, aliases: aliases,
+                    shortcuts: shortcuts)),
+            commit: shortcuts.commit)
+        file.onIssues = { [weak self] issues in self?.reportSettingsFileIssues(issues) }
         settingsFile = file
+        launcherSettingsFile = launcher
         settings.settingsFileEnabled = true
         file.start(importing: importing)
     }
@@ -899,7 +909,13 @@ final class AppCore {
     func stopSettingsFile() {
         settingsFile?.flush()
         settingsFile = nil
+        launcherSettingsFile = nil
         settings.settingsFileEnabled = false
+    }
+
+    private func reportSettingsFileIssues(_ issues: [SettingsFileIssue]) {
+        guard let summary = SettingsFileIssue.summary(issues) else { return }
+        showMessage(summary, tone: .danger)
     }
 
     // MARK: - Interruption

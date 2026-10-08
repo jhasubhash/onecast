@@ -119,6 +119,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `custom-command-test` | `CustomCommands/Model/CustomCommand.swift`, `Service/ShellCommandRunner.swift` |
 | `uninstall-test` | all five pure files in `Uninstall/Model/` |
 | `quicklink-test` | all of `Quicklinks/Model/` |
+| `quicklink-coordinator-test` | Quicklink opening and inline argument focus — missing selection, manual input, clipboard fallback and default-app overrides; no platform effects |
 | `dock-badges-test` | `Docks/Model/DockBadges.swift` — mapping the macOS Dock's tiles to bundle ID → badge label |
 | `apple-shortcut-test` | all of `AppleShortcuts/Model/` — the `shortcuts list` parser and entry ids |
 | `docks-test` | `Docks/Model/{DockModels,DockGeometry,DockSlots,DockURL}.swift` — sanitizing a configuration, slot order, frames and the lens, layout stepping, `onecast://dock` links |
@@ -132,7 +133,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `raycast-test` | `Backup/Service/RaycastDecoder.swift`, `Scrypt.swift`, `Platform/Compression/Zlib.swift` |
 | `symbols-test` | `Extensions/Service/SymbolCatalog.swift`, against this machine's CoreGlyphs |
 | `ext-store-test` | `Extensions/Model/` — GitHub source parsing and URLs, the store and Git tree parsers |
-| `ext-refresh-test` | `Extensions/Model/ExtensionRefreshPolicy.swift` — interval parsing, due dates, backoff, subtitle fallback, indicator state |
+| `ext-refresh-test` | `Extensions/Model/ExtensionRefreshPolicy.swift` — interval parsing, due dates, backoff, subtitle fallback, indicator state, Refresh Now refusals |
 | `ext-version-test` | `Extensions/Service/ExtensionVersionStore.swift` — what an update check reports, adopts and forgets |
 | `ext-process-test` | `Extensions/Service/ExtensionFetcher.swift`'s `ExtensionAsyncProcess`, `ExtensionNodeShims`' `child_process` — a timeout stopping the whole group, both pipes drained at once, a cancelled `wait` and a closed context stopping their children |
 | `ext-metadata-test` | `Extensions/Service/ExtensionCommandMetadataStore.swift` — round-trip, failure runs, uninstall |
@@ -142,8 +143,10 @@ If a change touches anything in the right column, the harness on the left is man
 | `entry-icon-test` | `EntryIcon` — that each case draws, caches and prints apart from the others, and that a moved `FileIconStamp` retires the bitmap decoded before it |
 | `text-diff-test` | `QuickActions/Model/TextDiffEngine.swift` — exact chunks, Unicode, ties, token-cap boundaries and fast paths |
 | `settings-backup-test` | `Settings/AppSettingsKey.swift`, `Backup/Model/SettingsBackupCoverage.swift` |
-| `settings-file-test` | `Settings/Model/` and `Settings/Service/` — key paths, value tokens, the printer and parser, and the repository's import, replace, save, reload and symlink handling on a scratch folder |
-| `window-file-test` | `WindowManagement/Model/WindowManagementFileFormat.swift` — command shortcuts, custom sizes and layouts as settings.json spells them, hand edits and bad records |
+| `settings-file-test` | `Settings/Model/` and `Settings/Service/` — key paths, value tokens, the printer and parser, and the repository's import, replace, save, reload, commit and symlink handling on a scratch folder |
+| `window-file-test` | `WindowManagement/Model/WindowManagementFileFormat.swift` — command shortcuts and aliases, custom sizes and layouts as settings.json spells them, hand edits and bad records |
+| `launcher-file-test` | `Launcher/Model/LauncherFileFormat.swift` — a launcher item's shortcut, alias and visibility as settings.json spells it, hand edits and bad records |
+| `launcher-settings-file-test` | Launcher settings application — invalid records, partial edits, deferred bundles, shortcut moves, records outside search scopes, and that every built-in command and every pane that lists one has its place in the file; isolated preferences and in-memory scan/Carbon effects |
 | `backup-archive-test` | all of `Backup/Model/`, plus `Backup/Service/BackupStaging.swift` |
 | `updates-test` | `Updates/Model/` — version precedence, channel filtering, install route, readiness |
 | `update-check-test` | `UpdateCheckStore` — stopping, in-flight cancellation, cached prompt suppression, restart and independent manual checking |
@@ -491,10 +494,16 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - An empty note shows `Start writing…`; the footer count is right after typing, pasting and undoing
 - ⌘F opens the find bar inside the note, the placeholder moves down with the text, and Escape closes
   the bar first, then the window
+- Typing new lines, wrapping text, and pasting grow the note vertically without changing its width,
+  and deleting shrinks it back to the 180pt floor; the top edge stays put until growth reaches the
+  screen's bottom, then the window moves up. It stops at 860pt or the screen's usable height and
+  scrolls. A dragged height holds until the next keystroke, which fits the window again. Switching
+  to a shorter note shrinks it. Repeat with the find bar open and on a secondary display
 - Traffic lights sit top-left, the title is centred **on the window**, and the capsule is top-right, all
   on one line; the yellow light is disabled and green zooms
 - Each capsule button shows a hover capsule and a native tooltip, and fires its action
-- Dragging the title bar moves the window and dragging an edge resizes it; both survive relaunch
+- Dragging the title bar moves the window and the position survives relaunch; dragging an edge
+  resizes its width, and a dragged height lasts until the next edit
 - Clicking another app leaves the panel visible; Escape, Command-W, and the red light hide it
 - Command-Q does nothing anywhere; with Settings in front, Command-W closes Settings
 - Hiding restores the previous external app or Onecast window
@@ -570,6 +579,9 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Auto Join on: the meeting opens itself at its start, **once** — dismiss it and it does not return.
   With confirm on and camera preview off, the dialog asks first
 - Arming Auto Join during a meeting already under way joins nothing
+- `Only join known meeting services` on: an event whose only link is a booking page or document
+  neither asks nor opens at its start, while a Zoom or Meet event beside it still joins; the join
+  card still offers both
 - Sleeping over a meeting's start and waking past it reloads the events; one still inside the window
   joins, one long past does not
 - Create Event writes to the default calendar and shows up on the card, the schedule and the launcher
@@ -591,6 +603,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   gain and output audio stay unchanged. Switch the default input and repeat; an unavailable or
   externally controlled mute reports failure. Rapid repeats while a change is pending are ignored
 - Holding a bound hotkey does **not** stack dialogs
+- Lock Screen locks from a global hotkey with the palette closed, including a Hyper-key binding
 - Window commands move the window you were last in; cycle-on-repeat steps ½ → ⅓ → ⅔
 - "Top Half" lands flush with the top of the visible frame, on a secondary display too
 - A command with the Notes window focused places Notes, not the app behind it

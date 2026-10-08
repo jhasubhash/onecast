@@ -240,7 +240,8 @@ screens hold (see [palette.md](palette.md)).
   too. `isShowingDetail` splits the screen into rows plus a detail pane and drops each row's
   subtitle, but **not its accessories**: the API only advises an extension against sending them in
   this mode, and Raycast draws the ones it is sent, so suppressing them here would lose a row its
-  whole signal. `ExtensionScreen.Item`
+  whole signal. As in Raycast, they keep their full width and the title is what truncates.
+  `ExtensionScreen.Item`
   carries both the flat `selection` index and the scroll id, and is the `ForEach` identity of the row
   and the grid cell alike — see the scroll-id rule in [ui.md](../ui.md#rows-selection-hover).
   A matching `selectedItemId` seeds the palette highlight when the screen first appears.
@@ -388,7 +389,9 @@ screens hold (see [palette.md](palette.md)).
   title shares the elastic scroller with the actions. The panel opens and closes from its
   bottom-right attachment with extension-owned opacity and scale timing, briefly reaching 1.003;
   its attached corner matches the footer button. The first action is the primary ↵ action; an
-  action's own `shortcut` is matched against modified keystrokes.
+  action's own `shortcut` is matched against modified keystrokes, with the panel open or closed:
+  open, `ExtensionShortcutKeys` matches only the rows its filter still shows and fires them through
+  the palette's own row activation, so the panel closes as it does on ↵.
   `ExtensionCommandScreen.menuContent` hands the whole panel to the palette as a
   `PaletteMenuContent`, so the palette never learns the row type — and a row's handler is taken from
   the flattened `ExtensionAction` list rather than the drawn rows, so ↵ and the panel fire the same
@@ -601,10 +604,13 @@ Refresh is opt-in per command: off until the first manual run or the Settings to
 (Settings › Extensions › the command › Background refresh), which also shows the last refresh and the
 last error. The launcher row carries the state too: a dot while refresh is on, its dimmed twin
 while it is off, a warning with the error as its tooltip when the last background run failed, and
-the Actions menu offers Enable / Disable Background Refresh plus Refresh Now. The override lives in
-`extension-commands.json` — derived state, so no backup carries it — and uninstall removes an
-extension's records with everything else. Deliberately not in `extension-data/<name>.json`: drawing a
-launcher row reads every command's metadata, and that file holds the extension's whole `Cache`.
+the Actions menu offers Enable / Disable Background Refresh plus Refresh Now. Refresh Now never
+queues: while another command holds the runtime it shows a HUD saying so, since a deferred run could
+fire long after the click, when a foreground command finally closes, with nothing to show it ran.
+The override lives in `extension-commands.json` — derived state, so no backup carries it — and
+uninstall removes an extension's records with everything else. Deliberately not in
+`extension-data/<name>.json`: drawing a launcher row reads every command's metadata, and that file
+holds the extension's whole `Cache`.
 
 The scheduler is one loop doing date math, not one timer per command: close ticks run as a single
 batch, installs share a deterministic phase so they don't re-fire in lockstep after sleep, and a wakeup
@@ -682,6 +688,11 @@ a member it cannot see arrives as `undefined`, which `class … extends` reports
 out a real `AsyncLocalStorage` and `AsyncResource` rather than a stub for the same reason: undici
 extends the latter at module scope, and running the callback in place is the whole of it here.
 
+`Buffer.allocUnsafeSlow` uses the same zero-filled, independent allocation as `allocUnsafe`.
+Its presence lets bundled `safe-buffer` select the modern Buffer API rather than calling the class
+as a legacy function. `EventEmitter.once` passes the emitter as the listener's receiver, like `on`,
+and removes the listener before invoking it; bundled duplex streams rely on that receiver at `end`.
+
 **WebAssembly** — `compile`, `instantiate` and their streaming forms run through the synchronous
 `Module` and `Instance` constructors. JavaScriptCore settles the promise forms from a run-loop timer on
 the thread that owns the VM, and the runtime's queue never spins one, so they stayed pending forever.
@@ -709,6 +720,9 @@ that as absence, like Node. Raycast's Visual Studio Code extension leans on the 
 `vscode-remote://` workspace whose stripped pathname exists locally (an SSH host opened at `/`
 always does) would otherwise pass `isFolderEntry` and reach `fileURLToPath`, which took the whole
 Search Recent Projects command down.
+
+Non-recursive `mkdir` is atomic and returns POSIX error codes. `utimes` updates real timestamps,
+so extension lockfiles can detect stale owners and refresh their heartbeat.
 
 A bundle that ships its own HTTP client rather than calling `fetch` — node-fetch travels inside
 `@raycast/utils`, and axios has a Node adapter — reaches the network through `http.request`, so the

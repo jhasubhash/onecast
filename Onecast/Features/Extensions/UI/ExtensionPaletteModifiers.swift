@@ -4,14 +4,24 @@ import SwiftUI
 struct ExtensionShortcutKeys: ViewModifier {
     let screen: ExtensionCommandScreen?
     let selection: Int
+    /// What is typed in the actions panel while it is open, whose own rows then take the chord.
+    let panelQuery: String?
+    let activatePanelRow: (Int) -> Void
 
     func body(content: Content) -> some View {
         content.onKeyPress(phases: .down) { press in
             guard let screen, !press.modifiers.isEmpty else { return .ignored }
-            return screen.dispatchShortcut(
-                key: ASCIIKeyboardLayout.keyEquivalent(fallingBackTo: press.key),
-                modifiers: press.modifiers,
-                at: selection) ? .handled : .ignored
+            let key = ASCIIKeyboardLayout.keyEquivalent(fallingBackTo: press.key)
+            guard let panelQuery else {
+                return screen.dispatchShortcut(key: key, modifiers: press.modifiers, at: selection)
+                    ? .handled : .ignored
+            }
+            guard
+                let row = screen.panelRow(
+                    matching: key, modifiers: press.modifiers, at: selection, query: panelQuery)
+            else { return .ignored }
+            activatePanelRow(row)
+            return .handled
         }
     }
 }

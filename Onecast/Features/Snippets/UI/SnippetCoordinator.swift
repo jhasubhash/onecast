@@ -12,7 +12,7 @@ final class SnippetCoordinator {
     private let windowController: PaletteWindowController
     private let paletteCoordinator: PaletteCoordinator
     /// Routed out so `MessageHUDController` stays owned by `AppCore`.
-    private let showMessage: @MainActor (String) -> Void
+    private let showMessage: @MainActor (String, DialogTone) -> Void
     /// The consent dialog and the app's own dialogs.
     private unowned let core: AppCore
 
@@ -29,7 +29,7 @@ final class SnippetCoordinator {
         settings: AppSettings,
         windowController: PaletteWindowController,
         paletteCoordinator: PaletteCoordinator,
-        showMessage: @escaping @MainActor (String) -> Void,
+        showMessage: @escaping @MainActor (String, DialogTone) -> Void,
         core: AppCore
     ) {
         self.store = store
@@ -146,7 +146,7 @@ final class SnippetCoordinator {
                     try await store.create(draft.build())
                 }
                 finishEditing()
-                showMessage(draft.isEditing ? "Snippet updated" : "Snippet created")
+                showMessage(draft.isEditing ? "Snippet updated" : "Snippet created", .success)
             } catch {
                 draft.errorMessage = error.localizedDescription
             }
@@ -239,9 +239,14 @@ final class SnippetCoordinator {
         }
         if windowController.isVisible {
             expandSnippetFromPalette(id: id)
-        } else {
-            expandSnippet(id: id, target: InjectionTarget.current())
+            return
         }
+        // A window of ours that isn't an editor, such as Settings, has no caret to type at.
+        guard let target = InjectionTarget.current() else {
+            showMessage("Click into a text field first", .neutral)
+            return
+        }
+        expandSnippet(id: id, target: target)
     }
 
     func expandSnippet(
@@ -354,7 +359,7 @@ final class SnippetCoordinator {
             automaticGeneration: automaticGeneration,
             onDelivered: { [weak self] in
                 guard let self, let confirmation else { return }
-                self.showMessage(confirmation)
+                self.showMessage(confirmation, .success)
             })
     }
 }

@@ -86,7 +86,7 @@ struct SystemStorageTabView: View {
         return VStack(spacing: Theme.Spacing.sm) {
             ForEach(scanner.entries) { entry in
                 Button {
-                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: entry.path)])
+                    AppLauncher.showInFinder(URL(fileURLWithPath: entry.path))
                 } label: {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                         HStack(spacing: Theme.Spacing.md) {

@@ -33,7 +33,7 @@ struct DockWidgetsSettingsSection: View {
                     }
                 }
                 Button("Reveal DockWidgets Folder…") {
-                    NSWorkspace.shared.activateFileViewerSelecting([DockWidgetCatalog.widgetsDirectory()])
+                    AppLauncher.showInFinder(DockWidgetCatalog.widgetsDirectory())
                 }
             }
             .settingsEnabled(enabled)
@@ -69,7 +69,7 @@ private struct InstalledDockWidgetRow: View {
                         .accessibilityLabel("Building \(install.manifest.name)")
                 }
                 Button("Reveal") {
-                    NSWorkspace.shared.activateFileViewerSelecting([install.directory])
+                    AppLauncher.showInFinder(install.directory)
                 }
                 Button("Uninstall", role: .destructive, action: confirmUninstall)
             }

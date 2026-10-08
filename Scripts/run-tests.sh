@@ -140,6 +140,30 @@ run app-name-test          Onecast/Platform/AppDisplayName.swift \
                            Onecast/Platform/BundleLocalization.swift \
                            $L/SearchRelevance.swift
 run favorites-test         $L/FavoriteSlots.swift
+run launcher-file-test     $L/LauncherFileFormat.swift \
+                           Onecast/Features/Settings/Model/SettingsFileJSON.swift
+run launcher-settings-file-test \
+                           $L/LauncherFileFormat.swift $L/CommandID.swift $L/CommandCatalog.swift \
+                           Onecast/Features/Launcher/Service/LauncherSettingsFile.swift \
+                           Onecast/Features/Launcher/Service/AliasStore.swift \
+                           Onecast/Features/Launcher/Service/VisibilityStore.swift \
+                           Onecast/Features/Settings/SettingsTab.swift \
+                           Onecast/Features/Settings/Model/*.swift \
+                           Onecast/Features/HotKeys/Service/HotKeySettingsFile.swift \
+                           Onecast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Onecast/Features/HotKeys/Model/HotKeySpelling.swift \
+                           Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Onecast/Features/HotKeys/Model/ModifierKey.swift \
+                           Onecast/Features/HotKeys/Model/HyperKey.swift \
+                           Onecast/Platform/ASCIIKeyboardLayout.swift \
+                           Onecast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Onecast/Features/Quicklinks/Model/Quicklink.swift \
+                           Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Onecast/Features/SystemActions/Model/SystemAction.swift \
+                           Onecast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Onecast/Features/Snippets/Model/Snippet.swift
 run apple-shortcut-test    Onecast/Features/AppleShortcuts/Model/*.swift
 run calc-test              Onecast/Features/Calculator/Model/*.swift
 run index calc-performance Onecast/Features/Calculator/Model/*.swift
@@ -414,6 +438,15 @@ run quicklink-test         Onecast/Features/Quicklinks/Model/Quicklink.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkArchive.swift \
                            Onecast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift \
                            Onecast/Features/Quicklinks/UI/QuicklinkDraft.swift
+run quicklink-coordinator-test Onecast/Features/Quicklinks/Model/Quicklink.swift \
+                           Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Onecast/Features/Quicklinks/Model/QuicklinkStore.swift \
+                           Onecast/Features/Quicklinks/Model/QuicklinkArchive.swift \
+                           Onecast/Features/Quicklinks/UI/QuicklinkCoordinator.swift \
+                           Onecast/Features/Quicklinks/UI/QuicklinkArgumentsAccessory.swift \
+                           Onecast/Features/Quicklinks/UI/QuicklinkDraft.swift \
+                           Onecast/Features/Snippets/Model/Snippet.swift \
+                           Onecast/Features/Snippets/Model/SnippetTemplateEngine.swift
 run slow snippets-test     Onecast/Platform/NotificationToken.swift \
                            Onecast/Platform/HealthTicker.swift \
                            Onecast/Platform/AccessibilityText.swift \

@@ -45,7 +45,7 @@ struct PluginsSettingsView: View {
                     core.pluginCoordinator.importPluginFromFolder()
                 }
                 Button("Reveal Plugins Folder…") {
-                    NSWorkspace.shared.activateFileViewerSelecting([PluginCatalog.pluginsDirectory()])
+                    AppLauncher.showInFinder(PluginCatalog.pluginsDirectory())
                 }
             }
             .settingsEnabled(settings.pluginsEnabled)
@@ -104,7 +104,7 @@ private struct PluginRowView: View {
                     isExpanded ? "Hide \(install.manifest.name) settings" : "\(install.manifest.name) settings")
             }
             Button("Reveal") {
-                NSWorkspace.shared.activateFileViewerSelecting([install.directory])
+                AppLauncher.showInFinder(install.directory)
             }
             Button("Uninstall", role: .destructive) {
                 core.pluginCoordinator.confirmUninstall(install)
