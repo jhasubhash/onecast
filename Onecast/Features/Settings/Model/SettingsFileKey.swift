@@ -134,6 +134,7 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case pluginsShowInLauncher = "plugins.showInLauncher"
     case schedulerShowInLauncher = "scheduler.showInLauncher"
     case schedulerPlaysSound = "scheduler.playsSound"
+    case schedulerDefaultReminderApp = "scheduler.defaultReminderApp"
     case schedulerCommands = "scheduler.commands"
 
     /// The top-level object the key sits in.

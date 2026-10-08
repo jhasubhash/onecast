@@ -34,6 +34,7 @@ struct SchedulerTests {
         appCuesLiftOutOfThePhrase()
         onePhraseCanNameEveryPlace()
         appWordsWithoutACueStayInTheTitle()
+        targetsResolveAgainstTheDefaultApp()
         thingsLinkCarriesTheTitleAndReminderTime()
         appsRefuseTheRepeatsTheyCannotHold()
         savedNotificationsWithoutAColourStayNeutral()
@@ -390,8 +391,35 @@ struct SchedulerTests {
         ] {
             let (targets, request) = ReminderPhraseParser.splittingTargets(phrase)
             let parsed = ReminderPhraseParser.parse(request, now: baseCreatedAt, calendar: utcCalendar)
-            expect(targets == .onecastOnly, "“\(phrase)” stays a Onecast reminder")
+            expect(targets == .unnamed, "“\(phrase)” names nowhere, so the default takes it")
             expect(parsed?.title == title, "“\(phrase)” keeps every word it had")
+        }
+    }
+
+    /// Naming nowhere, or only apps left off, is the default's; Onecast when the default can't.
+    static func targetsResolveAgainstTheDefaultApp() {
+        let once = ScheduleRule.once(baseCreatedAt.addingTimeInterval(3600))
+        let daily = ScheduleRule.daily(hour: 9, minute: 0)
+        let things = ReminderTargets(onecast: false, apps: [.things])
+        let both: Set<ReminderApp> = [.things, .appleReminders]
+        for (named, enabled, place, rule, expected, label) in [
+            (ReminderTargets.unnamed, both, ReminderPlace.things, once, things, "unnamed → default"),
+            (.unnamed, both, .onecast, once, .onecastOnly, "a Onecast default keeps it home"),
+            (.unnamed, [], .things, once, .onecastOnly, "a default left off falls to Onecast"),
+            (.unnamed, both, .things, daily, .onecastOnly, "a repeat Things can't hold stays home"),
+            (things, [], .appleReminders, once, .onecastOnly, "a named app off, its default off too"),
+            (
+                things, [.appleReminders], .appleReminders, once,
+                ReminderTargets(onecast: false, apps: [.appleReminders]),
+                "a named app off falls to the default"
+            ),
+            (.onecastOnly, both, .things, once, .onecastOnly, "naming Onecast outranks the default"),
+            (
+                ReminderTargets(onecast: true, apps: [.things]), Set<ReminderApp>(), .appleReminders,
+                once, .onecastOnly, "Onecast named beside an app off keeps just Onecast"
+            ),
+        ] {
+            expect(named.resolved(enabled: enabled, default: place, rule: rule) == expected, label)
         }
     }
 

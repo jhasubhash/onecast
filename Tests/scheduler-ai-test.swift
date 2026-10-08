@@ -27,6 +27,7 @@ struct SchedulerAIToolTests {
         await deleteRefusesAnAmbiguousName()
         await deleteNeverTouchesAScriptTask()
         await aNamedAppGetsTheReminderInstead()
+        await theDefaultAppTakesAnUnnamedReminder()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -67,11 +68,14 @@ struct SchedulerAIToolTests {
     /// Refuses every app unless a test hands in its own, so no test ever reaches a real app.
     private static func run(
         _ store: ScheduledTaskStore, _ call: AIToolCall,
+        enabled: Set<ReminderApp> = Set(ReminderApp.allCases), default place: ReminderPlace = .onecast,
         handOff: @escaping ReminderHandOff = { _, app throws(ReminderAppFailure) in
             throw .notEnabled(app)
         }
     ) async -> AIToolResult {
-        await SchedulerAITool.invoke(call, store: store, handOff: handOff, calendar: calendar, now: now)
+        let route: ReminderRoute = { $0.resolved(enabled: enabled, default: place, rule: $1) }
+        return await SchedulerAITool.invoke(
+            call, store: store, route: route, handOff: handOff, calendar: calendar, now: now)
     }
 
     /// The app keeps the reminder, so Onecast must not also fire one; a refusal reaches the model.
@@ -95,6 +99,31 @@ struct SchedulerAIToolTests {
             refused.isError && refused.content.contains("Settings"),
             "an app left off is refused with where to turn it on")
         expect(store.tasks.isEmpty, "and still nothing is scheduled in its place")
+    }
+
+    /// Naming nowhere is the default's; naming an app left off falls back to it, and says so.
+    static func theDefaultAppTakesAnUnnamedReminder() async {
+        let store = store([])
+        var handed: [ReminderApp] = []
+        let take: ReminderHandOff = { _, app throws(ReminderAppFailure) in
+            handed.append(app)
+            return nil
+        }
+        let unnamed = call(SchedulerAITool.createName, #"{"title":"Water","when":"in 2 hours"}"#)
+        _ = await run(store, unnamed, default: .things, handOff: take)
+        expect(handed == [.things] && store.tasks.isEmpty, "an unnamed reminder goes to the default")
+
+        let named = call(
+            SchedulerAITool.createName, #"{"title":"Book","when":"tomorrow at 9am","app":"things"}"#)
+        let fell = await run(store, named, enabled: [], handOff: take)
+        expect(
+            handed == [.things] && store.tasks.count == 1 && fell.content.contains("off"),
+            "an app left off falls back to the default, Onecast here, and the model hears why")
+
+        let onecast = call(
+            SchedulerAITool.createName, #"{"title":"Call","when":"tomorrow at 9am","app":"onecast"}"#)
+        _ = await run(store, onecast, default: .things, handOff: take)
+        expect(handed == [.things] && store.tasks.count == 2, "naming Onecast outranks the default")
     }
 
     static func createSchedulesAReminder() async {

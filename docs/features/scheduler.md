@@ -38,7 +38,7 @@ without re-firing what was skipped.
 - **A reminder reaches another app only with consent.** Apple Reminders and Things are each off
   until switched on in **Settings → Scheduler → Reminder apps** (`schedulerReminderApps`, never in a
   backup), and Apple Reminders also needs macOS's own Reminders grant. A phrase naming an app that
-  is off is refused with a HUD, never quietly scheduled in Onecast instead.
+  is off goes to the default reminder app instead, and the HUD says the named app was off.
 
 ## Model and persistence
 
@@ -157,9 +157,13 @@ or the errand. Spelling is matched within one edit, swaps included, so fast typi
 letter word may only be a mistyped "to". Places are the run of such words ending the phrase, a whole
 clause made only of them, or, mid-clause, a preposition before an app with a sending verb within
 reach ("add oat milk to things at 6pm"). Each needs an app and a cue, so "sort the things in the
-attic", "check my reminders" or "reply to things" keep their words. With none it is Onecast's alone;
-named, it goes to exactly the `ReminderTargets` listed, in the order named.
-Every target is checked before any is written — its app switched on, a time where Onecast needs one,
+attic", "check my reminders" or "reply to things" keep their words. With none it is
+`ReminderTargets.unnamed`; named, it goes to exactly the targets listed, in the order named.
+`ReminderTargets.resolved` then settles them against Settings: named apps switched off drop out, and
+a phrase left naming nowhere goes to the **default reminder app** (`schedulerDefaultReminderApp`, a
+`ReminderPlace`: Onecast, Apple Reminders or Things). Onecast stands in while the default is off or
+can't hold the rule, so "drink water every day at 8" with Things as default stays in Onecast.
+Every target is checked before any is written — a time where Onecast needs one,
 a rule the app can hold — so a phrase is never half-kept; only an app's own save can still fail, and
 the HUD then names what was kept and what was not. `ReminderAppExporter` writes Apple Reminders through
 EventKit to the default list, with a due date, an alarm and a daily, weekly or monthly recurrence, and
@@ -167,21 +171,24 @@ Things through `things:///add?title=…&when=<date>@<time>` (`ThingsURL`, the ti
 minute), opened without activating Things. With no time, both keep an undated to-do.
 `ReminderApp.refusal` turns down what an app cannot hold: every-N-minutes repeats for Reminders, and any repeat for
 Things, whose URL scheme cannot make one. The AI tool takes the same choice as an optional `app`
-argument, once per app, handed a `ReminderHandOff` closure so it stays compilable without EventKit.
+argument (`onecast` among them), once per place; omitted, the default takes it. It is handed a
+`ReminderRoute` and a `ReminderHandOff` closure, so it stays compilable without EventKit or Settings.
 
 ## Settings and backup
 
-`schedulerEnabled`, `schedulerShowInLauncher`, `schedulerPlaysSound` and `schedulerReminderApps` live in
-`AppSettings`/`AppSettingsKey`. `schedulerPlaysSound` (on by default; **Settings → Scheduler →
+`schedulerEnabled`, `schedulerShowInLauncher`, `schedulerPlaysSound`, `schedulerReminderApps` and
+`schedulerDefaultReminderApp` live in `AppSettings`/`AppSettingsKey`. `schedulerPlaysSound` (on by default; **Settings → Scheduler →
 Notifications → Play a sound**) chimes the system "Glass" sound when a scheduled notification or a
-script's finish toast appears. `schedulerShowInLauncher` and `schedulerPlaysSound` are backed up like
-every other preference. `schedulerEnabled` is in `SettingsBackupCoverage.deliberatelyExcluded`: it
+script's finish toast appears. `schedulerShowInLauncher`, `schedulerPlaysSound` and
+`schedulerDefaultReminderApp` are backed up like every other preference; the default grants nothing,
+since an app it names still has to be switched on here. `schedulerEnabled` is in `SettingsBackupCoverage.deliberatelyExcluded`: it
 doubles as consent to run a script or action unattended, so — like `snippetsEnabled`,
 `calendarEnabled` and `cameraPreview` — an imported backup must never be able to arm the machine to
 fire on a timer by itself. `schedulerReminderApps` is excluded too: it is consent to write to another
 app's data. The Reminders grant also shows in **Settings → Permissions**, beside Calendars.
-The opt-in [settings file](settings-file.md) follows the same split: `scheduler.showInLauncher` and
-`scheduler.playsSound` are keys, while the switch and the reminder apps have none.
+The opt-in [settings file](settings-file.md) follows the same split: `scheduler.showInLauncher`,
+`scheduler.playsSound` and `scheduler.defaultReminderApp` are keys, while the switch and the reminder
+apps have none.
 
 ## Notifications module
 

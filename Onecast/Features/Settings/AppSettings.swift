@@ -443,6 +443,15 @@ final class AppSettings {
         }
     }
 
+    /// Where a reminder goes when its phrase names nowhere; Onecast stands in while that app is off.
+    var schedulerDefaultReminderApp: ReminderPlace {
+        didSet {
+            defaults.set(
+                schedulerDefaultReminderApp.rawValue,
+                forKey: Key.schedulerDefaultReminderApp.rawValue)
+        }
+    }
+
     /// On out of the box: it only acts when the user starts a presentation, so there is no consent.
     var presentationEnabled: Bool {
         didSet { defaults.set(presentationEnabled, forKey: Key.presentationEnabled.rawValue) }
@@ -1030,6 +1039,9 @@ final class AppSettings {
         schedulerReminderApps = Set(
             (defaults.stringArray(forKey: Key.schedulerReminderApps.rawValue) ?? [])
                 .compactMap(ReminderApp.init(rawValue:)))
+        schedulerDefaultReminderApp =
+            defaults.string(forKey: Key.schedulerDefaultReminderApp.rawValue)
+            .flatMap(ReminderPlace.init(rawValue:)) ?? .onecast
         presentationEnabled =
             defaults.object(forKey: Key.presentationEnabled.rawValue) == nil
             || defaults.bool(forKey: Key.presentationEnabled.rawValue)

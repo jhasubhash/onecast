@@ -35,14 +35,41 @@ enum ReminderApp: String, CaseIterable, Codable, Sendable, Identifiable {
     }
 }
 
+/// Where a reminder goes when its phrase names nowhere: Onecast itself, or one of the apps.
+enum ReminderPlace: String, CaseIterable, Codable, Sendable, Identifiable {
+    case onecast
+    case appleReminders
+    case things
+
+    var id: String { rawValue }
+
+    var app: ReminderApp? { ReminderApp(rawValue: rawValue) }
+
+    var title: String { app?.title ?? "Onecast" }
+}
+
 /// Where one reminder goes: Onecast's own notification, the apps a phrase named, or both at once.
 struct ReminderTargets: Equatable, Sendable {
     var onecast: Bool
     /// In the order the phrase named them, each once.
     var apps: [ReminderApp]
 
-    /// A phrase that names nowhere is Onecast's, as every reminder was before apps existed.
     static let onecastOnly = ReminderTargets(onecast: true, apps: [])
+
+    /// A phrase that names nowhere, which the default reminder app takes.
+    static let unnamed = ReminderTargets(onecast: false, apps: [])
+
+    /// Named apps left off drop out; naming nowhere, or only those, falls to the default, and to
+    /// Onecast when the default is off or can't hold the rule.
+    func resolved(
+        enabled: Set<ReminderApp>, default place: ReminderPlace, rule: ScheduleRule?
+    ) -> ReminderTargets {
+        let kept = apps.filter(enabled.contains)
+        if onecast || !kept.isEmpty { return ReminderTargets(onecast: onecast, apps: kept) }
+        guard let app = place.app, enabled.contains(app), rule.flatMap(app.refusal(of:)) == nil
+        else { return .onecastOnly }
+        return ReminderTargets(onecast: false, apps: [app])
+    }
 }
 
 /// What the on-device model made of a phrase the parser could not read whole; no rule, no time.
@@ -65,12 +92,15 @@ struct ReminderAppFailure: Error, Equatable {
 typealias ReminderHandOff =
     @MainActor (ParsedReminder, ReminderApp) async throws(ReminderAppFailure) -> Date?
 
+/// Settles where the user named against Settings' apps and default, as `resolved` does.
+typealias ReminderRoute = @MainActor (ReminderTargets, ScheduleRule?) -> ReminderTargets
+
 extension ReminderPhraseParser {
     /// Lifts "…, save it to reminders nad things" out; a list needs a cue, so "check my reminders" stays.
     static func splittingTargets(_ text: String) -> (targets: ReminderTargets, request: String) {
         let words = TargetWords(text)
         let spans = words.targetSpans()
-        guard !spans.isEmpty else { return (.onecastOnly, text) }
+        guard !spans.isEmpty else { return (.unnamed, text) }
         var request = text
         for span in spans.reversed() { request.replaceSubrange(words.range(of: span), with: " ") }
         return (words.targets(in: spans), request)

@@ -36,6 +36,7 @@ enum SettingsBackupCoverage {
         "snippetsShowInLauncher": .snippetsShowInLauncher,
         "schedulerShowInLauncher": .schedulerShowInLauncher,
         "schedulerPlaysSound": .schedulerPlaysSound,
+        "schedulerDefaultReminderApp": .schedulerDefaultReminderApp,
         "navigationEnabled": .navigationEnabled,
         "menuSearchDisabledApps": .menuSearchDisabledApps,
         "menuSearchShowsAppleMenu": .menuSearchShowsAppleMenu,

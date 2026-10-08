@@ -28,7 +28,7 @@ final class SchedulerEditorCoordinator {
         present()
     }
 
-    /// The launcher reminder fallback: a phrase goes to Onecast, the apps it names, or both at once.
+    /// The launcher reminder fallback: a phrase goes where it names, or to the default reminder app.
     func scheduleFromPhrase(_ text: String) {
         let phrase = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !phrase.isEmpty else { return }
@@ -38,7 +38,7 @@ final class SchedulerEditorCoordinator {
         let (named, rest) = ReminderPhraseParser.splittingTargets(phrase)
         let (tint, request) = ReminderPhraseParser.splittingTint(rest)
         let parsed = ReminderPhraseParser.parse(request, now: now, calendar: calendar)
-        let unsure = named == .onecastOnly && ReminderPhraseParser.asksForATarget(request)
+        let unsure = named == .unnamed && ReminderPhraseParser.asksForATarget(request)
         if let parsed, !unsure {
             deliver(parsed.title, rule: parsed.rule, to: named, tint: tint, now: now, calendar: calendar)
             return
@@ -48,7 +48,7 @@ final class SchedulerEditorCoordinator {
             guard let self else { return }
             if let reading = await ReminderPhraseModel.read(request, now: now, calendar: calendar) {
                 // The parser outranks the model: its time, the places it read, and its title.
-                let targets = named == .onecastOnly ? Self.grounded(reading.targets, in: phrase) : named
+                let targets = named == .unnamed ? Self.grounded(reading.targets, in: phrase) : named
                 // A place only the model found left its words in the parser's title; the model's is clean.
                 let parserTitle = parsed?.title ?? ReminderPhraseParser.title(of: request)
                 let title = targets == named ? parserTitle ?? reading.title : reading.title
@@ -56,7 +56,9 @@ final class SchedulerEditorCoordinator {
                 deliver(title, rule: rule, to: targets, tint: tint, now: now, calendar: calendar)
             } else if let parsed {
                 deliver(parsed.title, rule: parsed.rule, to: named, tint: tint, now: now, calendar: calendar)
-            } else if !named.onecast, let title = ReminderPhraseParser.title(of: request) {
+            } else if !named.onecast, !named.apps.isEmpty,
+                let title = ReminderPhraseParser.title(of: request)
+            {
                 deliver(title, rule: nil, to: named, tint: tint, now: now, calendar: calendar)
             } else {
                 core.showMessage("Couldn't find a time in “\(phrase)”.", tone: .danger)
@@ -64,22 +66,23 @@ final class SchedulerEditorCoordinator {
         }
     }
 
-    /// A model may only send a reminder where the phrase itself names; naming nowhere is Onecast.
+    /// A model may only send a reminder where the phrase itself names; naming nowhere is the default.
     private static func grounded(_ reading: ReminderTargets, in phrase: String) -> ReminderTargets {
         let mentioned = ReminderPhraseParser.mentionedTargets(phrase)
         let apps = reading.apps.filter(mentioned.apps.contains)
-        return ReminderTargets(onecast: apps.isEmpty || reading.onecast && mentioned.onecast, apps: apps)
+        return ReminderTargets(onecast: reading.onecast && mentioned.onecast, apps: apps)
     }
 
     private func deliver(
-        _ title: String, rule: ScheduleRule?, to targets: ReminderTargets, tint: NotificationTint?,
+        _ title: String, rule: ScheduleRule?, to named: ReminderTargets, tint: NotificationTint?,
         now: Date, calendar: Calendar
     ) {
-        // Checked here, after any model reading, so no reading can reach an app left switched off.
-        if let off = targets.apps.first(where: { !core.settings.schedulerReminderApps.contains($0) }) {
-            core.showMessage(ReminderAppFailure.notEnabled(off).message, tone: .danger)
-            return
-        }
+        // Resolved here, after any model reading, so no reading can reach an app left switched off.
+        let enabled = core.settings.schedulerReminderApps
+        let off = named.apps.filter { !enabled.contains($0) }.map(\.title)
+        let note = off.isEmpty ? "" : "\(Self.joined(off)) \(off.count == 1 ? "is" : "are") off."
+        let targets = named.resolved(
+            enabled: enabled, default: core.settings.schedulerDefaultReminderApp, rule: rule)
         guard rule != nil || !targets.onecast else {
             core.showMessage("Onecast needs a time to remind you of “\(title)”.", tone: .danger)
             return
@@ -93,7 +96,7 @@ final class SchedulerEditorCoordinator {
         }
         let when = rule.map { " — \(ScheduleFormatter.rule($0))" } ?? ""
         guard !targets.apps.isEmpty else {
-            core.showMessage("Reminder set\(when)")
+            core.showMessage(note.isEmpty ? "Reminder set\(when)" : "Added to Onecast\(when). \(note)")
             return
         }
         Task { [weak self] in
@@ -109,7 +112,7 @@ final class SchedulerEditorCoordinator {
                 }
             }
             let added = kept.isEmpty ? "" : "Added to \(Self.joined(kept))\(when)."
-            let message = ([added] + failures).filter { !$0.isEmpty }.joined(separator: " ")
+            let message = ([added, note] + failures).filter { !$0.isEmpty }.joined(separator: " ")
             self?.core.showMessage(message, tone: failures.isEmpty ? .success : .danger)
         }
     }

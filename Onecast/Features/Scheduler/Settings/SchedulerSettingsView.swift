@@ -96,7 +96,19 @@ private struct ReminderAppsSection: View {
     @State private var remindersAccess = Permissions.remindersAccess()
 
     var body: some View {
+        @Bindable var settings = settings
         Section {
+            Picker(selection: $settings.schedulerDefaultReminderApp) {
+                ForEach(choices) { Text($0.title).tag($0) }
+            } label: {
+                SettingsRowTitle(.schedulerReminderApps, "Default reminder app")
+                Text(defaultSubtitle)
+            }
+            Toggle(isOn: .constant(true)) {
+                SettingsRowTitle(.schedulerReminderApps, "Onecast")
+                Text("Say “…, add it to Onecast” for a notification from Onecast itself.")
+            }
+            .disabled(true)
             Toggle(isOn: binding(.appleReminders)) {
                 SettingsRowTitle(.schedulerReminderApps, "Apple Reminders")
                 Text("Say “…, add it to Apple Reminders” to keep a reminder there instead.")
@@ -120,11 +132,26 @@ private struct ReminderAppsSection: View {
         } header: {
             SettingsSectionHeader(.schedulerReminderApps)
         } footer: {
-            Text("Repeats every few minutes stay in Onecast, and Things takes one-time reminders only.")
+            Text(
+                "Repeats every few minutes stay in Onecast, and Things takes one-time reminders "
+                    + "only; one the default can't take goes to Onecast.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .onAppear { remindersAccess = Permissions.remindersAccess() }
+    }
+
+    /// Onecast and the apps switched on, plus the current pick so the picker never loses its value.
+    private var choices: [ReminderPlace] {
+        ReminderPlace.allCases.filter { place in
+            place.app.map(isOn) ?? true || place == settings.schedulerDefaultReminderApp
+        }
+    }
+
+    private var defaultSubtitle: String {
+        let place = settings.schedulerDefaultReminderApp
+        if let app = place.app, !isOn(app) { return "\(app.title) is off, so Onecast takes them." }
+        return "Takes a reminder that doesn't name an app, or names one that's off."
     }
 
     private func isOn(_ app: ReminderApp) -> Bool { settings.schedulerReminderApps.contains(app) }

@@ -178,6 +178,7 @@ enum SettingsFileSchema {
         case .pluginsShowInLauncher: return bind(settings, \.pluginsShowInLauncher)
         case .schedulerShowInLauncher: return bind(settings, \.schedulerShowInLauncher)
         case .schedulerPlaysSound: return bind(settings, \.schedulerPlaysSound)
+        case .schedulerDefaultReminderApp: return bind(settings, \.schedulerDefaultReminderApp)
         case .schedulerCommands: return launcher.commandsBinding(for: key, owner: .scheduler)
         }
     }
@@ -191,6 +192,7 @@ enum SettingsFileSchema {
 
 extension PopToRootTimeout: SettingsFileRawValue {}
 extension EscapeKeyBehavior: SettingsFileRawValue {}
+extension ReminderPlace: SettingsFileRawValue {}
 extension AppAppearance: SettingsFileRawValue {}
 extension InterfaceSize: SettingsFileRawValue {}
 extension HyperKeyPhysicalKey: SettingsFileRawValue {}

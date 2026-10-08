@@ -17,10 +17,10 @@ enum SchedulerAITool {
     private static let createTool = AITool(
         name: createName,
         description:
-            "Schedule a Onecast notification to remind the user later. Only call this when the user "
-            + "explicitly asks to be reminded or notified about something at a time — never infer a "
-            + "reminder from a number, ratio, dimension, or time that appears for another reason. "
-            + "Cannot run scripts or commands.",
+            "Schedule a reminder for the user, in their default reminder app unless they name one. "
+            + "Only call this when the user explicitly asks to be reminded or notified about "
+            + "something at a time — never infer a reminder from a number, ratio, dimension, or "
+            + "time that appears for another reason. Cannot run scripts or commands.",
         parameters: .object([
             "type": .string("object"),
             "properties": .object([
@@ -52,11 +52,11 @@ enum SchedulerAITool {
                 ]),
                 "app": .object([
                     "type": .string("string"),
-                    "enum": .array(ReminderApp.allCases.map { .string($0.rawValue) }),
+                    "enum": .array(ReminderPlace.allCases.map { .string($0.rawValue) }),
                     "description": .string(
-                        "Only when the user asks to keep it in Apple Reminders or Things: add it to "
-                            + "that app instead of scheduling a Onecast notification. For several "
-                            + "places, call once per app, and once without `app` for Onecast."),
+                        "Only when the user names where to keep it: Onecast, Apple Reminders or "
+                            + "Things. Omit it otherwise; the user's default reminder app takes it. "
+                            + "For several places, call once per place."),
                 ]),
             ]),
             "required": .array([.string("title"), .string("when")]),
@@ -96,12 +96,13 @@ enum SchedulerAITool {
 
     @MainActor
     static func invoke(
-        _ call: AIToolCall, store: ScheduledTaskStore, handOff: ReminderHandOff,
-        calendar: Calendar, now: Date
+        _ call: AIToolCall, store: ScheduledTaskStore, route: ReminderRoute,
+        handOff: ReminderHandOff, calendar: Calendar, now: Date
     ) async -> AIToolResult {
         switch call.name {
         case createName:
-            return await create(call, store: store, handOff: handOff, calendar: calendar, now: now)
+            return await create(
+                call, store: store, route: route, handOff: handOff, calendar: calendar, now: now)
         case listName: return list(call, store: store)
         case deleteName: return delete(call, store: store)
         default: return .failure(call.id, "Unknown scheduler tool \"\(call.name)\".")
@@ -130,8 +131,8 @@ enum SchedulerAITool {
 
     @MainActor
     private static func create(
-        _ call: AIToolCall, store: ScheduledTaskStore, handOff: ReminderHandOff,
-        calendar: Calendar, now: Date
+        _ call: AIToolCall, store: ScheduledTaskStore, route: ReminderRoute,
+        handOff: ReminderHandOff, calendar: Calendar, now: Date
     ) async -> AIToolResult {
         guard let data = call.arguments.data(using: .utf8),
             let args = try? JSONDecoder().decode(CreateArguments.self, from: data)
@@ -154,16 +155,24 @@ enum SchedulerAITool {
             rule = .once(fireDate)
         }
 
+        var named = ReminderTargets.unnamed
         if let name = args.app {
-            guard let app = ReminderApp(rawValue: name) else {
+            guard let place = ReminderPlace(rawValue: name) else {
                 return .failure(call.id, "Unknown reminder app \"\(name)\".")
             }
+            named = place.app.map { ReminderTargets(onecast: false, apps: [$0]) } ?? .onecastOnly
+        }
+        let target = route(named, rule)
+        let note = named.apps.first { !target.apps.contains($0) }
+            .map { "\($0.title) is off in Settings → Scheduler. " } ?? ""
+
+        if let app = target.apps.first {
             do throws(ReminderAppFailure) {
                 let due = try await handOff(ParsedReminder(title: args.title, rule: rule), app)
                 let stamp = due.map { " for \(formatter.string(from: $0))" } ?? ""
                 return AIToolResult(
-                    callID: call.id, content: "Added \"\(args.title)\" to \(app.title)\(stamp).",
-                    isError: false)
+                    callID: call.id,
+                    content: "\(note)Added \"\(args.title)\" to \(app.title)\(stamp).", isError: false)
             } catch {
                 return .failure(call.id, error.message)
             }
@@ -177,7 +186,7 @@ enum SchedulerAITool {
         let stamp = formatter.string(from: fireDate)
         let suffix = repeats ? " and every day after" : ""
         return AIToolResult(
-            callID: call.id, content: "Scheduled \"\(args.title)\" for \(stamp)\(suffix).",
+            callID: call.id, content: "\(note)Scheduled \"\(args.title)\" for \(stamp)\(suffix).",
             isError: false)
     }
 

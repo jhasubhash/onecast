@@ -777,6 +777,12 @@ enum SettingsSearchCatalog {
             .schedulerNotifications, "Play a sound",
             keywords: ["notification", "sound", "chime", "alert", "mute", "silent"]),
         .init(
+            .schedulerReminderApps, "Default reminder app",
+            keywords: ["default", "reminders", "things", "onecast", "to-do", "todo"]),
+        .init(
+            .schedulerReminderApps, "Onecast",
+            keywords: ["notification", "reminder", "default"]),
+        .init(
             .schedulerReminderApps, "Apple Reminders",
             keywords: ["reminders", "eventkit", "to-do", "todo", "export", "apple"]),
         .init(
