@@ -84,6 +84,7 @@ extension SettingsAnchor {
     static let presentationPresentation = Self(tab: .presentation, title: "Presentation Mode")
     static let presentationWindows = Self(tab: .presentation, title: "Windows")
     static let presentationDisplays = Self(tab: .presentation, title: "Display Resolution")
+    static let presentationWhilePresenting = Self(tab: .presentation, title: "While Presenting")
     static let presentationShortcuts = Self(tab: .presentation, title: "Shortcuts")
     static let presentationCommands = Self(tab: .presentation, title: "Commands")
 

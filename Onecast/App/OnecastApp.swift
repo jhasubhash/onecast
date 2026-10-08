@@ -21,6 +21,12 @@ struct OnecastApp: App {
         } label: {
             CalendarMenuBarLabel(appName: appName)
         }
+
+        MenuBarExtra(isInserted: presentationMenuBarInsertion) {
+            PresentationMenuBarMenu()
+        } label: {
+            PresentationMenuBarLabel()
+        }
     }
 
     /// Read in `body` for Observation; SwiftUI echoes the binding back, so only a change writes.
@@ -58,6 +64,21 @@ struct OnecastApp: App {
     private var isCalendarMenuBarHiddenWhenEmpty: Bool {
         AppCore.shared.settings.calendarMenuBarHidesWhenEmpty
             && !AppCore.shared.calendarCoordinator.hasMenuBarEvent
+    }
+
+    /// Only while presenting; dragging it out turns the indicator off for next time too.
+    private var presentationMenuBarInsertion: Binding<Bool> {
+        let settings = AppCore.shared.settings
+        let isInserted =
+            settings.presentationShowsMenuBarItem && AppCore.shared.presentationCoordinator.isPresenting
+        return Binding(
+            get: { isInserted },
+            set: { inserted in
+                // SwiftUI echoes our own removal when a presentation ends; only a drag-out counts.
+                let presenting = AppCore.shared.presentationCoordinator.isPresenting
+                guard !inserted, presenting, settings.presentationShowsMenuBarItem else { return }
+                settings.presentationShowsMenuBarItem = false
+            })
     }
 
     /// Declared, not assigned to `NSApp.mainMenu`: SwiftUI rebuilds the menu on any scene change.

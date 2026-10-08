@@ -488,6 +488,29 @@ final class AppSettings {
         }
     }
 
+    var presentationScope: PresentationScope {
+        didSet { defaults.set(presentationScope.rawValue, forKey: Key.presentationScope.rawValue) }
+    }
+
+    /// Custom docks carry personal widgets (calendar, stocks) a screen share would show.
+    var presentationHidesDocks: Bool {
+        didSet { defaults.set(presentationHidesDocks, forKey: Key.presentationHidesDocks.rawValue) }
+    }
+
+    var presentationShowsMenuBarItem: Bool {
+        didSet {
+            defaults.set(
+                presentationShowsMenuBarItem, forKey: Key.presentationShowsMenuBarItem.rawValue)
+        }
+    }
+
+    var presentationKeepsDisplayAwake: Bool {
+        didSet {
+            defaults.set(
+                presentationKeepsDisplayAwake, forKey: Key.presentationKeepsDisplayAwake.rawValue)
+        }
+    }
+
     /// Bundle IDs Presentation Mode never presents, hides, minimizes or resizes.
     var presentationIgnoredApps: [String] {
         didSet {
@@ -1024,6 +1047,16 @@ final class AppSettings {
         presentationRestoresWindows =
             defaults.object(forKey: Key.presentationRestoresWindows.rawValue) == nil
             || defaults.bool(forKey: Key.presentationRestoresWindows.rawValue)
+        presentationScope =
+            defaults.string(forKey: Key.presentationScope.rawValue)
+            .flatMap(PresentationScope.init) ?? .everywhere
+        presentationHidesDocks = defaults.bool(forKey: Key.presentationHidesDocks.rawValue)
+        presentationShowsMenuBarItem =
+            defaults.object(forKey: Key.presentationShowsMenuBarItem.rawValue) == nil
+            || defaults.bool(forKey: Key.presentationShowsMenuBarItem.rawValue)
+        presentationKeepsDisplayAwake =
+            defaults.object(forKey: Key.presentationKeepsDisplayAwake.rawValue) == nil
+            || defaults.bool(forKey: Key.presentationKeepsDisplayAwake.rawValue)
         // Unset seeds the meeting apps; a stored empty array is a deliberately cleared list.
         presentationIgnoredApps =
             defaults.stringArray(forKey: Key.presentationIgnoredApps.rawValue)

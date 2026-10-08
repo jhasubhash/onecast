@@ -42,6 +42,14 @@ struct PresentationSettingsView: View {
                     SettingsRowTitle(.presentationWindows, "Other apps")
                     Text("Put back exactly as they were when the presentation ends.")
                 }
+                if settings.presentationOtherApps != .leave {
+                    Picker(selection: $settings.presentationScope) {
+                        ForEach(PresentationScope.allCases) { Text($0.title).tag($0) }
+                    } label: {
+                        SettingsRowTitle(.presentationWindows, "Put away windows on")
+                        Text(scopeSubtitle)
+                    }
+                }
                 Picker(selection: $settings.presentationAppSwitch) {
                     ForEach(PresentationAppSwitch.allCases) { Text($0.title).tag($0) }
                 } label: {
@@ -60,6 +68,24 @@ struct PresentationSettingsView: View {
 
             PresentationResolutionSection()
                 .settingsEnabled(settings.presentationEnabled)
+
+            Section {
+                Toggle(isOn: $settings.presentationHidesDocks) {
+                    SettingsRowTitle(.presentationWhilePresenting, "Hide custom docks")
+                    Text("Keeps widgets such as your calendar and stocks off the shared screen.")
+                }
+                Toggle(isOn: $settings.presentationShowsMenuBarItem) {
+                    SettingsRowTitle(.presentationWhilePresenting, "Show in the menu bar")
+                    Text("A recording sign with the elapsed time, and Stop Presentation.")
+                }
+                Toggle(isOn: $settings.presentationKeepsDisplayAwake) {
+                    SettingsRowTitle(.presentationWhilePresenting, "Keep the display awake")
+                    Text("Stops the screen dimming or sleeping mid-presentation.")
+                }
+            } header: {
+                SettingsSectionHeader(.presentationWhilePresenting)
+            }
+            .settingsEnabled(settings.presentationEnabled)
 
             Section {
                 TextField(text: $settings.presentationStartShortcut, prompt: Text("Shortcut name")) {
@@ -81,6 +107,15 @@ struct PresentationSettingsView: View {
         .formStyle(.grouped)
         .settingsScrollTarget(.presentation)
         .releasesFocusOnOutsideClick()
+    }
+
+    private var scopeSubtitle: String {
+        switch settings.presentationScope {
+        case .everywhere:
+            "Every Space and display. Minimized apps are hidden too, so other Spaces stay clear."
+        case .currentSpace: "Only what each display shows now; other Spaces are left as they are."
+        case .presentationDisplay: "Only windows on the display being shared; other displays stay."
+        }
     }
 }
 

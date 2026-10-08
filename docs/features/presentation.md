@@ -55,7 +55,14 @@ Docks/Widgets/BuiltIn/Productivity/Presentation*  the DockWidget
    macOS offers no API for Focus) runs, unawaited.
 4. If that display has a stored resolution different from its current mode, it switches, then waits
    for AppKit to report the new size plus a short grace for the Dock and menu bar.
-5. Other apps are put away per **Other apps** — hidden (default), minimized, or left.
+5. Other apps are put away per **Other apps** — hidden (default), minimized, or left — on the
+   windows **Put away windows on** names (`PresentationScopePolicy.reach`):
+   - *Every Space and display* (default): every candidate app. AX hands an app only the windows of
+     the Spaces on screen, so a minimize also hides the app, keeping its other Spaces clear.
+   - *The Spaces on screen now*: apps with a window in the on-screen window list; a minimize takes
+     only those windows, matched to their AX elements by frame.
+   - *Only the display you present on*: the same, limited to windows centred on that display.
+   A hide is always the whole app, on every Space, since that is what hiding is.
 6. The target's window is sized per **Presented window**: centred with a margin (default 10% of the
    usable area on each side), filling the usable area, macOS full screen (placed on the presentation
    display first), or left as it is. A window already in full screen is left alone.
@@ -67,6 +74,27 @@ one away (minimized when other apps are minimized, hidden otherwise, even if oth
 alone); *stack* presents it on top; *ignore* leaves it. A just-launched app's window is waited for
 (15 × 200 ms). It is moved to the presentation display. Unplugging that display ends the
 presentation.
+
+**A Space switch is not an app switch.** Moving to another Space makes macOS activate whatever app
+was in front there; presenting it would hide the presented app, and coming back would show the
+wrong one. An activation is weighed after 300 ms: if a Space switch landed within 600 ms of it,
+either side (`activeSpaceDidChangeNotification` stamps the time; the two arrive in either order), it
+is not presented. Otherwise it is presented only while the presented app still has a window on
+screen, that is, while you are on the presentation's Space.
+
+**Activating a hidden app unhides it**, so with *Every Space and display* the app a Space switch
+brings forward is hidden again (`PresentationSession.hideAgain`), keeping other Spaces clear. That
+is checked on the activation and again 300 ms after every Space switch, since an app already in
+front (Finder, once it took over from the apps it replaced) posts no activation when its Space
+returns yet is still unhidden. Only an app this presentation hid is re-hidden.
+
+**While Presenting** settings: *Hide custom docks* (off by default) takes Onecast's docks off screen
+through `DockCoordinator.setHiddenForPresentation`, which never touches their configuration;
+*Show in the menu bar* (on) inserts a menu-bar item only while presenting: a static recording glyph
+whose menu shows the app and elapsed time, Stop Presentation, Re-fit Window and Settings (dragging it
+out turns the setting off). The label never ticks: a `TimelineView` in a `MenuBarExtra` label kept
+SwiftUI re-setting the status button's image and hung launch. *Keep the display awake* (on) holds a
+`ProcessInfo` activity with `.idleDisplaySleepDisabled` until the end.
 
 ## Ending
 

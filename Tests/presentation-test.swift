@@ -23,6 +23,8 @@ struct PresentationTests {
         theMarginInsetsEverySideOfTheUsableArea()
         anOutOfRangeMarginIsClamped()
         fullScreenAndUnchangedHaveNoFrame()
+        scopesReachTheWindowsTheyName()
+        anAXFrameMatchesItsQuartzReadingWithinAPoint()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -93,5 +95,39 @@ struct PresentationTests {
         expect(
             PresentationFrameEngine.frame(for: .unchanged, marginPercent: 10, in: usable) == nil,
             "leaving the window be is not a frame")
+    }
+}
+
+extension PresentationTests {
+    private static let monitor = CGRect(x: 1512, y: -400, width: 3008, height: 1692)
+    private static let onScreen = [
+        PresentationWindow(pid: 1, frame: CGRect(x: 100, y: 100, width: 800, height: 600)),
+        PresentationWindow(pid: 2, frame: CGRect(x: 2000, y: 0, width: 1200, height: 800)),
+        PresentationWindow(pid: 2, frame: CGRect(x: 200, y: 200, width: 400, height: 300)),
+    ]
+
+    static func scopesReachTheWindowsTheyName() {
+        expect(
+            PresentationScopePolicy.reach(.everywhere, onScreen: onScreen, display: monitor) == nil,
+            "every Space reaches every window, not only those on screen")
+        let current = PresentationScopePolicy.reach(.currentSpace, onScreen: onScreen, display: monitor)
+        expect(current?[1]?.count == 1 && current?[2]?.count == 2, "the current Space reaches every display")
+        expect(current?[3] == nil, "an app with nothing on screen is left alone")
+        let shared = PresentationScopePolicy.reach(
+            .presentationDisplay, onScreen: onScreen, display: monitor)
+        expect(shared?[1] == nil, "a window on another display is left where it is")
+        expect(
+            shared?[2] == [CGRect(x: 2000, y: 0, width: 1200, height: 800)],
+            "only the app's window on the shared display is reached")
+    }
+
+    static func anAXFrameMatchesItsQuartzReadingWithinAPoint() {
+        let quartz = [CGRect(x: 2000, y: 0, width: 1200, height: 800)]
+        expect(
+            PresentationScopePolicy.matches(CGRect(x: 2001, y: 0, width: 1199, height: 801), anyOf: quartz),
+            "a point of rounding still names the same window")
+        expect(
+            !PresentationScopePolicy.matches(CGRect(x: 2000, y: 40, width: 1200, height: 800), anyOf: quartz),
+            "a window elsewhere is another window")
     }
 }

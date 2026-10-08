@@ -143,6 +143,10 @@ enum SettingsFileSchema {
         case .presentationOtherApps: return bind(settings, \.presentationOtherApps)
         case .presentationAppSwitch: return bind(settings, \.presentationAppSwitch)
         case .presentationRestoresWindows: return bind(settings, \.presentationRestoresWindows)
+        case .presentationScope: return bind(settings, \.presentationScope)
+        case .presentationHidesDocks: return bind(settings, \.presentationHidesDocks)
+        case .presentationShowsMenuBarItem: return bind(settings, \.presentationShowsMenuBarItem)
+        case .presentationKeepsDisplayAwake: return bind(settings, \.presentationKeepsDisplayAwake)
         case .presentationIgnoredApps: return bind(settings, \.presentationIgnoredApps)
         case .presentationStartShortcut: return bind(settings, \.presentationStartShortcut)
         case .presentationEndShortcut: return bind(settings, \.presentationEndShortcut)
@@ -205,6 +209,7 @@ extension JoinWindow: SettingsFileRawValue {}
 extension PresentationWindowSize: SettingsFileRawValue {}
 extension PresentationOtherApps: SettingsFileRawValue {}
 extension PresentationAppSwitch: SettingsFileRawValue {}
+extension PresentationScope: SettingsFileRawValue {}
 
 extension ClipboardRetention: SettingsFileToken {
     var settingsToken: SettingsFileJSON {

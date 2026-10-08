@@ -90,26 +90,67 @@ final class PresentationSession {
 
     // MARK: - Putting apps away
 
-    func putAway(_ app: NSRunningApplication, as style: PresentationOtherApps) {
+    /// `reach` limits a minimize to those window frames; `alsoHide` covers Spaces AX can't reach.
+    func putAway(
+        _ app: NSRunningApplication, as style: PresentationOtherApps, reach: [CGRect]? = nil,
+        alsoHide: Bool = false
+    ) {
         guard !app.isTerminated else { return }
         switch style {
         case .leave:
             return
         case .hide:
-            guard !app.isHidden else { return }
-            // `hide()` answers false on macOS 26 even when it hid the app, so the request is kept.
-            _ = app.hide()
-            hidden.append(app)
+            hide(app)
         case .minimize:
             guard !app.isHidden else { return }
             let application = AXWindowAccess.application(for: app.processIdentifier)
             for window in AXWindowAccess.windows(in: application)
             where AXWindowAccess.isEligible(window) {
+                if let reach {
+                    guard let frame = AXWindowAccess.frame(of: window),
+                        PresentationScopePolicy.matches(frame, anyOf: reach)
+                    else { continue }
+                }
                 AXUIElementSetMessagingTimeout(window, AXWindowAccess.messagingTimeout)
                 AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
                 minimized.append(window)
             }
+            if alsoHide { hide(app) }
         }
+    }
+
+    private func hide(_ app: NSRunningApplication) {
+        guard !app.isHidden else { return }
+        // `hide()` answers false on macOS 26 even when it hid the app, so the request is kept.
+        _ = app.hide()
+        hidden.append(app)
+    }
+
+    /// Only an app this presentation hid, so one the user never had put away stays as it is.
+    func hideAgain(_ app: NSRunningApplication) {
+        guard !app.isTerminated, hidden.contains(where: { $0 == app }) else { return }
+        _ = app.hide()
+    }
+
+    /// Every other app's ordinary window on each display's current Space, in AX space.
+    static func onScreenWindows() -> [PresentationWindow] {
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        let list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
+        let own = ProcessInfo.processInfo.processIdentifier
+        return list.compactMap { window in
+            guard window[kCGWindowLayer as String] as? Int == 0,
+                let pid = window[kCGWindowOwnerPID as String] as? Int32, pid != own,
+                let bounds = window[kCGWindowBounds as String] as? [String: Any],
+                let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary)
+            else { return nil }
+            return PresentationWindow(pid: pid, frame: frame)
+        }
+    }
+
+    /// The presentation display's frame in AX space, for a scope that reaches only it.
+    var displayFrame: CGRect {
+        guard let screen = PresentationDisplayAccess.screen(for: display) else { return .null }
+        return AXGeometry(screens: NSScreen.screens).flip(screen.frame)
     }
 
     // MARK: - Restoring
@@ -126,7 +167,7 @@ final class PresentationSession {
         try? await Task.sleep(for: Self.fullScreenExit)
     }
 
-    /// Puts frames back (when asked), then the minimized windows, then the hidden apps.
+    /// Puts frames back (when asked), then the hidden apps, then their minimized windows.
     func restore(frames: Bool) {
         if frames {
             for record in moved where AXWindowAccess.isEligible(record.window) {
@@ -137,11 +178,11 @@ final class PresentationSession {
                     canvas: nil)
             }
         }
-        for window in minimized {
-            _ = AXWindowAccess.unminimize(window)
-        }
         for app in hidden where !app.isTerminated {
             _ = app.unhide()
+        }
+        for window in minimized {
+            _ = AXWindowAccess.unminimize(window)
         }
         moved = []
         minimized = []

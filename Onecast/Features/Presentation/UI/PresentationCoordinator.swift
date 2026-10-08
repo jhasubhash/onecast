@@ -36,12 +36,20 @@ final class PresentationCoordinator {
     @ObservationIgnored private var originalMode: CGDisplayMode?
     @ObservationIgnored private var activationToken: NotificationToken?
     @ObservationIgnored private var screensToken: NotificationToken?
+    @ObservationIgnored private var spaceToken: NotificationToken?
+    /// When the last Space switch landed, so an activation that a switch caused can be told apart.
+    @ObservationIgnored private var lastSpaceChange: ContinuousClock.Instant?
+    @ObservationIgnored private var spaceTask: Task<Void, Never>?
+    @ObservationIgnored private var displayAwake: NSObjectProtocol?
     @ObservationIgnored private var transition: Task<Void, Never>?
     @ObservationIgnored private var pendingPresent: Task<Void, Never>?
 
     /// A just-launched app reports its window a moment after it activates.
     private static let windowWait: Duration = .milliseconds(200)
     private static let windowAttempts = 15
+    /// A Space switch and the activation it brings arrive within this of each other, either order.
+    private static let activationSettle: Duration = .milliseconds(300)
+    private static let spaceSwitchWindow: Duration = .milliseconds(600)
 
     init(settings: AppSettings, appIndex: AppIndex, core: AppCore) {
         self.settings = settings
@@ -87,6 +95,8 @@ final class PresentationCoordinator {
         pendingPresent?.cancel()
         activationToken = nil
         screensToken = nil
+        spaceToken = nil
+        spaceTask?.cancel()
         transition = Task { [weak self] in await self?.end() }
     }
 
@@ -166,6 +176,11 @@ final class PresentationCoordinator {
         displayName = PresentationDisplayAccess.screen(for: display)?.localizedName
         startedAt = Date()
         phase = .presenting
+        if settings.presentationHidesDocks { core.dockCoordinator.setHiddenForPresentation(true) }
+        if settings.presentationKeepsDisplayAwake {
+            displayAwake = ProcessInfo.processInfo.beginActivity(
+                options: [.idleDisplaySleepDisabled, .userInitiated], reason: "Presenting")
+        }
         core.showMessage(
             target == nil ? "Presenting: switch to the app to share" : "Presenting",
             tone: .neutral)
@@ -191,9 +206,17 @@ final class PresentationCoordinator {
     private func putAwayOthers(except target: NSRunningApplication?, in session: PresentationSession) {
         let style = settings.presentationOtherApps
         guard style != .leave else { return }
+        let scope = settings.presentationScope
+        let reach = PresentationScopePolicy.reach(
+            scope, onScreen: PresentationSession.onScreenWindows(), display: session.displayFrame)
         for app in NSWorkspace.shared.runningApplications
         where isCandidate(app) && app != target {
-            session.putAway(app, as: style)
+            guard let reach else {
+                session.putAway(app, as: style, alsoHide: style == .minimize)
+                continue
+            }
+            guard let frames = reach[app.processIdentifier] else { continue }
+            session.putAway(app, as: style, reach: frames)
         }
     }
 
@@ -222,6 +245,32 @@ final class PresentationCoordinator {
             Task { @MainActor [weak self] in self?.screensChanged() }
         }
         screensToken = NotificationToken(screens, center: .default)
+
+        let space = workspace.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.spaceChanged() }
+        }
+        spaceToken = NotificationToken(space, center: workspace)
+    }
+
+    /// An app already in front when its Space comes back posts no activation, yet it is unhidden.
+    private func spaceChanged() {
+        lastSpaceChange = .now
+        spaceTask?.cancel()
+        spaceTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.activationSettle)
+            guard let self, !Task.isCancelled, self.phase == .presenting, let session = self.session,
+                let front = NSWorkspace.shared.frontmostApplication, front != self.presentedApp
+            else { return }
+            self.keepPutAway(front, in: session)
+        }
+    }
+
+    /// Off it, the app macOS brings forward belongs to another Space and is not presented.
+    private var isOnPresentationSpace: Bool {
+        guard let presented = presentedApp?.processIdentifier else { return true }
+        return PresentationSession.onScreenWindows().contains { $0.pid == presented }
     }
 
     private func activated(pid: pid_t) {
@@ -231,12 +280,21 @@ final class PresentationCoordinator {
         else { return }
         let previous = presentedApp
         let behaviour = previous == nil ? .stack : settings.presentationAppSwitch
-        guard behaviour != .ignore else { return }
+        let activatedAt = ContinuousClock.now
 
         pendingPresent?.cancel()
         pendingPresent = Task { [weak self] in
+            try? await Task.sleep(for: Self.activationSettle)
+            guard let self, !Task.isCancelled else { return }
+            if self.spaceSwitched(near: activatedAt) {
+                self.keepPutAway(app, in: session)
+                return
+            }
+            guard behaviour != .ignore, self.isOnPresentationSpace else { return }
             for _ in 0..<Self.windowAttempts {
-                guard let self, !Task.isCancelled, self.phase == .presenting else { return }
+                guard !Task.isCancelled, self.phase == .presenting,
+                    !self.spaceSwitched(near: activatedAt)
+                else { return }
                 let presented = session.present(
                     app, size: self.settings.presentationWindowSize,
                     marginPercent: self.settings.presentationMarginPercent)
@@ -250,6 +308,18 @@ final class PresentationCoordinator {
                 try? await Task.sleep(for: Self.windowWait)
             }
         }
+    }
+
+    private func spaceSwitched(near instant: ContinuousClock.Instant) -> Bool {
+        guard let lastSpaceChange else { return false }
+        let gap = lastSpaceChange > instant ? lastSpaceChange - instant : instant - lastSpaceChange
+        return gap <= Self.spaceSwitchWindow
+    }
+
+    /// Activating a hidden app unhides it, and a Space switch activates that Space's front app.
+    private func keepPutAway(_ app: NSRunningApplication, in session: PresentationSession) {
+        guard settings.presentationScope == .everywhere else { return }
+        session.hideAgain(app)
     }
 
     /// Replace always puts the previous app away, even when other apps are otherwise left alone.
@@ -275,6 +345,9 @@ final class PresentationCoordinator {
             }
             session.restore(frames: settings.presentationRestoresWindows)
         }
+        if let displayAwake { ProcessInfo.processInfo.endActivity(displayAwake) }
+        displayAwake = nil
+        core.dockCoordinator.setHiddenForPresentation(false)
         runShortcut(named: settings.presentationEndShortcut)
         session = nil
         originalMode = nil

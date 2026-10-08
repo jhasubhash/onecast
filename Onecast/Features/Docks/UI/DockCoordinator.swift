@@ -12,6 +12,8 @@ final class DockCoordinator {
     let nativeDock: NativeDockService
     let widgets: DockWidgetManager
     let windows: DockWindowObserver
+    /// Presentation Mode takes the docks off screen without changing what they are.
+    private var hiddenForPresentation = false
 
     init(store: DockStore, settings: AppSettings, core: AppCore) {
         self.store = store
@@ -39,7 +41,7 @@ final class DockCoordinator {
         let configuration = store.configuration
         let docksShown = settings.docksEnabled && configuration.nativeMode != .macOSOnly
         widgets.setThirdPartyEnabled(settings.docksEnabled && settings.dockWidgetsEnabled)
-        panels.reconcile(configuration.docks, enabled: docksShown)
+        panels.reconcile(configuration.docks, enabled: docksShown && !hiddenForPresentation)
         nativeDock.applyHiding(
             hidden: docksShown && configuration.nativeMode == .customMain,
             hiding: configuration.nativeHiding)
@@ -56,6 +58,12 @@ final class DockCoordinator {
     func prepareForTermination() {
         panels.closeAll()
         nativeDock.restoreForTermination()
+    }
+
+    func setHiddenForPresentation(_ hidden: Bool) {
+        guard hidden != hiddenForPresentation else { return }
+        hiddenForPresentation = hidden
+        applyEnabled()
     }
 
     /// Turning Docks on asks first when it would hide the macOS Dock.

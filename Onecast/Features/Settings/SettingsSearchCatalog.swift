@@ -488,11 +488,23 @@ enum SettingsSearchCatalog {
             .presentationWindows, "Restore windows afterwards",
             keywords: ["undo", "put back", "end", "stop", "previous layout"]),
         .init(
+            .presentationWindows, "Put away windows on",
+            keywords: ["spaces", "all spaces", "desktops", "displays", "monitors", "minimize all"]),
+        .init(
             .presentationWindows, "Apps to leave alone",
             keywords: ["teams", "zoom", "webex", "meeting app", "exclude"]),
         .init(
             group: .presentationDisplays, "Display resolution while presenting",
             keywords: ["resolution", "scale", "4k", "retina", "text size", "monitor", "screen"]),
+        .init(
+            .presentationWhilePresenting, "Hide custom docks",
+            keywords: ["dock", "widgets", "privacy", "calendar", "stocks"]),
+        .init(
+            .presentationWhilePresenting, "Show in the menu bar",
+            keywords: ["on air", "recording", "indicator", "elapsed", "stop"]),
+        .init(
+            .presentationWhilePresenting, "Keep the display awake",
+            keywords: ["sleep", "dim", "screensaver", "caffeinate", "awake"]),
         .init(
             .presentationShortcuts, "When presenting starts",
             keywords: ["focus", "do not disturb", "dnd", "shortcut", "automation", "begin"]),
