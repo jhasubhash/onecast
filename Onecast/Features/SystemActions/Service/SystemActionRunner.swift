@@ -105,10 +105,8 @@ enum SystemActionRunner {
                 domain: "com.apple.WindowManager", key: "GloballyEnabled")
             return SystemActionFeedback(on ? "Stage Manager On" : "Stage Manager Off")
         case .openTrash:
-            let trash = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash")
-            guard NSWorkspace.shared.open(trash) else {
-                throw SystemActionFailure("Finder could not open the Trash.")
-            }
+            // Opening `~/.Trash` by path lands in the home folder: it is TCC-protected.
+            try await runAppleScript("tell application \"Finder\"\nopen trash\nactivate\nend tell")
         case .emptyTrash:
             // Count first: Finder errors on an empty Trash, and `~/.Trash` is TCC-protected.
             let items =

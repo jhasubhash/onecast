@@ -164,8 +164,10 @@ Paddle, Shopify) are deliberately left to third-party DockWidgets.
 
 ## Things that are not obvious
 
-- **`~/.Trash` is protected.** Without Full Disk Access the Trash tile keeps its empty icon; dropping
-  a file on it still moves it there.
+- **`~/.Trash` is protected.** Without Full Disk Access it can be neither listed nor watched, but it
+  can be `stat`ed: `DockTrashMonitor` counts items from the folder's APFS link count (entries + 2,
+  less Finder's `.DS_Store`) and polls every 2 s when the watch is refused. Opening it by path lands
+  in the home folder, so Open Trash asks Finder (`open trash`) instead.
 - **A tile's label is not the `tooltip` modifier**, which the dock's window would clip. A widget's own
   controls do use `tooltip`, but the dock injects a `TooltipPresenter` (`DockSurface.tooltipPresenter`)
   that draws it in the label's panel instead, anchored to the control's frame and re-placed as the

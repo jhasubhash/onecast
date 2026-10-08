@@ -2,14 +2,15 @@ import AppKit
 
 /// Whether the Trash holds anything, so the dock's Trash tile can show it full.
 ///
-/// `~/.Trash` is protected: without Full Disk Access the folder can neither be watched nor
-/// listed, and the tile keeps showing the empty Trash.
+/// `~/.Trash` is protected: without Full Disk Access it can be neither watched nor listed, but it
+/// can still be `stat`ed, so the count comes from its link count and is polled when unwatchable.
 @MainActor
 @Observable
 final class DockTrashMonitor {
     private(set) var hasItems = false
     @ObservationIgnored private var source: DispatchSourceFileSystemObject?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private var pollTask: Task<Void, Never>?
 
     nonisolated static var url: URL {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash")
@@ -23,11 +24,15 @@ final class DockTrashMonitor {
     isolated deinit {
         source?.cancel()
         refreshTask?.cancel()
+        pollTask?.cancel()
     }
 
     private func arm() {
         let descriptor = Darwin.open(Self.url.path, O_EVTONLY)
-        guard descriptor >= 0 else { return }
+        guard descriptor >= 0 else {
+            poll()
+            return
+        }
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: descriptor, eventMask: [.write, .delete, .rename, .revoke],
             queue: .main)
@@ -37,6 +42,15 @@ final class DockTrashMonitor {
         source.setCancelHandler { Darwin.close(descriptor) }
         self.source = source
         source.resume()
+    }
+
+    private func poll() {
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                self?.refresh()
+            }
+        }
     }
 
     /// Debounced: emptying the Trash is a burst of removals.
@@ -51,9 +65,11 @@ final class DockTrashMonitor {
         }
     }
 
+    /// APFS gives a folder one link per entry plus two; Finder's own `.DS_Store` is not an item.
     nonisolated private static func containsItems() -> Bool {
-        let contents = try? FileManager.default.contentsOfDirectory(
-            at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
-        return !(contents ?? []).isEmpty
+        var trash = stat(), finderFile = stat()
+        guard stat(url.path, &trash) == 0 else { return false }
+        let hidden = stat(url.appendingPathComponent(".DS_Store").path, &finderFile) == 0 ? 1 : 0
+        return Int(trash.st_nlink) - 2 - hidden > 0
     }
 }
