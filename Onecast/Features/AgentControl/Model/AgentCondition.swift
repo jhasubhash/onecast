@@ -41,8 +41,8 @@ struct AgentCondition: Equatable, Sendable {
             absentWindow: try arguments.optional("absentWindow"))
     }
 
-    /// Text checks need element trees; everything else is answered from the palette alone.
-    var needsElements: Bool { text != nil || absentText != nil }
+    /// Rows and text come from element trees; everything else from the palette alone.
+    var needsElements: Bool { text != nil || absentText != nil || minimumRows != nil }
 
     func isMet(by snapshot: AgentSnapshot) -> Bool {
         let palette = snapshot.palette

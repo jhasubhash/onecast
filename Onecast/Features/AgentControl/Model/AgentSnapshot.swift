@@ -36,13 +36,14 @@ struct AgentSnapshot: Codable, Equatable, Sendable {
         let controlListOpen: Bool
         let frame: Rect?
         var rows: [Row]?
+        /// The header and footer pills, as labelled: "Run Command, ↵".
+        var barControls: [String]?
     }
 
-    /// One selectable palette row, in selection order, so `selection` indexes this list.
+    /// One rendered palette row; `index` is its place among rendered rows, not `selection`.
     struct Row: Codable, Equatable, Sendable {
         let index: Int
         let label: String
-        let identifier: String?
         let selected: Bool
         let frame: Rect?
     }

@@ -993,6 +993,7 @@ private struct GlassBarButton<Label: View>: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
+        .accessibilityIdentifier("onecast.bar")
     }
 }
 

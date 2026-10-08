@@ -35,6 +35,7 @@ struct BarButton<Label: View>: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
+        .accessibilityIdentifier("onecast.bar")
     }
 }
 

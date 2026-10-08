@@ -12,6 +12,10 @@ extension View {
                 }
             }
         }
+        // Every selectable palette row passes here, so this is where a row says it is one.
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("onecast.row")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     /// Keeps the keyboard selection in the band between the bars; needs `selectionFrame` on rows.

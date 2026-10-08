@@ -53,6 +53,22 @@ curl -s -H "Authorization: Bearer $(plutil -extract token raw -o - "$H")" \
 Every reply is `{"ok": true, "result": …}` or `{"ok": false, "error": "…"}`. An action's result is
 the palette after it, plus `waited` seconds when it carried an `until`.
 
+## What `state` answers
+
+- `palette` — `visible`, `mode`, `query`, `selection`, `backStack`, `aiBar`, `collapsed`,
+  `editingField`, `controlListOpen`, `frame`, and, whenever elements are read:
+  - `rows` — every **rendered** row, in reading order, with its text joined by ` · `, `selected`
+    and `frame`. A row is anything `selectionFrame(_:)` marks, which every selectable palette list
+    already uses; it makes the row an AX container with identifier `onecast.row` and the
+    `isSelected` trait. A lazy list leaves off-screen rows out, and a grid (emoji) reports one row
+    per line, so `index` is the rendered place, not `selection`.
+  - `barControls` — the header and footer pills as labelled (`Open Application, ↵`), from
+    `BarButton` and `ActionBar`'s pills, both identified `onecast.bar`. A chip shown for an inert
+    key is now a JSON assertion.
+- `windows` — every visible window: `id`, `title`, `className`, `level`, `isKey`, `frame`, and its
+  pruned AX `elements` (anonymous groups lifted, empty leaves dropped; `pruned: false` keeps them).
+- `focus` — the key window's id, its first responder's class, the frontmost app.
+
 ## Actions
 
 | Action | Fields | Does |

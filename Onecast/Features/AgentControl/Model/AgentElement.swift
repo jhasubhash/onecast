@@ -47,6 +47,46 @@ struct AgentElement: Codable, Equatable, Sendable {
         return nil
     }
 
+    /// The identifier `selectionFrame` gives each selectable palette row.
+    static let rowIdentifier = "onecast.row"
+
+    /// Rendered rows in reading order; a lazy list leaves off-screen rows out.
+    static func rows(in elements: [AgentElement]) -> [AgentSnapshot.Row] {
+        var rows: [AgentSnapshot.Row] = []
+        func visit(_ element: AgentElement) {
+            guard element.identifier == rowIdentifier else {
+                (element.children ?? []).forEach(visit)
+                return
+            }
+            rows.append(
+                AgentSnapshot.Row(
+                    index: rows.count, label: element.descendantTexts.joined(separator: " · "),
+                    selected: element.selected == true, frame: element.frame))
+        }
+        elements.forEach(visit)
+        return rows
+    }
+
+    /// The identifier `BarButton` gives each header and footer pill.
+    static let barIdentifier = "onecast.bar"
+
+    static func barControls(in elements: [AgentElement]) -> [String] {
+        elements.flatMap { element -> [String] in
+            guard element.identifier == barIdentifier else {
+                return barControls(in: element.children ?? [])
+            }
+            return [element.label ?? element.descendantTexts.joined(separator: " ")]
+        }
+    }
+
+    /// The text a row shows, in order, without the row's own identifier.
+    private var descendantTexts: [String] {
+        let own = [label, title, value].compactMap(\.self)
+        return own + (children ?? []).flatMap { child in
+            child.identifier == Self.rowIdentifier ? [] : child.descendantTexts
+        }
+    }
+
     /// Every searchable string on this node, for text-presence checks.
     var texts: [String] { [identifier, label, title, value].compactMap(\.self) }
 

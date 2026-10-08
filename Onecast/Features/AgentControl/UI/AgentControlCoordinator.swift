@@ -194,12 +194,15 @@ final class AgentControlCoordinator {
             includeContent: includeContent,
             redactsPaletteText: !includeContent && core.palette.mode == .clipboard,
             pruned: pruned)
-        return AgentSnapshot(
-            build: build,
-            palette: paletteSnapshot,
-            windows: AgentWindowInspector.windows(
-                includeElements: includeElements, options: options),
-            focus: focus)
+        let windows = AgentWindowInspector.windows(
+            includeElements: includeElements, options: options)
+        var palette = paletteSnapshot
+        if includeElements, palette.visible {
+            let elements = windows.first { $0.id == "palette" }?.elements ?? []
+            palette.rows = AgentElement.rows(in: elements)
+            palette.barControls = AgentElement.barControls(in: elements)
+        }
+        return AgentSnapshot(build: build, palette: palette, windows: windows, focus: focus)
     }
 
     private var build: AgentSnapshot.Build {

@@ -143,7 +143,7 @@ struct AgentControlTests {
                 collapsed: false, editingField: false, controlListOpen: false, frame: nil,
                 rows: rows.map { count in
                     (0..<count).map {
-                        .init(index: $0, label: "row \($0)", identifier: nil, selected: $0 == 0, frame: frame)
+                        .init(index: $0, label: "row \($0)", selected: $0 == 0, frame: frame)
                     }
                 }),
             windows: windows, focus: .init(keyWindow: nil, firstResponder: nil, frontmostApp: nil))
@@ -194,5 +194,30 @@ struct AgentControlTests {
         ]
         expect(AgentElement.pruned(labelled).first?.children == nil, "an informative node keeps its place")
         expect(tree[0].contains(text: "hi"), "contains searches the subtree, ignoring case")
+        let row = { (selected: Bool, texts: [String]) in
+            AgentElement(
+                role: "AXGroup", identifier: AgentElement.rowIdentifier, selected: selected ? true : nil,
+                children: texts.map { AgentElement(role: "AXStaticText", value: $0) })
+        }
+        let list = [
+            AgentElement(role: "AXStaticText", value: "Results"),
+            AgentElement(
+                role: "AXScrollArea",
+                children: [row(false, ["Calculator", "Application"]), row(true, ["Notes", "Command"])]),
+        ]
+        let rows = AgentElement.rows(in: list)
+        expect(rows.map(\.label) == ["Calculator · Application", "Notes · Command"], "rows read in order")
+        expect(rows.map(\.selected) == [false, true], "a row carries its selection")
+        expect(rows.map(\.index) == [0, 1], "a row's index is its rendered place")
+        expect(AgentCondition(minimumRows: 1).needsElements, "a row count needs elements")
+        let bar = [
+            AgentElement(
+                role: "AXGroup",
+                children: [
+                    AgentElement(role: "AXButton", identifier: AgentElement.barIdentifier, label: "Open, ↵"),
+                    AgentElement(role: "AXButton", label: "Elsewhere"),
+                ])
+        ]
+        expect(AgentElement.barControls(in: bar) == ["Open, ↵"], "only bar pills are bar controls")
     }
 }
