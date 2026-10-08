@@ -564,6 +564,7 @@
 		7D28ED7E34366750F6A0046E /* ModifierKeyDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B086982ABBAE2DC2F9C8B88D /* ModifierKeyDetector.swift */; };
 		7D91B1EC71D5DE6C2E91C62F /* AgentRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A6C300243FC13EEF873F4CA /* AgentRequest.swift */; };
 		7DA334BC18AFC026C5C23C46 /* DockPreviewStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D43C524AC7BE074C015C3D /* DockPreviewStore.swift */; };
+		7E287D7F89D7E74B99BD601B /* AgentWindowCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90798C9A9A5070B096AB1382 /* AgentWindowCapture.swift */; };
 		7E94EDE414E5DF0906BFE575 /* AutoJoinPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090565990F1FE50E8CA6C322 /* AutoJoinPolicy.swift */; };
 		7E986E514E2208BAA0D1E8AC /* NoteSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D68E3B732C460021E063969 /* NoteSearch.swift */; };
 		7E99FB29A8BF86A9E8026EA1 /* WindowSwitchSweep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66B1024E86357DA7843F82AA /* WindowSwitchSweep.swift */; };
@@ -1755,6 +1756,7 @@
 		8FE907E489B41A012D388990 /* SystemSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSeries.swift; sourceTree = "<group>"; };
 		9027630F336D56C9FE479032 /* IntentClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentClassifier.swift; sourceTree = "<group>"; };
 		90458F23793139E6239C965E /* ExtensionStoreClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionStoreClient.swift; sourceTree = "<group>"; };
+		90798C9A9A5070B096AB1382 /* AgentWindowCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentWindowCapture.swift; sourceTree = "<group>"; };
 		90A7C2EFCD00B773616D0FA2 /* RelayPortField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayPortField.swift; sourceTree = "<group>"; };
 		90AF0192D3CD7EC55558E207 /* DictationLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationLanguage.swift; sourceTree = "<group>"; };
 		90C710CCC5D58704748E4510 /* WindowMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowMover.swift; sourceTree = "<group>"; };
@@ -4544,6 +4546,7 @@
 				ACB97301D429483FF5E6393F /* AgentControlServer.swift */,
 				033FD2FDEC60D6350FE7C6C7 /* AgentKeyboard.swift */,
 				13B33B8A7686DD3577F31C50 /* AgentLogReader.swift */,
+				90798C9A9A5070B096AB1382 /* AgentWindowCapture.swift */,
 				EA52B892A4F8C8586C0BEE7D /* AgentWindowInspector.swift */,
 			);
 			path = Service;
@@ -5152,6 +5155,7 @@
 				F769CF44F6313B5CFC27D102 /* AgentReply.swift in Sources */,
 				7D91B1EC71D5DE6C2E91C62F /* AgentRequest.swift in Sources */,
 				29AC9258F47754BCF3BD03E1 /* AgentSnapshot.swift in Sources */,
+				7E287D7F89D7E74B99BD601B /* AgentWindowCapture.swift in Sources */,
 				FE5C27BFDC0BF49CC8C15288 /* AgentWindowInspector.swift in Sources */,
 				BB1A787F2AED58C20335BC94 /* AirDropDockWidget.swift in Sources */,
 				DE006A37E052917ABF0AC382 /* AlarmDockWidget.swift in Sources */,

@@ -23,6 +23,8 @@ enum AgentCommand: Equatable, Sendable {
     case press(String, window: String?)
     case waitFor
     case logs(AgentLogQuery)
+    /// A PNG of one window, written to `path` or a temporary file.
+    case capture(window: String, path: String?)
 
     enum DecodeError: Error, Equatable, LocalizedError {
         case unknownAction(String)
@@ -81,6 +83,10 @@ enum AgentCommand: Equatable, Sendable {
             return .press(try arguments.required("match"), window: try arguments.optional("window"))
         case "waitFor": return .waitFor
         case "logs": return .logs(try AgentLogQuery(arguments))
+        case "capture":
+            return .capture(
+                window: try arguments.optional("window") ?? "palette",
+                path: try arguments.optional("path"))
         default:
             throw DecodeError.unknownAction(action)
         }

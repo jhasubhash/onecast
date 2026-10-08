@@ -90,6 +90,7 @@ the palette after it, plus `waited` seconds when it carried an `until`.
 | `setAppearance` | `appearance` | `system`, `light` or `dark` |
 | `press` | `match`, `window` | AX-presses the first element whose identifier, label or title matches |
 | `waitFor` | any condition fields, `timeout` | waits until the condition holds |
+| `capture` | `window` (`palette`), `path` | a PNG of exactly that window; the palette's reply adds its `rows` |
 | `logs` | `since` (60 s), `level`, `category`, `contains`, `allSubsystems`, `limit` (200) | this process's unified log, oldest first |
 
 Any action also takes `until: {…condition…}` and `timeout` (seconds, default 5, at most 60).
@@ -100,6 +101,17 @@ Any action also takes `until: {…condition…}` and `timeout` (seconds, default
 
 **Window ids** are the `onecast.` accessibility identifier without its prefix — `palette`, `menu`,
 `dock`, `hud`, `dialog`, `notes`, `settings`, `ai-chat` — with `#2`, `#3` for a second of a kind.
+
+## Captures
+
+`capture` writes one window — never the screen around it — at its backing scale, to `path` or a
+temporary `onecast-agent/<window>-<ms>.png`, and answers the file, its frame in screen points and the
+`method` used. With Onecast Dev granted **Screen Recording** it is `screenCaptureKit`, a
+desktop-independent window capture that matches the screen, glass included; without it
+`cacheDisplay`, the content view drawing itself, right for layout and text but not for Liquid
+Glass or vibrancy. The palette's capture also returns `rows`, whose frames locate each row in the
+image after subtracting the window's origin. [UI_TESTS.md](UI_TESTS.md) §4's rule still holds: look
+at the picture, and check the selection against `state` rather than reading a wash off pixels.
 
 ## Logs
 
@@ -130,6 +142,7 @@ rates, the update check and extension remote icons now say why they came back em
 | `Model/AgentCondition.swift` | what `waitFor` checks, evaluated over a snapshot |
 | `Model/AgentSnapshot.swift`, `AgentElement.swift` | the snapshot and tree pruning |
 | `Model/AgentReply.swift` | the reply envelope |
+| `Service/AgentWindowCapture.swift` | one window to PNG, ScreenCaptureKit or `cacheDisplay` |
 | `Model/AgentLogQuery.swift`, `Service/AgentLogReader.swift` | what `logs` admits, and the `OSLogStore` read |
 | `Service/AgentControlServer.swift` | listener, handshake, token check |
 | `Service/AgentKeyboard.swift` | posting key events and waiting for them to drain |

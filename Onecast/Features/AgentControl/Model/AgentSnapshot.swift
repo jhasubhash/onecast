@@ -65,6 +65,17 @@ struct AgentSnapshot: Codable, Equatable, Sendable {
         let frontmostApp: String?
     }
 
+    /// What `capture` wrote. `cacheDisplay` means no Screen Recording grant: glass won't match.
+    struct Capture: Codable, Equatable, Sendable {
+        let path: String
+        let window: String
+        let frame: Rect
+        let pixelWidth: Int
+        let pixelHeight: Int
+        let method: String
+        var rows: [Row]?
+    }
+
     let build: Build
     var palette: Palette
     var windows: [Window]

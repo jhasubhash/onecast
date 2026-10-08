@@ -83,6 +83,8 @@ in-script.
 
 ## 4. Capture the panel, not the screen
 
+`Scripts/agent/onecastctl capture window=palette path=/tmp/panel.png` does all of this in one call
+([AGENT_CONTROL.md](AGENT_CONTROL.md#captures)); the recipe below is for when the channel is down.
 Every panel carries an `AXIdentifier` (`onecast.palette`, `onecast.menu`, `onecast.dock`,
 `onecast.hud`, `onecast.dialog`, …) and a title, so pick the window by name, not by guessing.
 Ask the window its own rect and capture that — `screencapture -R` and the accessibility API's

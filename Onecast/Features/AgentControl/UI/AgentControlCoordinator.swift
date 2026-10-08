@@ -47,6 +47,13 @@ final class AgentControlCoordinator {
                 return AgentReply.success(entries(query: query, kind: kind, limit: limit))
             case .logs(let query):
                 return AgentReply.success(try await AgentLogReader.entries(query))
+            case .capture(let id, let path):
+                guard let window = AgentWindowInspector.window(id: id) else {
+                    throw Failure("No visible window \"\(id)\".")
+                }
+                var capture = try await AgentWindowCapture.capture(window, id: id, to: path)
+                if id == "palette" { capture.rows = snapshot().palette.rows }
+                return AgentReply.success(capture)
             default:
                 detail = try await perform(request.command)
             }
@@ -66,7 +73,7 @@ final class AgentControlCoordinator {
 
     private func perform(_ command: AgentCommand) async throws -> String? {
         switch command {
-        case .ping, .state, .entries, .waitFor, .logs:
+        case .ping, .state, .entries, .waitFor, .logs, .capture:
             return nil
         case .show(let name, let query):
             guard let mode = PaletteMode(rawValue: name) else {
