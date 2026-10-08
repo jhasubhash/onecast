@@ -34,6 +34,7 @@ struct CodexTurnTests {
             return
         }
         let manager = ChatGPTSubscriptionManager(supportDirectory: server.root)
+        manager.launchSettings = server.launchSettings
         defer {
             manager.stop()
             server.tearDown()
@@ -64,6 +65,7 @@ struct CodexTurnTests {
             return
         }
         let manager = ChatGPTSubscriptionManager(supportDirectory: server.root)
+        manager.launchSettings = server.launchSettings
         defer {
             manager.stop()
             server.tearDown()
@@ -83,6 +85,7 @@ struct CodexTurnTests {
                 continue
             }
             let checked = ChatGPTSubscriptionManager(supportDirectory: server.root)
+            checked.launchSettings = server.launchSettings
             await checked.refresh().value
             expect(
                 checked.phase == .signedOut && !checked.isConnected && checked.models.isEmpty,
@@ -92,6 +95,7 @@ struct CodexTurnTests {
             let stops = { server.received.split(separator: "\n").count { $0 == "stdin-closed" } }
             let checkStopped = await server.awaitCondition { stops() == 1 }
             let cold = ChatGPTSubscriptionManager(supportDirectory: server.root)
+            cold.launchSettings = server.launchSettings
             let attempt = await reply(from: cold)
             expect(
                 attempt.error?.contains("codex login") == true && cold.phase == .signedOut,
@@ -184,6 +188,8 @@ final class StubServer {
     let root: URL
     let client: CodexAppServerClient
     let runner: CodexTurnRunner
+    /// The stub as the command path; a lookup asks the login shell, which finds any real `codex`.
+    let launchSettings: () -> InstalledAILaunch
 
     init?(mode: String) {
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -201,15 +207,14 @@ final class StubServer {
             return nil
         }
 
-        // The locator walks PATH, so the stub only sits in front of any real `codex`.
-        let inherited = ProcessInfo.processInfo.environment["PATH"] ?? ""
-        setenv("PATH", "\(executable.deletingLastPathComponent().path):\(inherited)", 1)
         setenv("TC_STUB_ROOT", root.path, 1)
         setenv("TC_STUB_MODE", mode, 1)
 
         let client = CodexAppServerClient(
             codexHome: root.appending(path: "home", directoryHint: .isDirectory),
             workspace: root.appending(path: "work", directoryHint: .isDirectory))
+        let launch = InstalledAILaunch(commandPath: executable.path)
+        client.launchSettings = { launch }
         let runner = CodexTurnRunner(client: client)
         runner.connect = {
             try await client.start()
@@ -222,6 +227,7 @@ final class StubServer {
         self.root = root
         self.client = client
         self.runner = runner
+        self.launchSettings = { launch }
     }
 
     /// What the app does: a task iterating the provider stream, where Stop is its cancellation.
