@@ -4,6 +4,27 @@ Date: 2026-10-08. Scope: what Onecast needs so a coding agent (Claude Code or si
 read its state and debug problems quickly, without relying on screenshots and synthesized keystrokes
 alone.
 
+> **Status (2026-10-08): implemented, phases 0–7.** How it works and how to use it:
+> [custom_docs/AGENT_CONTROL.md](custom_docs/AGENT_CONTROL.md). Where the build departed from
+> this plan, and why:
+>
+> - **Transport**: loopback TCP speaking plain HTTP/1.1 with a per-launch bearer token, not a Unix
+>   socket, so `curl` and a dependency-free Node MCP shim both work as clients.
+> - **Element trees** come from the AX API on the app's own pid, **on the main thread**. In-process
+>   `accessibilityChildren()` returns only the hosting view, because SwiftUI serves its tree through
+>   the AX API alone. AppKit answers its own pid inline on the calling thread, so an off-main read
+>   trapped in Auto Layout. It needs Onecast Dev's Accessibility grant.
+> - **Rows** (§4.1): no per-screen `agentRows`. `selectionFrame(_:)`, which every selectable list
+>   already uses, now makes each row an AX element with `isSelected`, and `state` reads rows from
+>   the tree. That covers ~15 screens in one place and gives VoiceOver real rows.
+> - **Logs** (§4.5): no wrapper or ring buffer. `OSLogStore(scope: .currentProcessIdentifier)` reads
+>   the process's own `Logger` entries and in-process framework faults.
+> - **Not built**: the `ONECAST_DATA_ROOT` seam and fixture seeding (§4.8). Both are flags, against
+>   the "no flags" posture, and `state`'s redaction covers the privacy concern.
+>   `includeContent` is the opt-in.
+> - Found along the way: SwiftUI exposed no palette rows to VoiceOver, and the launcher's selection
+>   can intermittently reset to 0 when the open-time app-index refresh lands after a ↓.
+
 ## TL;DR
 
 Today an agent controls Onecast the same way a person does, but blind. It types global key codes

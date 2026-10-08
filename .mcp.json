@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "onecast": {
+      "command": "node",
+      "args": ["Scripts/agent/mcp-server.mjs"]
+    }
+  }
+}

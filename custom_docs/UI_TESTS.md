@@ -408,7 +408,8 @@ custom dock at the system Dock's level (20).
 
 ## 8. Before you call a UI change done
 
-- Driver script ran end to end against a freshly restarted Debug build.
+- Driver ran end to end against a freshly restarted Debug build — `dev-run.sh`, then the agent
+  channel's actions with `until`, or the `osascript` script for what only a real chord reaches.
 - One captured panel image per changed state, viewed rather than asked about.
 - §6 checks pass, including type-then-backspace.
 - Network-backed surfaces seen once with cache cleared.

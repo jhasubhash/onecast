@@ -11,6 +11,9 @@ keyboard-driven recipe it speeds up is [UI_TESTS.md](UI_TESTS.md).
 - **Debug only.** Every file under `Features/AgentControl/Service/` and `UI/`, and its wiring in
   `AppCore`, sits inside `#if DEBUG`. A Release build has no listener. `Model/` is pure data with no
   effect of its own, so it compiles everywhere and the harness can reach it.
+- **Release never carries it**, checked rather than assumed: `Scripts/agent/check-release.sh` builds
+  an unsigned Release (or takes a built `.app`) and fails if any binary in it names the server,
+  keyboard, reader or capture types or the handshake file. Run it before packaging a release.
 - **Loopback, authenticated, per launch.** `AgentControlServer` binds `127.0.0.1` on a
   kernel-assigned port and writes `{port, token, pid}` to
   `~/Library/Application Support/<bundle id>/agent-control.json`, mode `0600`. Every request carries
@@ -49,6 +52,13 @@ H=~/Library/Application\ Support/com.onecast.app.dev/agent-control.json
 curl -s -H "Authorization: Bearer $(plutil -extract token raw -o - "$H")" \
   -d '{"action":"show","mode":"clipboard"}' "http://127.0.0.1:$(plutil -extract port raw -o - "$H")/"
 ```
+
+**From an agent**, prefer the MCP server: `.mcp.json` registers `Scripts/agent/mcp-server.mjs`
+(Node, no dependencies) as `onecast`, so Claude Code lists `state`, `show`, `type`, `key`,
+`wait_for`, `capture` (the PNG comes back inline), `logs`, `extension`, `plugins` and `relaunch`
+(which runs `dev-run.sh`) as tools. Calls run one at a time, in order. The project skill
+`.claude/skills/onecast-drive` teaches the loop: relaunch → act with `until` → read `state` →
+capture only for visual questions → `logs`/`extension`/`plugins` to explain a failure.
 
 Every reply is `{"ok": true, "result": …}` or `{"ok": false, "error": "…"}`. An action's result is
 the palette after it, plus `waited` seconds when it carried an `until`.
@@ -168,4 +178,5 @@ rates, the update check and extension remote icons now say why they came back em
 | `Service/AgentAccessibilityReader.swift` | the off-main AX walk and AX press |
 | `Service/AgentWindowInspector.swift` | window ids, frames, and joining each to its AX tree |
 | `UI/AgentControlCoordinator.swift` | each action, through the app's coordinators |
-| `Scripts/dev-run.sh`, `Scripts/agent/` | relaunch-until-ready, `onecastctl`, the shared client |
+| `Scripts/dev-run.sh`, `Scripts/agent/` | relaunch-until-ready, `onecastctl`, the shared client, the MCP server, the Release guard |
+| `.mcp.json`, `.claude/skills/onecast-drive/` | the MCP registration and the drive-loop skill |
