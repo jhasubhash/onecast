@@ -122,6 +122,12 @@ switches nothing back. `HotKeyAction.dockVisibility` shows or hides one dock. Se
   strip, never a window parked off screen. Reveal is a global pointer monitor on the reveal zone,
   armed only while some dock hides; in a full-screen Space the pointer must rest there first. It is
   set per dock in Settings › Docks › Appearance, or from the dock's own right-click menu.
+- **A full-screen app makes a dock auto-hide** (`DockAppearance.hidesInFullScreen`, on by default;
+  Settings › Docks › Appearance › Hide in full-screen apps), as the macOS Dock steps aside: no handle,
+  and the pointer rests at the edge to reveal it. `DockPanelController` asks `DockScreenProbe`
+  whether a window fills the dock's display on each Space switch and app activation, again once the
+  Space animation settles, and on reconcile; `DockSurface.hidesNow` folds it into auto-hide, so the
+  same slide, reveal and pointer monitors serve both. A normal desktop is unchanged.
 - **Yielding to the macOS Dock is detected, not assumed**: its window is looked for at the Dock level
   only while the pointer is near its edge.
 - **Popups are panels**, one at a time; Escape, a click elsewhere and losing key close them.

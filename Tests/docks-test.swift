@@ -265,12 +265,15 @@ struct DocksTests {
         expect(appearance?.tileSize == 64, "an appearance saved before newer keys keeps its values")
         expect(appearance?.autoHides == true, "including its flags")
         expect(appearance?.showsWidgetLabels == true, "and a key it never had takes its default")
-        var labelsOff = DockAppearance()
-        labelsOff.showsWidgetLabels = false
-        let back = (try? JSONEncoder().encode(labelsOff)).flatMap {
+        expect(appearance?.hidesInFullScreen == true, "so an old dock steps aside in full screen")
+        var changed = DockAppearance()
+        changed.showsWidgetLabels = false
+        changed.hidesInFullScreen = false
+        let back = (try? JSONEncoder().encode(changed)).flatMap {
             try? JSONDecoder().decode(DockAppearance.self, from: $0)
         }
         expect(back?.showsWidgetLabels == false, "turning widget labels off survives a round-trip")
+        expect(back?.hidesInFullScreen == false, "and so does staying over full-screen apps")
     }
 
     static func customIconsRoundTripAndOldConfigsDecode() {

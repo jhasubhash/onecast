@@ -51,6 +51,8 @@ struct DockAppearance: Codable, Sendable, Hashable {
     var hidesWhenMacOSDockAppears = false
     /// A widget tile's name on hover; its own controls' labels show either way.
     var showsWidgetLabels = true
+    /// Tucks away while a full-screen app holds the display, as the macOS Dock does.
+    var hidesInFullScreen = true
 
     static let tileSizeRange: ClosedRange<Double> = 24...128
     static let magnifiedSizeRange: ClosedRange<Double> = 24...192
@@ -82,6 +84,8 @@ extension DockAppearance {
             ?? defaults.hidesWhenMacOSDockAppears
         showsWidgetLabels =
             try c.decodeIfPresent(Bool.self, forKey: .showsWidgetLabels) ?? defaults.showsWidgetLabels
+        hidesInFullScreen =
+            try c.decodeIfPresent(Bool.self, forKey: .hidesInFullScreen) ?? defaults.hidesInFullScreen
     }
 }
 

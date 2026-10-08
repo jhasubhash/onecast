@@ -560,6 +560,9 @@ enum SettingsSearchCatalog {
             .docksAppearance, "Show widget labels",
             keywords: ["tooltip", "name", "hover", "widget title"]),
         .init(
+            .docksAppearance, "Hide in full-screen apps",
+            keywords: ["fullscreen", "full screen", "overlap", "game", "video"]),
+        .init(
             .docksContent, "Show running apps",
             keywords: ["open apps", "unpinned", "running"]),
         .init(

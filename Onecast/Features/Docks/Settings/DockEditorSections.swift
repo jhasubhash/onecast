@@ -196,6 +196,11 @@ struct DockAppearanceSection: View {
                 }
                 .settingsEnabled(appearance.autoHides)
 
+                Toggle(isOn: appearanceBinding(dock, \.hidesInFullScreen)) {
+                    SettingsRowTitle(.docksAppearance, "Hide in full-screen apps")
+                    Text("Steps out of a full-screen app's way; rest the pointer at the edge to show it.")
+                }
+
                 Picker(selection: appearanceBinding(dock, \.layer)) {
                     ForEach(DockLayer.allCases, id: \.self) { layer in
                         Text(layer.settingsTitle).tag(layer)

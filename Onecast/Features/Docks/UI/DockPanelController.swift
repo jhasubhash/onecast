@@ -13,6 +13,8 @@ final class DockPanelController {
     private var runningMonitor: DockRunningAppsMonitor?
     private var trashMonitor: DockTrashMonitor?
     private var screenObserver: NotificationToken?
+    private var fullScreenObservers: [NotificationToken] = []
+    private var fullScreenTask: Task<Void, Never>?
     private var pointerMonitors: [Any] = []
     private var yieldTask: Task<Void, Never>?
     private var lastProbe: ContinuousClock.Instant?
@@ -21,6 +23,8 @@ final class DockPanelController {
     private static let probeDistance: CGFloat = 160
     private static let probeInterval = Duration.milliseconds(60)
     private static let yieldPoll = Duration.milliseconds(120)
+    /// A Space switch animates; the window list shows the arriving Space only once it settles.
+    private static let spaceSettle = Duration.milliseconds(600)
 
     init(core: AppCore) {
         self.core = core
@@ -65,7 +69,7 @@ final class DockPanelController {
                 surfaces[dock.id] = DockSurface(dock: dock, controller: self)
             }
         }
-        refreshPointerMonitors()
+        refreshFullScreen()
     }
 
     func closeAll() {
@@ -76,6 +80,9 @@ final class DockPanelController {
         disarmPointerMonitors()
         yieldTask?.cancel()
         yieldTask = nil
+        fullScreenTask?.cancel()
+        fullScreenTask = nil
+        fullScreenObservers = []
         screenObserver = nil
         runningMonitor = nil
         trashMonitor = nil
@@ -113,6 +120,19 @@ final class DockPanelController {
             }
             screenObserver = NotificationToken(token, center: center)
         }
+        if fullScreenObservers.isEmpty {
+            let workspace = NSWorkspace.shared.notificationCenter
+            fullScreenObservers = [
+                NSWorkspace.activeSpaceDidChangeNotification,
+                NSWorkspace.didActivateApplicationNotification,
+            ].map { name in
+                let token = workspace.addObserver(forName: name, object: nil, queue: .main) {
+                    [weak self] _ in
+                    Task { @MainActor in self?.scheduleFullScreenRefresh() }
+                }
+                return NotificationToken(token, center: workspace)
+            }
+        }
         core.dockCoordinator.widgets.onClosePopover = { [weak self] instanceID in
             guard let self, floating.isOpen(.widget(itemID: instanceID)) else { return }
             floating.close()
@@ -122,13 +142,36 @@ final class DockPanelController {
     private func screensChanged() {
         floating.close()
         for surface in surfaces.values { surface.place() }
+        refreshFullScreen()
+    }
+
+    // MARK: - Full screen
+
+    /// Now, and again once a Space switch has settled.
+    private func scheduleFullScreenRefresh() {
+        refreshFullScreen()
+        fullScreenTask?.cancel()
+        fullScreenTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.spaceSettle)
+            guard !Task.isCancelled else { return }
+            self?.refreshFullScreen()
+        }
+    }
+
+    private func refreshFullScreen() {
+        for surface in surfaces.values {
+            surface.setInFullScreen(
+                surface.model.dock.appearance.hidesInFullScreen
+                    && DockScreenProbe.hasFullScreenWindow(on: surface.screenFrame))
+        }
+        refreshPointerMonitors()
     }
 
     // MARK: - Pointer
 
     private var needsPointerMonitors: Bool {
         surfaces.values.contains {
-            $0.model.dock.appearance.autoHides || $0.canYieldToMacOSDock
+            $0.hidesNow || $0.canYieldToMacOSDock
         }
     }
 

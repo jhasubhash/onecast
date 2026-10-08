@@ -21,6 +21,8 @@ final class DockSurface {
     private var isSettledTucked = false
     private var isRevealed = false
     private(set) var isYielding = false
+    /// A full-screen app holds this dock's display; only tracked while the dock hides there.
+    private var isInFullScreen = false
     private var isDragging = false
     private var reorderedLocally = false
     private var isClosed = false
@@ -120,7 +122,7 @@ final class DockSurface {
         let layerChanged = dock.appearance.layer != model.dock.appearance.layer
         model.update(dock: dock, metrics: core.settings.interfaceSize.metrics)
         if layerChanged { panel.apply(layer: dock.appearance.layer) }
-        if !dock.appearance.autoHides { isRevealed = false }
+        if !hidesNow { isRevealed = false }
         if let open = model.openSlotID, !model.slots.contains(where: { $0.id == open }) {
             floating.close()
         }
@@ -263,13 +265,28 @@ final class DockSurface {
 
     // MARK: - Auto-hide
 
-    private var wantsTucked: Bool {
-        (model.dock.appearance.autoHides && !isRevealed) || isYielding
+    /// Auto-hide, or the full-screen kind while a full-screen app holds the display.
+    var hidesNow: Bool {
+        model.dock.appearance.autoHides || (model.dock.appearance.hidesInFullScreen && isInFullScreen)
     }
 
+    private var wantsTucked: Bool {
+        (hidesNow && !isRevealed) || isYielding
+    }
+
+    /// No handle over a full-screen app, which the macOS Dock does not leave either.
     private var handleVisible: CGFloat {
-        !isYielding && model.dock.appearance.showsHandleWhenHidden
+        !isYielding && !isInFullScreen && model.dock.appearance.showsHandleWhenHidden
             ? DockGeometry.handleThickness : 0
+    }
+
+    func setInFullScreen(_ fullScreen: Bool) {
+        guard fullScreen != isInFullScreen, !isClosed else { return }
+        isInFullScreen = fullScreen
+        isRevealed = false
+        dwellTask?.cancel()
+        dwellTask = nil
+        syncPresentation()
     }
 
     /// Slides the plate in or out inside its window, then fits the window to what is left.
@@ -306,7 +323,7 @@ final class DockSurface {
 
     /// Fed every pointer move by the controller's monitors, whether or not it is over the dock.
     func monitoredPointerMoved(to point: CGPoint) {
-        guard model.dock.appearance.autoHides, !isYielding, !isClosed else { return }
+        guard hidesNow, !isYielding, !isClosed else { return }
         if !isRevealed {
             if revealZone.contains(point) {
                 requestReveal()
@@ -344,7 +361,7 @@ final class DockSurface {
     }
 
     private func scheduleHide() {
-        guard model.dock.appearance.autoHides, isRevealed else { return }
+        guard hidesNow, isRevealed else { return }
         hideTask?.cancel()
         hideTask = Task { [weak self] in
             try? await Task.sleep(for: Self.hideDelay)
@@ -487,7 +504,7 @@ final class DockSurface {
 
     func pointerEntered(atScreen point: CGPoint) {
         hideTask?.cancel()
-        if model.isTucked, model.dock.appearance.autoHides, !isYielding { reveal() }
+        if model.isTucked, hidesNow, !isYielding { reveal() }
         pointerMoved(toScreen: point)
     }
 
