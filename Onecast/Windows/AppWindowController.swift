@@ -120,6 +120,9 @@ final class AppWindowController: NSObject, NSWindowDelegate {
             defer: false
         )
         window.title = title
+        // The title follows the content (Settings shows its pane); the identifier must not.
+        window.setAccessibilityIdentifier(
+            "onecast." + title.lowercased().replacingOccurrences(of: " ", with: "-"))
         window.closesOnEscape = closesOnEscape
         // Edge-to-edge under a transparent titlebar, so it reads as one surface.
         window.titlebarAppearsTransparent = true

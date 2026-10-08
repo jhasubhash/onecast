@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build the Debug app, check its signing identity, quit any running copy and relaunch it.
-# The three AGENTS.md rules a verify most often half-runs — relaunch, signing, no stale build — as one.
+# The three AGENTS.md rules a verify most often half-runs — relaunch, signing, no stale build — as
+# one, then waits until the agent channel answers (custom_docs/AGENT_CONTROL.md).
 #
 #   ./Scripts/dev-run.sh             build, sign-check, relaunch
 #   ./Scripts/dev-run.sh --no-build  relaunch the last build
@@ -81,12 +82,10 @@ quit_app
 [ -d "$APP" ] || { echo "✗ no build at $APP — run without --no-build" >&2; exit 1; }
 echo "› launching $APP_NAME"
 open "$APP"
-for _ in $(seq 1 50); do
-    if pgrep -f "$APP_NAME.app/Contents/MacOS" > /dev/null; then
-        echo "✓ $APP_NAME running (pid $(pgrep -f "$APP_NAME.app/Contents/MacOS" | head -1))"
-        exit 0
-    fi
-    sleep 0.2
-done
-echo "✗ $APP_NAME did not start" >&2
+# Ready means the agent channel answers, not merely that a process exists: by then start() ran.
+if node Scripts/agent/onecastctl ready 30 > /dev/null; then
+    echo "✓ $APP_NAME ready (pid $(pgrep -f "$APP_NAME.app/Contents/MacOS" | head -1))"
+    exit 0
+fi
+echo "✗ $APP_NAME did not answer on the agent channel" >&2
 exit 1

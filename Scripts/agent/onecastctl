@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+// Drive a running Onecast Dev from the shell. Usage: onecastctl --help
+import { call, waitReady } from "./client.mjs";
+
+const HELP = `onecastctl <action> [field=value ...]     POST one command, print the JSON reply
+onecastctl raw '<json>'                     POST a command written as JSON
+onecastctl ready [seconds]                  wait until a launched build answers
+
+A value is parsed as JSON when it can be (true, 3, {"mode":"ai"}), else kept as a string.
+A dotted field nests: until.mode=launcher. Examples:
+
+  onecastctl show mode=clipboard until.visible=true
+  onecastctl type text=calc
+  onecastctl key key=down count=3
+  onecastctl key keys='["cmd+k","down","return"]'
+  onecastctl waitFor minimumRows=1 timeout=3
+  onecastctl state includeElements=false
+
+Actions and fields: custom_docs/AGENT_CONTROL.md`;
+
+function parseValue(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function build(action, pairs) {
+  const command = { action };
+  for (const pair of pairs) {
+    const split = pair.indexOf("=");
+    if (split < 1) throw new Error(`Expected field=value, got "${pair}".`);
+    const path = pair.slice(0, split).split(".");
+    let target = command;
+    for (const key of path.slice(0, -1)) target = target[key] ??= {};
+    target[path.at(-1)] = parseValue(pair.slice(split + 1));
+  }
+  return command;
+}
+
+const [action, ...rest] = process.argv.slice(2);
+try {
+  if (!action || action === "--help" || action === "-h") {
+    console.log(HELP);
+  } else if (action === "ready") {
+    console.log(JSON.stringify(await waitReady(Number(rest[0] ?? 20))));
+  } else {
+    const command = action === "raw" ? JSON.parse(rest[0]) : build(action, rest);
+    const reply = await call(command);
+    console.log(JSON.stringify(reply, null, 2));
+    process.exitCode = reply.ok ? 0 : 1;
+  }
+} catch (error) {
+  console.error(`onecastctl: ${error.message}`);
+  process.exitCode = 2;
+}

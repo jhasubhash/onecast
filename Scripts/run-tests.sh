@@ -251,6 +251,7 @@ run hover-arming-test      Onecast/Palette/HoverArming.swift \
                            Onecast/Features/Quicklinks/Model/Quicklink.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
                            Onecast/Features/CustomCommands/Model/CustomCommand.swift
+run agent-control-test     Onecast/Features/AgentControl/Model/*.swift
 run palette-escape-test    Onecast/Palette/PaletteMode.swift \
                            Onecast/Palette/PaletteEscapeAction.swift \
                            Onecast/Palette/CommandEscapeTap.swift \

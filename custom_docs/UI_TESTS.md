@@ -3,6 +3,11 @@
 No UI test target exists — prove a change works: build, install, drive the app from the keyboard,
 capture the panel, judge the pixels, instrument the view tree when they disagree.
 
+**Drive it through [AGENT_CONTROL.md](AGENT_CONTROL.md) first**: `Scripts/agent/onecastctl` opens a
+screen, types, presses keys and waits on conditions in milliseconds, and `state` answers the mode,
+query, selection and every window's element tree as JSON. The `osascript` driver below stays for
+what only a real chord reaches — the global hotkey, the Hyper key, snippet expansion.
+
 Run for any new feature, palette screen, plugin, Raycast extension, or a surface's key/chrome/list
 change. [testing.md](../docs/testing.md) owns the harnesses and manual sweep; this file covers what
 a human would skip.

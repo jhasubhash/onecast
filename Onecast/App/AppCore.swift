@@ -235,6 +235,14 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var aiChatWindowController = AIChatWindowController(
         core: self)
 
+    #if DEBUG
+    @ObservationIgnored private(set) lazy var agentControlCoordinator = AgentControlCoordinator(
+        core: self)
+    @ObservationIgnored private lazy var agentControlServer = AgentControlServer { [unowned self] in
+        await self.agentControlCoordinator.handle($0)
+    }
+    #endif
+
     @ObservationIgnored private lazy var windowController = PaletteWindowController(core: self)
     @ObservationIgnored private lazy var messageHUD = MessageHUDController(settings: settings)
     /// Every confirmation, report and prompt; it also stops a held hotkey stacking them.
@@ -468,6 +476,10 @@ final class AppCore {
 
             observeFeatureSwitches()
 
+            #if DEBUG
+            agentControlServer.start()
+            #endif
+
             // First launch binds no hotkey, so guide once; the marker is written at show-time.
             if !OnboardingState.hasOnboarded {
                 OnboardingState.markShown()
@@ -604,6 +616,9 @@ final class AppCore {
         mcpOAuth.stop()
         mcp.stop()
         installedAI.stop()
+        #if DEBUG
+        agentControlServer.stop()
+        #endif
     }
 
     /// Only the tool whose own path or variables changed is checked again; the rest keep running.
