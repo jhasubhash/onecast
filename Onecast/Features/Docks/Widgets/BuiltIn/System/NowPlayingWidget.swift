@@ -45,6 +45,7 @@ final class NowPlayingWidget: OnecastDockWidget {
     }
 
     func popover(context: DockWidgetContext) -> AnyView? {
+        guard !model.isPointerOnControl else { return nil }
         model.configure(instanceID: context.instanceID)
         return AnyView(NowPlayingPopoverView(model: model, context: context))
     }

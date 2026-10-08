@@ -27,6 +27,9 @@ final class NowPlayingWidgetModel {
     @ObservationIgnored private var appliedSettings: SystemNowPlaying.Settings?
     /// Bumped when a preference this widget reads changes, so views reading `settings` redraw.
     private var revision = 0
+    /// The dock asks for the popover on every click in the tile, a control's included; this lets
+    /// the widget decline while the pointer is on one.
+    @ObservationIgnored var isPointerOnControl = false
 
     /// Called as the host asks for the tile; sets nothing a view observes.
     func configure(instanceID: String) {
@@ -73,6 +76,7 @@ final class NowPlayingWidgetModel {
     }
 
     func stop() {
+        isPointerOnControl = false
         lease?.end()
         lease = nil
         defaultsObserver = nil

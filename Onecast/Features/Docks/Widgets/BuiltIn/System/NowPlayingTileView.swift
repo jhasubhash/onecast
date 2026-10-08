@@ -90,6 +90,7 @@ struct NowPlayingTileView: View {
             if let action {
                 Button(action: action) { surface.contentShape(Rectangle()) }
                     .buttonStyle(.plain)
+                    .onHover { model.isPointerOnControl = $0 }
             } else {
                 surface
             }
@@ -130,7 +131,8 @@ struct NowPlayingTileView: View {
             stack {
                 if layout.artworkTogglesPlayback {
                     NowPlayingArtworkToggle(
-                        image: artwork, side: layout.artworkSide, isPlaying: track.isPlaying
+                        image: artwork, side: layout.artworkSide, isPlaying: track.isPlaying,
+                        onHover: { model.isPointerOnControl = $0 }
                     ) {
                         model.perform(.playPause, on: track.source)
                     }
@@ -209,7 +211,8 @@ struct NowPlayingTileView: View {
             ForEach(layout.controls, id: \.self) { control in
                 NowPlayingControlButton(
                     control: control, isPlaying: track.isPlaying, skipSeconds: model.settings.skipSeconds,
-                    size: metrics.tileLength * Self.controlFraction
+                    size: metrics.tileLength * Self.controlFraction,
+                    onHover: { model.isPointerOnControl = $0 }
                 ) {
                     model.perform(control, on: track.source)
                 }

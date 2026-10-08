@@ -6,6 +6,7 @@ struct NowPlayingArtworkToggle: View {
     let image: NSImage?
     let side: CGFloat
     let isPlaying: Bool
+    let onHover: (Bool) -> Void
     let action: () -> Void
     @State private var hovered = false
 
@@ -27,7 +28,10 @@ struct NowPlayingArtworkToggle: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onHover { hovered = $0 }
+        .onHover { hovering in
+            hovered = hovering
+            onHover(hovering)
+        }
         .tooltip(isPlaying ? "Pause" : "Play")
         .accessibilityLabel(isPlaying ? "Pause" : "Play")
     }

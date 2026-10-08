@@ -6,6 +6,7 @@ struct NowPlayingControlButton: View {
     let isPlaying: Bool
     let skipSeconds: Int
     let size: CGFloat
+    var onHover: (Bool) -> Void = { _ in }
     let action: () -> Void
     @State private var hovered = false
 
@@ -40,7 +41,10 @@ struct NowPlayingControlButton: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .onHover { hovered = $0 }
+        .onHover { hovering in
+            hovered = hovering
+            onHover(hovering)
+        }
         .tooltip(label)
         .accessibilityLabel(label)
     }
