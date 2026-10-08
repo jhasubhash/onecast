@@ -49,24 +49,13 @@ enum PresentationOtherApps: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// Which other windows a presentation puts away when it starts.
-enum PresentationScope: String, CaseIterable, Identifiable, Sendable {
-    /// Every Space on every display; minimizing also hides the app, its only reach into other Spaces.
-    case everywhere
-    /// The Space each display shows right now.
-    case currentSpace
-    /// Only the windows on the display being presented.
-    case presentationDisplay
+/// How far putting other apps away reaches, asked once for displays and once for Spaces.
+enum PresentationReach: String, CaseIterable, Identifiable, Sendable {
+    /// The display being presented, or the Space it shows now.
+    case active
+    case all
 
     var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .everywhere: "Every Space and display"
-        case .currentSpace: "The Spaces on screen now"
-        case .presentationDisplay: "Only the display you present on"
-        }
-    }
 }
 
 /// What happens when another app comes to the front while presenting.

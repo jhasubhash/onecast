@@ -100,25 +100,42 @@ struct PresentationTests {
 
 extension PresentationTests {
     private static let monitor = CGRect(x: 1512, y: -400, width: 3008, height: 1692)
-    private static let onScreen = [
-        PresentationWindow(pid: 1, frame: CGRect(x: 100, y: 100, width: 800, height: 600)),
-        PresentationWindow(pid: 2, frame: CGRect(x: 2000, y: 0, width: 1200, height: 800)),
-        PresentationWindow(pid: 2, frame: CGRect(x: 200, y: 200, width: 400, height: 300)),
+    private static let onMonitor = CGRect(x: 2000, y: 0, width: 1200, height: 800)
+    private static let onMonitorElsewhere = CGRect(x: 1600, y: -300, width: 900, height: 700)
+    private static let windows = [
+        PresentationWindow(
+            pid: 1, frame: CGRect(x: 100, y: 100, width: 800, height: 600), isOnScreen: true),
+        PresentationWindow(pid: 2, frame: onMonitor, isOnScreen: true),
+        PresentationWindow(
+            pid: 2, frame: CGRect(x: 200, y: 200, width: 400, height: 300), isOnScreen: true),
+        PresentationWindow(pid: 3, frame: onMonitorElsewhere, isOnScreen: false),
     ]
 
+    private static func reach(
+        _ displays: PresentationReach, _ spaces: PresentationReach
+    ) -> [Int32: [CGRect]]? {
+        PresentationScopePolicy.reach(
+            displays: displays, spaces: spaces, windows: windows, display: monitor)
+    }
+
     static func scopesReachTheWindowsTheyName() {
-        expect(
-            PresentationScopePolicy.reach(.everywhere, onScreen: onScreen, display: monitor) == nil,
-            "every Space reaches every window, not only those on screen")
-        let current = PresentationScopePolicy.reach(.currentSpace, onScreen: onScreen, display: monitor)
-        expect(current?[1]?.count == 1 && current?[2]?.count == 2, "the current Space reaches every display")
-        expect(current?[3] == nil, "an app with nothing on screen is left alone")
-        let shared = PresentationScopePolicy.reach(
-            .presentationDisplay, onScreen: onScreen, display: monitor)
-        expect(shared?[1] == nil, "a window on another display is left where it is")
-        expect(
-            shared?[2] == [CGRect(x: 2000, y: 0, width: 1200, height: 800)],
-            "only the app's window on the shared display is reached")
+        expect(reach(.all, .all) == nil, "all displays and Spaces reach every window of every app")
+
+        let shown = reach(.all, .active)
+        expect(shown?[1]?.count == 1 && shown?[2]?.count == 2, "the active Spaces of every display")
+        expect(shown?[3] == nil, "a window on a Space nobody is looking at is left alone")
+
+        let sharedNow = reach(.active, .active)
+        expect(sharedNow?[1] == nil, "a window on another display is left where it is")
+        expect(sharedNow?[2] == [onMonitor], "only the app's window on the shared display is reached")
+        expect(sharedNow?[3] == nil, "and only on the Space that display shows now")
+
+        let sharedEverywhere = reach(.active, .all)
+        expect(sharedEverywhere?[3] == [onMonitorElsewhere], "the shared display's other Spaces count")
+        expect(sharedEverywhere?[1] == nil, "another display still does not")
+
+        expect(PresentationScopePolicy.hidesWholeApp(spaces: .all), "all Spaces needs a hide too")
+        expect(!PresentationScopePolicy.hidesWholeApp(spaces: .active), "the active Space does not")
     }
 
     static func anAXFrameMatchesItsQuartzReadingWithinAPoint() {

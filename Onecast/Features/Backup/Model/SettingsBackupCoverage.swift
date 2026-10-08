@@ -239,9 +239,12 @@ enum SettingsBackupCoverage {
         AppSettingsKey.presentationRestoresWindows.rawValue:
             "Governs whether this Mac's own window layout is put back after presenting, which is "
             + "tied to its screen-sharing habits.",
-        AppSettingsKey.presentationScope.rawValue:
-            "Picks which of this Mac's Spaces and displays get cleared when presenting, which "
-            + "depends on how its own displays are arranged.",
+        AppSettingsKey.presentationDisplays.rawValue:
+            "Picks which of this Mac's displays get cleared when presenting, which depends on how "
+            + "its own displays are arranged.",
+        AppSettingsKey.presentationSpaces.rawValue:
+            "Picks whether this Mac's other Spaces get cleared when presenting, which depends on "
+            + "how its own Spaces are used.",
         AppSettingsKey.presentationHidesDocks.rawValue:
             "Whether this Mac's own custom docks leave the screen while sharing it; a per-Mac "
             + "screen-sharing habit.",

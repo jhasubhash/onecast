@@ -56,13 +56,16 @@ Docks/Widgets/BuiltIn/Productivity/Presentation*  the DockWidget
 4. If that display has a stored resolution different from its current mode, it switches, then waits
    for AppKit to report the new size plus a short grace for the Dock and menu bar.
 5. Other apps are put away per **Other apps** — hidden (default), minimized, or left — on the
-   windows **Put away windows on** names (`PresentationScopePolicy.reach`):
-   - *Every Space and display* (default): every candidate app. AX hands an app only the windows of
-     the Spaces on screen, so a minimize also hides the app, keeping its other Spaces clear.
-   - *The Spaces on screen now*: apps with a window in the on-screen window list; a minimize takes
-     only those windows, matched to their AX elements by frame.
-   - *Only the display you present on*: the same, limited to windows centred on that display.
-   A hide is always the whole app, on every Space, since that is what hiding is.
+   windows two choices reach (`PresentationScopePolicy.reach`), **Displays** and **Spaces**, each
+   *Active* or *All* (both *All* by default):
+   - *All / All*: every candidate app.
+   - Otherwise, apps with a window in the window list that passes both: on the presentation display
+     (its centre inside it) when Displays is *Active*, and on screen now when Spaces is *Active*.
+     *Active / Active* is the Space the shared display shows now, and nothing else. A minimize takes
+     only the reached windows, matched to their AX elements by frame.
+   - Spaces *All* with a minimize also hides the app: AX hands an app only the windows of the Spaces
+     on screen, so hiding is the only reach into the others.
+   A hide is always the whole app, on every Space and display, since that is what hiding is.
 6. The target's window is sized per **Presented window**: centred with a margin (default 10% of the
    usable area on each side), filling the usable area, macOS full screen (placed on the presentation
    display first), or left as it is. A window already in full screen is left alone.
@@ -82,7 +85,7 @@ either side (`activeSpaceDidChangeNotification` stamps the time; the two arrive 
 is not presented. Otherwise it is presented only while the presented app still has a window on
 screen, that is, while you are on the presentation's Space.
 
-**Activating a hidden app unhides it**, so with *Every Space and display* the app a Space switch
+**Activating a hidden app unhides it**, so with Spaces *All* the app a Space switch
 brings forward is hidden again (`PresentationSession.hideAgain`), keeping other Spaces clear. That
 is checked on the activation and again 300 ms after every Space switch, since an app already in
 front (Finder, once it took over from the apps it replaced) posts no activation when its Space

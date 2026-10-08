@@ -43,12 +43,22 @@ struct PresentationSettingsView: View {
                     Text("Put back exactly as they were when the presentation ends.")
                 }
                 if settings.presentationOtherApps != .leave {
-                    Picker(selection: $settings.presentationScope) {
-                        ForEach(PresentationScope.allCases) { Text($0.title).tag($0) }
+                    Picker(selection: $settings.presentationDisplays) {
+                        Text("Active").tag(PresentationReach.active)
+                        Text("All").tag(PresentationReach.all)
                     } label: {
-                        SettingsRowTitle(.presentationWindows, "Put away windows on")
-                        Text(scopeSubtitle)
+                        SettingsRowTitle(.presentationWindows, "Displays")
+                        Text(displaysSubtitle)
                     }
+                    .pickerStyle(.segmented)
+                    Picker(selection: $settings.presentationSpaces) {
+                        Text("Active").tag(PresentationReach.active)
+                        Text("All").tag(PresentationReach.all)
+                    } label: {
+                        SettingsRowTitle(.presentationWindows, "Spaces")
+                        Text(spacesSubtitle)
+                    }
+                    .pickerStyle(.segmented)
                 }
                 Picker(selection: $settings.presentationAppSwitch) {
                     ForEach(PresentationAppSwitch.allCases) { Text($0.title).tag($0) }
@@ -109,12 +119,18 @@ struct PresentationSettingsView: View {
         .releasesFocusOnOutsideClick()
     }
 
-    private var scopeSubtitle: String {
-        switch settings.presentationScope {
-        case .everywhere:
-            "Every Space and display. Minimized apps are hidden too, so other Spaces stay clear."
-        case .currentSpace: "Only what each display shows now; other Spaces are left as they are."
-        case .presentationDisplay: "Only windows on the display being shared; other displays stay."
+    private var displaysSubtitle: String {
+        switch settings.presentationDisplays {
+        case .active:
+            "Only the display you present on. Hiding is per app, so it hides that app everywhere."
+        case .all: "Every connected display."
+        }
+    }
+
+    private var spacesSubtitle: String {
+        switch settings.presentationSpaces {
+        case .active: "Only the Space each display shows now; other Spaces are left as they are."
+        case .all: "Every Space. Minimized apps are hidden too, so Spaces you switch to stay clear."
         }
     }
 }

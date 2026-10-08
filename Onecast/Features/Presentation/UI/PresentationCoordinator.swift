@@ -206,17 +206,19 @@ final class PresentationCoordinator {
     private func putAwayOthers(except target: NSRunningApplication?, in session: PresentationSession) {
         let style = settings.presentationOtherApps
         guard style != .leave else { return }
-        let scope = settings.presentationScope
+        let spaces = settings.presentationSpaces
         let reach = PresentationScopePolicy.reach(
-            scope, onScreen: PresentationSession.onScreenWindows(), display: session.displayFrame)
+            displays: settings.presentationDisplays, spaces: spaces,
+            windows: PresentationSession.windows(), display: session.displayFrame)
+        let alsoHide = style == .minimize && PresentationScopePolicy.hidesWholeApp(spaces: spaces)
         for app in NSWorkspace.shared.runningApplications
         where isCandidate(app) && app != target {
             guard let reach else {
-                session.putAway(app, as: style, alsoHide: style == .minimize)
+                session.putAway(app, as: style, alsoHide: alsoHide)
                 continue
             }
             guard let frames = reach[app.processIdentifier] else { continue }
-            session.putAway(app, as: style, reach: frames)
+            session.putAway(app, as: style, reach: frames, alsoHide: alsoHide)
         }
     }
 
@@ -270,7 +272,7 @@ final class PresentationCoordinator {
     /// Off it, the app macOS brings forward belongs to another Space and is not presented.
     private var isOnPresentationSpace: Bool {
         guard let presented = presentedApp?.processIdentifier else { return true }
-        return PresentationSession.onScreenWindows().contains { $0.pid == presented }
+        return PresentationSession.windows(onScreenOnly: true).contains { $0.pid == presented }
     }
 
     private func activated(pid: pid_t) {
@@ -318,7 +320,7 @@ final class PresentationCoordinator {
 
     /// Activating a hidden app unhides it, and a Space switch activates that Space's front app.
     private func keepPutAway(_ app: NSRunningApplication, in session: PresentationSession) {
-        guard settings.presentationScope == .everywhere else { return }
+        guard settings.presentationSpaces == .all else { return }
         session.hideAgain(app)
     }
 

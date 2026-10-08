@@ -488,8 +488,11 @@ enum SettingsSearchCatalog {
             .presentationWindows, "Restore windows afterwards",
             keywords: ["undo", "put back", "end", "stop", "previous layout"]),
         .init(
-            .presentationWindows, "Put away windows on",
-            keywords: ["spaces", "all spaces", "desktops", "displays", "monitors", "minimize all"]),
+            .presentationWindows, "Displays",
+            keywords: ["monitors", "all displays", "active display", "other screens"]),
+        .init(
+            .presentationWindows, "Spaces",
+            keywords: ["all spaces", "desktops", "mission control", "minimize all", "current space"]),
         .init(
             .presentationWindows, "Apps to leave alone",
             keywords: ["teams", "zoom", "webex", "meeting app", "exclude"]),

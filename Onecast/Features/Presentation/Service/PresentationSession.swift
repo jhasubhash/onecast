@@ -132,9 +132,10 @@ final class PresentationSession {
         _ = app.hide()
     }
 
-    /// Every other app's ordinary window on each display's current Space, in AX space.
-    static func onScreenWindows() -> [PresentationWindow] {
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+    /// Every other app's ordinary windows, in AX space: on any Space, or only those shown now.
+    static func windows(onScreenOnly: Bool = false) -> [PresentationWindow] {
+        let options: CGWindowListOption =
+            onScreenOnly ? [.optionOnScreenOnly, .excludeDesktopElements] : [.excludeDesktopElements]
         let list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
         let own = ProcessInfo.processInfo.processIdentifier
         return list.compactMap { window in
@@ -143,7 +144,8 @@ final class PresentationSession {
                 let bounds = window[kCGWindowBounds as String] as? [String: Any],
                 let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary)
             else { return nil }
-            return PresentationWindow(pid: pid, frame: frame)
+            let isOnScreen = window[kCGWindowIsOnscreen as String] as? Bool ?? false
+            return PresentationWindow(pid: pid, frame: frame, isOnScreen: isOnScreen)
         }
     }
 

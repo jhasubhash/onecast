@@ -488,8 +488,12 @@ final class AppSettings {
         }
     }
 
-    var presentationScope: PresentationScope {
-        didSet { defaults.set(presentationScope.rawValue, forKey: Key.presentationScope.rawValue) }
+    var presentationDisplays: PresentationReach {
+        didSet { defaults.set(presentationDisplays.rawValue, forKey: Key.presentationDisplays.rawValue) }
+    }
+
+    var presentationSpaces: PresentationReach {
+        didSet { defaults.set(presentationSpaces.rawValue, forKey: Key.presentationSpaces.rawValue) }
     }
 
     /// Custom docks carry personal widgets (calendar, stocks) a screen share would show.
@@ -1047,9 +1051,12 @@ final class AppSettings {
         presentationRestoresWindows =
             defaults.object(forKey: Key.presentationRestoresWindows.rawValue) == nil
             || defaults.bool(forKey: Key.presentationRestoresWindows.rawValue)
-        presentationScope =
-            defaults.string(forKey: Key.presentationScope.rawValue)
-            .flatMap(PresentationScope.init) ?? .everywhere
+        presentationDisplays =
+            defaults.string(forKey: Key.presentationDisplays.rawValue)
+            .flatMap(PresentationReach.init) ?? .all
+        presentationSpaces =
+            defaults.string(forKey: Key.presentationSpaces.rawValue)
+            .flatMap(PresentationReach.init) ?? .all
         presentationHidesDocks = defaults.bool(forKey: Key.presentationHidesDocks.rawValue)
         presentationShowsMenuBarItem =
             defaults.object(forKey: Key.presentationShowsMenuBarItem.rawValue) == nil

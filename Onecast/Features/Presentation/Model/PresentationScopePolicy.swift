@@ -1,22 +1,25 @@
 import CoreGraphics
 import Foundation
 
-/// Which of the windows on screen a scope puts away, and whether an AX window is one of them.
+/// Which windows the display and Space choices reach, and whether an AX window is one of them.
 enum PresentationScopePolicy {
-    /// Window frames per app the scope reaches; nil when it reaches every window of every app.
+    /// Window frames per app the choices reach; nil when they reach every window of every app.
     static func reach(
-        _ scope: PresentationScope, onScreen: [PresentationWindow], display: CGRect
+        displays: PresentationReach, spaces: PresentationReach, windows: [PresentationWindow],
+        display: CGRect
     ) -> [Int32: [CGRect]]? {
-        let windows: [PresentationWindow]
-        switch scope {
-        case .everywhere:
-            return nil
-        case .currentSpace:
-            windows = onScreen
-        case .presentationDisplay:
-            windows = onScreen.filter { display.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
+        if displays == .all, spaces == .all { return nil }
+        let reached = windows.filter { window in
+            (spaces == .all || window.isOnScreen)
+                && (displays == .all
+                    || display.contains(CGPoint(x: window.frame.midX, y: window.frame.midY)))
         }
-        return Dictionary(grouping: windows, by: \.pid).mapValues { $0.map(\.frame) }
+        return Dictionary(grouping: reached, by: \.pid).mapValues { $0.map(\.frame) }
+    }
+
+    /// AX gives an app only the windows of the Spaces on screen; hiding is the reach into the rest.
+    static func hidesWholeApp(spaces: PresentationReach) -> Bool {
+        spaces == .all
     }
 
     /// Two readings of one window can differ by a point of rounding between AX and Quartz.
