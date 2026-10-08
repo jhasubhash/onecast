@@ -22,12 +22,7 @@ enum AgentWindowCapture {
     static func capture(
         _ window: NSWindow, id: String, to path: String?
     ) async throws -> AgentSnapshot.Capture {
-        let (image, method) =
-            if Permissions.isScreenRecordingTrusted() {
-                (try await screenCapture(window), "screenCaptureKit")
-            } else {
-                (try cachedDrawing(window), "cacheDisplay")
-            }
+        let (image, method) = try await image(of: window)
         guard let data = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
         else { throw Failure.unencodable }
         let url = path.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? temporaryURL(id)
@@ -41,6 +36,17 @@ enum AgentWindowCapture {
         return AgentSnapshot.Capture(
             path: url.path, window: id, frame: AgentWindowInspector.rect(window.frame),
             pixelWidth: image.width, pixelHeight: image.height, method: method)
+    }
+
+    private static func image(of window: NSWindow) async throws -> (CGImage, String) {
+        if Permissions.isScreenRecordingTrusted() {
+            do {
+                return (try await screenCapture(window), "screenCaptureKit")
+            } catch Failure.notOnScreen {
+                // ScreenCaptureKit lists only composited windows; one on another Space still draws.
+            }
+        }
+        return (try cachedDrawing(window), "cacheDisplay")
     }
 
     private static func screenCapture(_ window: NSWindow) async throws -> CGImage {

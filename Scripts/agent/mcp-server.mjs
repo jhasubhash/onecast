@@ -135,7 +135,10 @@ const send = (object) => process.stdout.write(`${JSON.stringify(object)}\n`);
 let queue = Promise.resolve();
 
 createInterface({ input: process.stdin }).on("line", (line) => {
-  queue = queue.then(() => handle(line));
+  // Caught, or one rejection would leave the chain rejected and skip every later request.
+  queue = queue.then(() => handle(line)).catch((error) => {
+    process.stderr.write(`onecast mcp: ${error.stack ?? error}\n`);
+  });
 });
 
 async function handle(line) {
@@ -145,6 +148,9 @@ async function handle(line) {
     message = JSON.parse(line);
   } catch {
     return send({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } });
+  }
+  if (message === null || typeof message !== "object" || Array.isArray(message)) {
+    return send({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid Request" } });
   }
   if (message.id === undefined) return; // a notification, e.g. notifications/initialized
   try {

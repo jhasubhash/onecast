@@ -15,7 +15,13 @@ if [ -z "$app" ]; then
     app=$(find build/ReleaseCheck/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
 fi
 # Every Mach-O in the bundle's MacOS folder: a Debug build keeps its code in a `.debug.dylib`.
-leaks=$(for binary in "$app"/Contents/MacOS/*; do
+shopt -s nullglob
+binaries=("$app"/Contents/MacOS/*)
+if [ ${#binaries[@]} -eq 0 ]; then
+    echo "✗ no binaries to check in ${app:-the build}" >&2
+    exit 1
+fi
+leaks=$(for binary in "${binaries[@]}"; do
     { nm -m "$binary" 2>/dev/null; strings "$binary"; }
 done | grep -E "AgentControlServer|AgentKeyboard|AgentAccessibilityReader|AgentWindowCapture|agent-control\.json" \
     | sort -u)

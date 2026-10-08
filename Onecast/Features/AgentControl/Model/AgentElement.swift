@@ -87,8 +87,8 @@ struct AgentElement: Codable, Equatable, Sendable {
         }
     }
 
-    /// Every searchable string on this node, for text-presence checks.
-    var texts: [String] { [identifier, label, title, value].compactMap(\.self) }
+    /// What this node shows; never `identifier`, which names a node rather than drawing text.
+    var texts: [String] { [label, title, value].compactMap(\.self) }
 
     func contains(text: String) -> Bool {
         first { node in node.texts.contains { $0.localizedCaseInsensitiveContains(text) } } != nil

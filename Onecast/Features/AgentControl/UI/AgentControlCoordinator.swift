@@ -31,6 +31,8 @@ final class AgentControlCoordinator {
 
     /// How often `until` is re-read; quick enough for a typing loop, cheap on the main actor.
     private static let pollInterval: Duration = .milliseconds(40)
+    /// Unredacted: a condition is matched here and its trees are never sent back.
+    private static let conditionOptions = AgentAccessibilityReader.Options(includeContent: true)
 
     func handle(_ request: AgentRequest) async -> Data {
         do {
@@ -41,7 +43,7 @@ final class AgentControlCoordinator {
             case .state(let includeContent, let includeElements, let pruned):
                 return AgentReply.success(
                     snapshot(
-                        includeContent: includeContent, includeElements: includeElements,
+                        includeContent: includeContent, trees: includeElements ? nil : [],
                         pruned: pruned))
             case .entries(let query, let kind, let limit):
                 return AgentReply.success(entries(query: query, kind: kind, limit: limit))
@@ -56,7 +58,7 @@ final class AgentControlCoordinator {
                     throw Failure("No visible window \"\(id)\".")
                 }
                 var capture = try await AgentWindowCapture.capture(window, id: id, to: path)
-                if id == "palette" { capture.rows = snapshot().palette.rows }
+                if id == "palette" { capture.rows = snapshot(trees: ["palette"]).palette.rows }
                 return AgentReply.success(capture)
             default:
                 detail = try await perform(request.command)
@@ -91,7 +93,7 @@ final class AgentControlCoordinator {
         case .setQuery(let text):
             core.palette.query = text
         case .key(let chords, let count, let windowID):
-            let keys = try chords.map(AgentKey.parse)
+            let keys = try chords.map(KeyChord.parse)
             let window = try target(windowID)
             for _ in 0..<count {
                 for key in keys { await AgentKeyboard.press(key, in: window) }
@@ -99,14 +101,14 @@ final class AgentControlCoordinator {
         case .type(let text, let windowID):
             let window = try target(windowID)
             for character in text {
-                guard let key = AgentKey.typing(character) else { continue }
+                guard let key = KeyChord.typing(character) else { continue }
                 await AgentKeyboard.press(key, in: window)
             }
         case .select(let index):
             core.palette.selection = index
         case .activate(let index):
             if let index { core.palette.selection = index }
-            await AgentKeyboard.press(try AgentKey.parse("return"), in: try target(nil))
+            await AgentKeyboard.press(try KeyChord.parse("return"), in: try target(nil))
         case .popToRoot:
             core.paletteCoordinator.popToRootNow()
         case .closeScreen:
@@ -142,20 +144,21 @@ final class AgentControlCoordinator {
         let clock = ContinuousClock()
         let start = clock.now
         let deadline = start + .milliseconds(Int(timeout * 1000))
+        let scope = condition.treeScope
         while true {
-            let current = snapshot(includeElements: condition.needsElements)
-            if condition.isMet(by: current) {
+            let windows = AgentWindowInspector.windows(trees: scope, options: Self.conditionOptions)
+            let palette = self.palette(reading: windows, scope: scope)
+            if condition.isMet(palette: palette, windows: windows) {
                 let elapsed = clock.now - start
                 return Double(elapsed.components.seconds)
                     + Double(elapsed.components.attoseconds) / 1e18
             }
             guard clock.now < deadline else {
-                let palette = current.palette
                 throw Failure(
                     "Timed out after \(timeout)s waiting for \(condition.summary); palette is "
                         + "\(palette.visible ? "visible" : "hidden"), mode \(palette.mode), "
                         + "query \"\(palette.query)\", selection \(palette.selection), windows "
-                        + current.windows.map(\.id).joined(separator: ", ") + ".")
+                        + windows.map(\.id).joined(separator: ", ") + ".")
             }
             try await Task.sleep(for: Self.pollInterval)
         }
@@ -200,22 +203,30 @@ final class AgentControlCoordinator {
             .map { Entry(id: $0.id, name: $0.name, kind: $0.kind.rawValue, subtitle: $0.subtitle) }
     }
 
+    /// `trees` names the windows whose AX tree is read; nil reads every window's.
     func snapshot(
-        includeContent: Bool = false, includeElements: Bool = true, pruned: Bool = true
+        includeContent: Bool = false, trees scope: Set<String>? = nil, pruned: Bool = true
     ) -> AgentSnapshot {
         let options = AgentAccessibilityReader.Options(
             includeContent: includeContent,
             redactsPaletteText: !includeContent && core.palette.mode == .clipboard,
             pruned: pruned)
-        let windows = AgentWindowInspector.windows(
-            includeElements: includeElements, options: options)
+        let windows = AgentWindowInspector.windows(trees: scope, options: options)
+        return AgentSnapshot(
+            build: build, palette: palette(reading: windows, scope: scope), windows: windows,
+            focus: focus)
+    }
+
+    /// The palette, with its rows and bar pills when its tree was among those read.
+    private func palette(
+        reading windows: [AgentSnapshot.Window], scope: Set<String>?
+    ) -> AgentSnapshot.Palette {
         var palette = paletteSnapshot
-        if includeElements, palette.visible {
-            let elements = windows.first { $0.id == "palette" }?.elements ?? []
-            palette.rows = AgentElement.rows(in: elements)
-            palette.barControls = AgentElement.barControls(in: elements)
-        }
-        return AgentSnapshot(build: build, palette: palette, windows: windows, focus: focus)
+        guard palette.visible, scope?.contains("palette") ?? true else { return palette }
+        let elements = windows.first { $0.id == "palette" }?.elements ?? []
+        palette.rows = AgentElement.rows(in: elements)
+        palette.barControls = AgentElement.barControls(in: elements)
+        return palette
     }
 
     private var build: AgentSnapshot.Build {

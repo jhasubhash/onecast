@@ -11,9 +11,9 @@ final class CurrencyRateStore {
     private nonisolated static let cryptoEndpoint = URL(
         string: "https://backend.raycast.com/api/v1/currencies/crypto?symbols="
             + CalcCurrency.cryptoCodes.joined(separator: ","))!
-    /// Daily, measured from `completedAt`, so relaunching never re-fetches a snapshot still fresh.
     private nonisolated static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.onecast.app", category: "CurrencyRates")
+    /// Daily, measured from `completedAt`, so relaunching never re-fetches a snapshot still fresh.
     private static let refreshInterval: TimeInterval = 24 * 3600
     /// Shorter retry, so a machine offline at launch picks rates up soon after it reconnects.
     private static let retryInterval: TimeInterval = 30 * 60

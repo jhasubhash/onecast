@@ -8,7 +8,7 @@ enum AgentKeyboard {
     /// A sentinel can't be lost, but a modal loop can hold it; never stall a reply past this.
     private static let drainTimeout: Duration = .seconds(2)
 
-    static func press(_ key: AgentKey, in window: NSWindow) async {
+    static func press(_ key: KeyChord, in window: NSWindow) async {
         if !window.isKeyWindow { window.makeKey() }
         for type in [NSEvent.EventType.keyDown, .keyUp] {
             guard
@@ -46,7 +46,7 @@ enum AgentKeyboard {
         await waiter.wait(timeout: drainTimeout)
     }
 
-    private static func flags(_ modifiers: AgentKey.Modifiers) -> NSEvent.ModifierFlags {
+    private static func flags(_ modifiers: KeyChord.Modifiers) -> NSEvent.ModifierFlags {
         var flags: NSEvent.ModifierFlags = []
         if modifiers.contains(.command) { flags.insert(.command) }
         if modifiers.contains(.shift) { flags.insert(.shift) }

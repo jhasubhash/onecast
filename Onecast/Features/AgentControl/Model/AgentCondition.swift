@@ -41,20 +41,26 @@ struct AgentCondition: Equatable, Sendable {
             absentWindow: try arguments.optional("absentWindow"))
     }
 
-    /// Rows and text come from element trees; everything else from the palette alone.
-    var needsElements: Bool { text != nil || absentText != nil || minimumRows != nil }
+    /// The windows whose element trees the check reads; nil means every window's.
+    var treeScope: Set<String>? {
+        var scope: Set<String> = minimumRows == nil ? [] : ["palette"]
+        if text != nil || absentText != nil {
+            guard let window else { return nil }
+            scope.insert(window)
+        }
+        return scope
+    }
 
-    func isMet(by snapshot: AgentSnapshot) -> Bool {
-        let palette = snapshot.palette
+    func isMet(palette: AgentSnapshot.Palette, windows: [AgentSnapshot.Window]) -> Bool {
         if let visible, palette.visible != visible { return false }
         if let mode, palette.mode != mode { return false }
         if let query, palette.query != query { return false }
         if let selection, palette.selection != selection { return false }
         if let minimumRows, (palette.rows?.count ?? 0) < minimumRows { return false }
-        let windowIDs = Set(snapshot.windows.map(\.id))
+        let windowIDs = Set(windows.map(\.id))
         if let absentWindow, windowIDs.contains(absentWindow) { return false }
         if let window, !windowIDs.contains(window) { return false }
-        let scope = snapshot.windows.filter { window == nil || $0.id == window }
+        let scope = windows.filter { window == nil || $0.id == window }
         let shows: (String) -> Bool = { text in
             scope.contains { ($0.elements ?? []).contains { $0.contains(text: text) } }
         }

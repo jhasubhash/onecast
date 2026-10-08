@@ -20,10 +20,10 @@ extension PluginManager {
             object["failure"] = message
         }
         if let build = loadedBuild {
-            let current = installed.first { $0.id == runningIdentifier }?.sourceHash
+            let current = installed.first { $0.id == build.identifier }?.sourceHash
             let matches: Any = current.map { ($0 == build.sourceHash) as Any } ?? NSNull()
             object["loaded"] = [
-                "sourceHash": build.sourceHash, "dylib": build.dylib.path,
+                "identifier": build.identifier, "sourceHash": build.sourceHash, "dylib": build.dylib.path,
                 "loadedAt": ISO8601DateFormatter().string(from: build.at),
                 "matchesSources": matches,
             ]

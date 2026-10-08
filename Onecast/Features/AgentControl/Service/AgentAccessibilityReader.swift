@@ -13,15 +13,15 @@ enum AgentAccessibilityReader {
     }
 
     struct WindowTree: Sendable {
-        let identifier: String?
-        let frame: AgentSnapshot.Rect?
+        let key: WindowKey
         let elements: [AgentElement]
     }
 
     /// Where a window lives in AX terms; a second dock shares the identifier but not the frame.
-    struct WindowKey: Sendable {
-        let identifier: String
-        let frame: AgentSnapshot.Rect
+    struct WindowKey: Equatable, Sendable {
+        /// Nil when unnamed, as the AX side reads an empty identifier.
+        let identifier: String?
+        let frame: AgentSnapshot.Rect?
     }
 
     enum PressOutcome: Sendable {
@@ -43,17 +43,19 @@ enum AgentAccessibilityReader {
         kAXFocusedAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXChildrenAttribute,
     ]
 
-    static func windows(options: Options) -> [WindowTree] {
-        axWindows(of: application).map { window in
+    /// Walks only the windows `keys` names: a tree is the costly part of a read.
+    static func windows(_ keys: [WindowKey], options: Options) -> [WindowTree] {
+        guard !keys.isEmpty else { return [] }
+        return axWindows(of: application).compactMap { window in
             let node = read(window, options: options, redacts: false)
+            let key = WindowKey(identifier: node.identifier, frame: node.frame)
+            guard keys.contains(key) else { return nil }
             let redacts =
                 options.redactsPaletteText
                 && ["onecast.palette", "onecast.menu"].contains(node.identifier ?? "")
             var budget = maximumNodes
             let raw = children(of: window, depth: 0, budget: &budget, options: options, redacts)
-            return WindowTree(
-                identifier: node.identifier, frame: node.frame,
-                elements: options.pruned ? AgentElement.pruned(raw) : raw)
+            return WindowTree(key: key, elements: options.pruned ? AgentElement.pruned(raw) : raw)
         }
     }
 
@@ -61,7 +63,7 @@ enum AgentAccessibilityReader {
         for window in axWindows(of: application) {
             if let key {
                 let node = read(window, options: Options(), redacts: false)
-                guard node.identifier == key.identifier, node.frame == key.frame else { continue }
+                guard WindowKey(identifier: node.identifier, frame: node.frame) == key else { continue }
             }
             var budget = maximumNodes
             guard let found = find(match, under: window, depth: 0, budget: &budget) else {

@@ -5,7 +5,7 @@ read its state and debug problems quickly, without relying on screenshots and sy
 alone.
 
 > **Status (2026-10-08): implemented, phases 0–7.** How it works and how to use it:
-> [custom_docs/AGENT_CONTROL.md](custom_docs/AGENT_CONTROL.md). Where the build departed from
+> [AGENT_CONTROL.md](AGENT_CONTROL.md). Where the build departed from
 > this plan, and why:
 >
 > - **Transport**: loopback TCP speaking plain HTTP/1.1 with a per-launch bearer token, not a Unix

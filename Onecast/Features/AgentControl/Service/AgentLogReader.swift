@@ -12,7 +12,10 @@ enum AgentLogReader {
         let store = try OSLogStore(scope: .currentProcessIdentifier)
         let start = store.position(date: Date().addingTimeInterval(-query.since))
         var admitted: [AgentLogQuery.Entry] = []
-        for case let entry as OSLogEntryLog in try store.getEntries(at: start) {
+        // The store filters by subsystem far faster than reading every framework entry here.
+        let own = NSPredicate(format: "subsystem BEGINSWITH %@", AgentLogQuery.ownSubsystemPrefix)
+        let entries = try store.getEntries(at: start, matching: query.allSubsystems ? nil : own)
+        for case let entry as OSLogEntryLog in entries {
             let level = level(of: entry.level)
             guard
                 query.admits(

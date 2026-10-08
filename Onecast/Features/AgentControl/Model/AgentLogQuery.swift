@@ -47,8 +47,10 @@ struct AgentLogQuery: Equatable, Sendable {
     }
 
     /// Onecast's loggers name the bundle id, or the older `com.onecast` and `com.onecast.perf`.
+    static let ownSubsystemPrefix = "com.onecast"
+
     static func isOwnSubsystem(_ subsystem: String) -> Bool {
-        subsystem.hasPrefix("com.onecast")
+        subsystem.hasPrefix(ownSubsystemPrefix)
     }
 
     func admits(level: Level, subsystem: String, category: String, message: String) -> Bool {

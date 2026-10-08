@@ -4,16 +4,17 @@ import AppKit
 /// The app's visible windows as data, each joined to its AX tree when asked for elements.
 @MainActor
 enum AgentWindowInspector {
+    /// `trees` names the windows whose AX tree is read; nil reads every window's.
     static func windows(
-        includeElements: Bool, options: AgentAccessibilityReader.Options
+        trees scope: Set<String>?, options: AgentAccessibilityReader.Options
     ) -> [AgentSnapshot.Window] {
-        let trees = includeElements ? AgentAccessibilityReader.windows(options: options) : []
-        return identified().map { id, window in
+        let windows = identified().map { (id: $0.id, window: $0.window, key: key(of: $0.window)) }
+        let wanted = windows.filter { scope?.contains($0.id) ?? true }
+        let trees = AgentAccessibilityReader.windows(wanted.map(\.key), options: options)
+        return windows.map { id, window, key in
             var snapshot = describe(window, id: id)
-            guard includeElements else { return snapshot }
-            let key = self.key(of: window)
-            snapshot.elements =
-                trees.first { $0.identifier == key.identifier && $0.frame == key.frame }?.elements
+            guard scope?.contains(id) ?? true else { return snapshot }
+            snapshot.elements = trees.first { $0.key == key }?.elements
             return snapshot
         }
     }
@@ -35,8 +36,9 @@ enum AgentWindowInspector {
 
     /// How the AX API names this window, to find its tree there.
     static func key(of window: NSWindow) -> AgentAccessibilityReader.WindowKey {
-        AgentAccessibilityReader.WindowKey(
-            identifier: window.accessibilityIdentifier(), frame: rect(window.frame))
+        let identifier = window.accessibilityIdentifier()
+        return AgentAccessibilityReader.WindowKey(
+            identifier: identifier.isEmpty ? nil : identifier, frame: rect(window.frame))
     }
 
     static func describe(_ window: NSWindow, id: String) -> AgentSnapshot.Window {

@@ -1,7 +1,7 @@
 import Foundation
 
-/// A key press described in data, turned into an `NSEvent` by the caller.
-struct AgentKey: Equatable, Sendable {
+/// A key press described in data, posted as an `NSEvent` or a `CGEvent` by the caller.
+struct KeyChord: Equatable, Sendable {
     struct Modifiers: OptionSet, Equatable, Sendable {
         let rawValue: Int
         static let command = Modifiers(rawValue: 1 << 0)
@@ -30,7 +30,7 @@ struct AgentKey: Equatable, Sendable {
     let modifiers: Modifiers
 
     /// `"down"`, `"return"`, `"k"`, `"cmd+k"`, `"ctrl+shift+n"`, `"⌘,"`.
-    static func parse(_ chord: String) throws -> AgentKey {
+    static func parse(_ chord: String) throws -> KeyChord {
         var parts = chord.split(separator: "+", omittingEmptySubsequences: false).map(String.init)
         // A trailing "+" is the plus key itself, as in "cmd++".
         if chord == "+" {
@@ -52,39 +52,44 @@ struct AgentKey: Equatable, Sendable {
             modifiers.insert(modifier)
         }
         if let named = namedKeys[name.lowercased()] {
-            return AgentKey(
+            return KeyChord(
                 keyCode: named.code, characters: named.characters,
                 charactersIgnoringModifiers: named.characters,
                 modifiers: modifiers.union(named.implied))
         }
-        guard name.count == 1, let character = name.first, let typed = typing(character) else {
+        guard name.count == 1, let character = name.first, let typed = layoutKey(character) else {
             throw ParseError.unknownKey(name)
         }
-        return AgentKey(
+        return KeyChord(
             keyCode: typed.keyCode, characters: typed.characters,
             charactersIgnoringModifiers: typed.charactersIgnoringModifiers,
             modifiers: modifiers.union(typed.modifiers))
     }
 
     /// The press that types `character`; a character off the ANSI layout carries key code 0.
-    static func typing(_ character: Character) -> AgentKey? {
+    static func typing(_ character: Character) -> KeyChord? {
+        if let key = layoutKey(character) { return key }
+        guard !character.isNewline else { return try? parse("return") }
+        let text = String(character)
+        return KeyChord(keyCode: 0, characters: text, charactersIgnoringModifiers: text, modifiers: [])
+    }
+
+    /// The ANSI key that types `character`, shifted when it is a key's upper character.
+    private static func layoutKey(_ character: Character) -> KeyChord? {
         let text = String(character)
         if let code = ansiCodes[character] {
-            return AgentKey(
+            return KeyChord(
                 keyCode: code, characters: text, charactersIgnoringModifiers: text, modifiers: [])
         }
         if let base = shiftedBase[character] ?? character.lowercased().first,
             base != character, let code = ansiCodes[base]
         {
-            return AgentKey(
+            return KeyChord(
                 keyCode: code, characters: text, charactersIgnoringModifiers: String(base),
                 modifiers: .shift)
         }
-        if character == " " {
-            return AgentKey(keyCode: 49, characters: " ", charactersIgnoringModifiers: " ", modifiers: [])
-        }
-        guard !character.isNewline else { return try? parse("return") }
-        return AgentKey(keyCode: 0, characters: text, charactersIgnoringModifiers: text, modifiers: [])
+        guard character == " " else { return nil }
+        return KeyChord(keyCode: 49, characters: " ", charactersIgnoringModifiers: " ", modifiers: [])
     }
 
     private static let modifierNames: [String: Modifiers] = [

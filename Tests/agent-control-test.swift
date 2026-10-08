@@ -1,5 +1,11 @@
 import Foundation
 
+extension AgentCondition {
+    func isMet(by snapshot: AgentSnapshot) -> Bool {
+        isMet(palette: snapshot.palette, windows: snapshot.windows)
+    }
+}
+
 /// The agent channel's pure layer: framing, decoding, keys, conditions and tree pruning.
 @main
 struct AgentControlTests {
@@ -44,7 +50,7 @@ struct AgentControlTests {
         }
         expect(parsed.method == "POST" && parsed.path == "/", "method and path are read")
         expect(parsed.bearerToken == "abc", "the bearer token is read")
-        expect(String(decoding: parsed.body, as: UTF8.self) == body, "the body is exactly Content-Length")
+        expect(String(bytes: parsed.body, encoding: .utf8) == body, "the body is exactly Content-Length")
         expect(request(String(full.dropLast(3))) == .incomplete, "a short body waits for more")
         expect(request("POST / HTTP/1.1\r\nHost: x\r\n") == .incomplete, "a header without its end waits")
         if case .malformed = request("garbage\r\n\r\n") {
@@ -57,7 +63,7 @@ struct AgentControlTests {
             expect(headers.bearerToken == "t0k", "header names and the scheme are case-insensitive")
         }
         let reply = AgentHTTPRequest.response(status: 401, body: Data("{}".utf8))
-        let response = String(decoding: reply, as: UTF8.self)
+        let response = String(bytes: reply, encoding: .utf8) ?? ""
         expect(response.hasPrefix("HTTP/1.1 401 Unauthorized\r\n"), "a reply names its status")
         expect(response.hasSuffix("Content-Length: 2\r\nConnection: close\r\n\r\n{}"), "a reply closes")
     }
@@ -115,9 +121,9 @@ struct AgentControlTests {
         expect(
             (try? decode(#"{"action":"capture"}"#).get().command) == .capture(window: "palette", path: nil),
             "capture defaults to the palette")
-        let wrapped = String(decoding: AgentReply.success(json: ["a": NSNull(), "b": [1, 2]]), as: UTF8.self)
+        let wrapped = String(bytes: AgentReply.success(json: ["a": NSNull(), "b": [1, 2]]), encoding: .utf8)
         expect(wrapped == #"{"ok":true,"result":{"a":null,"b":[1,2]}}"#, "plain JSON values wrap")
-        let invalid = String(decoding: AgentReply.success(json: ["date": Date()]), as: UTF8.self)
+        let invalid = String(bytes: AgentReply.success(json: ["date": Date()]), encoding: .utf8) ?? ""
         expect(invalid.contains(#""ok":false"#), "a value JSON can't hold fails instead of crashing")
         if case .failure = decode(#"{"action":"hide","timeout":600}"#) {
             passes += 1
@@ -127,19 +133,19 @@ struct AgentControlTests {
     }
 
     static func keys() {
-        let down = try? AgentKey.parse("down")
+        let down = try? KeyChord.parse("down")
         expect(down?.keyCode == 125 && down?.modifiers == [.function, .numericPad], "an arrow implies fn")
-        let palette = try? AgentKey.parse("cmd+K")
+        let palette = try? KeyChord.parse("cmd+K")
         expect(palette?.keyCode == 40 && palette?.modifiers == [.command, .shift], "⌘⇧K from a capital")
-        expect((try? AgentKey.parse("⌘,"))?.keyCode == 43, "a symbol modifier and punctuation parse")
-        expect((try? AgentKey.parse("ctrl+opt+return"))?.modifiers == [.control, .option], "names stack")
-        expect((try? AgentKey.parse("cmd++"))?.charactersIgnoringModifiers == "=", "cmd++ is plus")
-        expect((try? AgentKey.parse("+"))?.modifiers == .shift, "a bare plus is ⇧=")
-        expect((try? AgentKey.parse("hyper+k")) == nil, "an unknown modifier is refused")
-        expect((try? AgentKey.parse("blorp")) == nil, "an unknown key name is refused")
-        expect(AgentKey.typing("?")?.keyCode == 44, "a shifted symbol types from its base key")
-        expect(AgentKey.typing("é")?.keyCode == 0, "a character off the layout still types")
-        expect(AgentKey.typing("\n")?.keyCode == 36, "a newline is Return")
+        expect((try? KeyChord.parse("⌘,"))?.keyCode == 43, "a symbol modifier and punctuation parse")
+        expect((try? KeyChord.parse("ctrl+opt+return"))?.modifiers == [.control, .option], "names stack")
+        expect((try? KeyChord.parse("cmd++"))?.charactersIgnoringModifiers == "=", "cmd++ is plus")
+        expect((try? KeyChord.parse("+"))?.modifiers == .shift, "a bare plus is ⇧=")
+        expect((try? KeyChord.parse("hyper+k")) == nil, "an unknown modifier is refused")
+        expect((try? KeyChord.parse("blorp")) == nil, "an unknown key name is refused")
+        expect(KeyChord.typing("?")?.keyCode == 44, "a shifted symbol types from its base key")
+        expect(KeyChord.typing("é")?.keyCode == 0, "a character off the layout still types")
+        expect(KeyChord.typing("\n")?.keyCode == 36, "a newline is Return")
     }
 
     static func snapshot(
@@ -180,8 +186,16 @@ struct AgentControlTests {
             "text scoped to a window looks only there")
         expect(AgentCondition(absentWindow: "dialog").isMet(by: snapshot(windows: panes)), "an absent window")
         expect(!AgentCondition(absentText: "copied").isMet(by: snapshot(windows: panes)), "a present text")
-        expect(AgentCondition(text: "x").needsElements, "a text check needs elements")
-        expect(!AgentCondition(mode: "x").needsElements, "a palette check does not")
+        expect(AgentCondition(text: "x").treeScope == nil, "an unscoped text check reads every tree")
+        expect(
+            AgentCondition(minimumRows: 1, text: "x", window: "hud").treeScope == ["palette", "hud"],
+            "rows read the palette's tree, a scoped text its window's")
+        expect(AgentCondition(mode: "x").treeScope == [], "a palette check reads no tree")
+        var rowOnly = window("palette", texts: [])
+        rowOnly.elements = [AgentElement(role: "AXGroup", identifier: AgentElement.rowIdentifier)]
+        expect(
+            !AgentCondition(text: "row").isMet(by: snapshot(windows: [rowOnly])),
+            "an identifier is not text on screen")
         expect(
             AgentCondition(mode: "ai", minimumRows: 2).summary == "mode=ai, rows>=2",
             "a summary names each wish")
@@ -250,7 +264,7 @@ struct AgentControlTests {
         expect(rows.map(\.label) == ["Calculator · Application", "Notes · Command"], "rows read in order")
         expect(rows.map(\.selected) == [false, true], "a row carries its selection")
         expect(rows.map(\.index) == [0, 1], "a row's index is its rendered place")
-        expect(AgentCondition(minimumRows: 1).needsElements, "a row count needs elements")
+        expect(AgentCondition(minimumRows: 1).treeScope == ["palette"], "a row count reads the palette")
         let bar = [
             AgentElement(
                 role: "AXGroup",

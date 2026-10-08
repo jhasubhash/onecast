@@ -3,7 +3,7 @@
 A Debug-only channel that lets a coding agent drive Onecast and read its state as data: open a
 screen, type, press keys, wait for a condition, and get back the palette's state and every window's
 accessibility tree, in milliseconds rather than the seconds an `osascript` and screenshot loop costs.
-The plan it came from is [agentic_investigation.md](../agentic_investigation.md); the manual,
+The plan it came from is [agentic_investigation.md](agentic_investigation.md); the manual,
 keyboard-driven recipe it speeds up is [UI_TESTS.md](UI_TESTS.md).
 
 ## Invariants
@@ -25,10 +25,11 @@ keyboard-driven recipe it speeds up is [UI_TESTS.md](UI_TESTS.md).
   front. An agent can never reach a state a user can't.
 - **The command list is closed.** `AgentCommand` is an enum; there is no eval. A new need is a new
   case, decoded and pinned in `agent-control-test`.
-- **Elements come from the AX API, read off-main.** SwiftUI serves its accessibility tree only to the
-  cross-process AX API — `accessibilityChildren()` called in-process returns the hosting view alone —
-  so `AgentAccessibilityReader` asks the app's own pid from a detached task while the main actor is
-  suspended and free to answer. That needs Onecast Dev's Accessibility grant; `ping` reports
+- **Elements come from the AX API, read on main.** SwiftUI serves its accessibility tree only to the
+  AX API — `accessibilityChildren()` called in-process returns the hosting view alone — so
+  `AgentAccessibilityReader` asks the app's own pid. AppKit answers its own process inline on the
+  calling thread, so the read stays on the main actor; off it, it traps in Auto Layout. A read walks
+  only the windows it needs. That needs Onecast Dev's Accessibility grant; `ping` reports
   `accessibilityTrusted`, and without it `elements` stays near-empty.
 - **Content is redacted unless asked for.** By default a text area's value is reduced to its length,
   and so is every palette label while the clipboard screen is open. `includeContent: true` lifts both.
@@ -110,6 +111,8 @@ Any action also takes `until: {…condition…}` and `timeout` (seconds, default
 **Conditions** — every field given must hold at once: `visible`, `mode`, `query`, `selection`,
 `minimumRows`, `text` / `absentText` (case-insensitive, in `window` or any window), `window` /
 `absentWindow` (a window id). A timeout fails with what was asked and what the palette shows.
+`text` matches what an element shows — its label, title or value, never its identifier — and is
+matched unredacted, since a condition's trees never leave the app.
 
 **Window ids** are the `onecast.` accessibility identifier without its prefix — `palette`, `menu`,
 `dock`, `hud`, `dialog`, `notes`, `settings`, `ai-chat` — with `#2`, `#3` for a second of a kind.
@@ -121,8 +124,9 @@ temporary `onecast-agent/<window>-<ms>.png`, and answers the file, its frame in 
 `method` used. With Onecast Dev granted **Screen Recording** it is `screenCaptureKit`, a
 desktop-independent window capture that matches the screen, glass included; without it
 `cacheDisplay`, the content view drawing itself, right for layout and text but not for Liquid
-Glass or vibrancy. The palette's capture also returns `rows`, whose frames locate each row in the
-image after subtracting the window's origin. [UI_TESTS.md](UI_TESTS.md) §4's rule still holds: look
+Glass or vibrancy. A window ScreenCaptureKit cannot see, such as one on another Space, falls back
+to `cacheDisplay` too. The palette's capture also returns `rows`, whose frames locate each row in
+the image after subtracting the window's origin. [UI_TESTS.md](UI_TESTS.md) §4's rule still holds: look
 at the picture, and check the selection against `state` rather than reading a wash off pixels.
 
 ## Extensions and plugins
@@ -136,7 +140,7 @@ tree wrongly". An extension's `console.*` and uncaught exceptions are `Logger` e
 
 `plugins` lists installed plugins with the source hash the catalog last read, and for the running
 one the build it actually mapped: `loaded.matchesSources: false` is "my fix did not take" stated as
-data.
+data. `loaded` names the plugin it belongs to, and is absent once that plugin stops.
 
 `runEntry` on a **menu-bar** command enables it, as running it from the launcher would, and the
 setting persists; switch it off in Settings → Extensions.
@@ -166,7 +170,7 @@ rates, the update check and extension remote icons now say why they came back em
 | --- | --- |
 | `Model/AgentHTTPRequest.swift` | the one HTTP/1.1 request shape and the reply framing |
 | `Model/AgentCommand.swift`, `AgentRequest.swift` | the closed command list, `until` and `timeout` |
-| `Model/AgentKey.swift` | chord names to key codes, characters and modifiers |
+| `Platform/KeyChord.swift` | chord names to key codes, characters and modifiers; `ComputerController` posts the same table |
 | `Model/AgentCondition.swift` | what `waitFor` checks, evaluated over a snapshot |
 | `Model/AgentSnapshot.swift`, `AgentElement.swift` | the snapshot and tree pruning |
 | `Model/AgentReply.swift` | the reply envelope |
@@ -175,7 +179,7 @@ rates, the update check and extension remote icons now say why they came back em
 | `Model/AgentLogQuery.swift`, `Service/AgentLogReader.swift` | what `logs` admits, and the `OSLogStore` read |
 | `Service/AgentControlServer.swift` | listener, handshake, token check |
 | `Service/AgentKeyboard.swift` | posting key events and waiting for them to drain |
-| `Service/AgentAccessibilityReader.swift` | the off-main AX walk and AX press |
+| `Service/AgentAccessibilityReader.swift` | the on-main AX walk and AX press |
 | `Service/AgentWindowInspector.swift` | window ids, frames, and joining each to its AX tree |
 | `UI/AgentControlCoordinator.swift` | each action, through the app's coordinators |
 | `Scripts/dev-run.sh`, `Scripts/agent/` | relaunch-until-ready, `onecastctl`, the shared client, the MCP server, the Release guard |
