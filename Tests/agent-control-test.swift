@@ -29,6 +29,7 @@ struct AgentControlTests {
         keys()
         conditions()
         pruning()
+        logs()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -174,6 +175,36 @@ struct AgentControlTests {
         expect(
             AgentCondition(mode: "ai", minimumRows: 2).summary == "mode=ai, rows>=2",
             "a summary names each wish")
+    }
+
+    static func logs() {
+        let query = try? decode(
+            #"{"action":"logs","level":"error","category":"Updates","since":30}"#
+        ).get()
+        guard case .logs(let logs)? = query?.command else { return expect(false, "logs decodes") }
+        expect(logs.since == 30 && logs.minimumLevel == .error, "since and level are read")
+        expect(
+            logs.admits(level: .fault, subsystem: "com.onecast.app.dev", category: "updates", message: "x"),
+            "a higher level and a category in another case pass")
+        expect(
+            !logs.admits(level: .info, subsystem: "com.onecast.app.dev", category: "Updates", message: "x"),
+            "a lower level does not")
+        expect(
+            !logs.admits(level: .error, subsystem: "com.apple.SwiftUI", category: "Updates", message: "x"),
+            "a framework's entry needs allSubsystems")
+        if case .failure = decode(#"{"action":"logs","level":"loud"}"#) {
+            passes += 1
+        } else {
+            expect(false, "an unknown level is refused")
+        }
+        var capped = AgentLogQuery()
+        capped.limit = 2
+        let entries = (0..<5).map {
+            AgentLogQuery.Entry(
+                date: Date(timeIntervalSince1970: Double($0)), level: "info", subsystem: "s",
+                category: "c", message: "\($0)")
+        }
+        expect(capped.trimmed(entries).map(\.message) == ["3", "4"], "the limit keeps the newest")
     }
 
     static func pruning() {

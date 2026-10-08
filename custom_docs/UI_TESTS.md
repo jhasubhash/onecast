@@ -101,8 +101,10 @@ called a hovered row selected and an accented row unhighlighted in the same run.
 
 ## 5. When the pixels disagree with the model
 
-Instrument, don't guess: append to a file from inside the view (`print` is invisible in a released
-dylib under a GUI app):
+Instrument, don't guess. In the app itself, log through a `Logger` and read it back with
+`Scripts/agent/onecastctl logs category=<yours> since=30` — no rebuild-to-strip pass when the line
+is worth keeping ([AGENT_CONTROL.md](AGENT_CONTROL.md#logs)). Inside a plugin dylib, append to a
+file instead (`print` is invisible in a released dylib under a GUI app):
 
 ```swift
 private func debugLog(_ line: String) {                       // TEMPORARY

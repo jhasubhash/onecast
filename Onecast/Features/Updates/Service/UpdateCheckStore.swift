@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// The daily release check. See docs/features/updates.md.
 @MainActor
@@ -160,9 +161,22 @@ final class UpdateCheckStore {
         request.setValue("Onecast", forHTTPHeaderField: "User-Agent")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
-        guard let (data, response) = try? await session.data(for: request),
-            let http = response as? HTTPURLResponse, http.statusCode == 200
-        else { return nil }
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            logger.error("Update check failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            logger.error("Update check answered HTTP \(status)")
+            return nil
+        }
         return data
     }
+
+    private nonisolated static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.onecast.app", category: "Updates")
 }

@@ -45,6 +45,8 @@ final class AgentControlCoordinator {
                         pruned: pruned))
             case .entries(let query, let kind, let limit):
                 return AgentReply.success(entries(query: query, kind: kind, limit: limit))
+            case .logs(let query):
+                return AgentReply.success(try await AgentLogReader.entries(query))
             default:
                 detail = try await perform(request.command)
             }
@@ -64,7 +66,7 @@ final class AgentControlCoordinator {
 
     private func perform(_ command: AgentCommand) async throws -> String? {
         switch command {
-        case .ping, .state, .entries, .waitFor:
+        case .ping, .state, .entries, .waitFor, .logs:
             return nil
         case .show(let name, let query):
             guard let mode = PaletteMode(rawValue: name) else {

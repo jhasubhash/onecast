@@ -22,6 +22,7 @@ enum AgentCommand: Equatable, Sendable {
     /// Presses the first element whose identifier, label or title matches.
     case press(String, window: String?)
     case waitFor
+    case logs(AgentLogQuery)
 
     enum DecodeError: Error, Equatable, LocalizedError {
         case unknownAction(String)
@@ -79,6 +80,7 @@ enum AgentCommand: Equatable, Sendable {
         case "press":
             return .press(try arguments.required("match"), window: try arguments.optional("window"))
         case "waitFor": return .waitFor
+        case "logs": return .logs(try AgentLogQuery(arguments))
         default:
             throw DecodeError.unknownAction(action)
         }

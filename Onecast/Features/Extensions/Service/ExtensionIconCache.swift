@@ -1,4 +1,5 @@
 import AppKit
+import os
 
 /// An extension's artwork; docs/features/extensions.md says why it draws smaller.
 enum ExtensionIconCache {
@@ -106,6 +107,8 @@ enum ExtensionIconCache {
         return resolved + rest
     }
 
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.onecast.app", category: "ExtensionIcons")
     private static let paletteNamePrefix = "raycast-"
     private static let paletteNameCharacters = Set("abcdefghijklmnopqrstuvwxyz-")
 
@@ -133,7 +136,14 @@ enum ExtensionIconCache {
     static func loadRemoteAsync(_ url: URL, asIcon: Bool = true) async -> NSImage? {
         let key = remoteKey(url, asIcon: asIcon)
         if let cached = cache.object(forKey: key) { return cached }
-        guard let (data, _) = try? await session.data(from: url) else { return nil }
+        let data: Data
+        do {
+            (data, _) = try await session.data(from: url)
+        } catch {
+            logger.error(
+                "Icon \(url.host() ?? "?", privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
         let decoded = await Task.detached(priority: .userInitiated) {
             Decoded(image: NSImage(data: data))
         }.value

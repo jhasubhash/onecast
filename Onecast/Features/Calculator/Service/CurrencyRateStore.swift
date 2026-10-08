@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// The cacheless exchange-rate fetcher. See docs/features/calculator.md#exchange-rates.
 @MainActor
@@ -11,6 +12,8 @@ final class CurrencyRateStore {
         string: "https://backend.raycast.com/api/v1/currencies/crypto?symbols="
             + CalcCurrency.cryptoCodes.joined(separator: ","))!
     /// Daily, measured from `completedAt`, so relaunching never re-fetches a snapshot still fresh.
+    private nonisolated static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.onecast.app", category: "CurrencyRates")
     private static let refreshInterval: TimeInterval = 24 * 3600
     /// Shorter retry, so a machine offline at launch picks rates up soon after it reconnects.
     private static let retryInterval: TimeInterval = 30 * 60
@@ -78,9 +81,20 @@ final class CurrencyRateStore {
 
     private nonisolated static func body(of url: URL) async -> Data? {
         let request = URLRequest(url: url, timeoutInterval: 20)
-        guard let (data, response) = try? await session.data(for: request),
-            let http = response as? HTTPURLResponse, http.statusCode == 200
-        else { return nil }
+        let host = url.host() ?? "?"
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            logger.error("\(host, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            logger.error("\(host, privacy: .public) answered HTTP \(status)")
+            return nil
+        }
         return data
     }
 }

@@ -90,6 +90,7 @@ the palette after it, plus `waited` seconds when it carried an `until`.
 | `setAppearance` | `appearance` | `system`, `light` or `dark` |
 | `press` | `match`, `window` | AX-presses the first element whose identifier, label or title matches |
 | `waitFor` | any condition fields, `timeout` | waits until the condition holds |
+| `logs` | `since` (60 s), `level`, `category`, `contains`, `allSubsystems`, `limit` (200) | this process's unified log, oldest first |
 
 Any action also takes `until: {…condition…}` and `timeout` (seconds, default 5, at most 60).
 
@@ -99,6 +100,16 @@ Any action also takes `until: {…condition…}` and `timeout` (seconds, default
 
 **Window ids** are the `onecast.` accessibility identifier without its prefix — `palette`, `menu`,
 `dock`, `hud`, `dialog`, `notes`, `settings`, `ai-chat` — with `#2`, `#3` for a second of a kind.
+
+## Logs
+
+`logs` reads the app's own unified log through `OSLogStore(scope: .currentProcessIdentifier)`, so it
+needs no `log stream` running beforehand and no wrapper around `Logger`: any `Logger` entry is there,
+under the subsystem it was created with. By default only Onecast's subsystems (`com.onecast*`) come
+back; `allSubsystems: true` adds what AppKit and SwiftUI log in-process — the "tried to update
+multiple times per frame" faults among them. A scan is slow (about 3 s for two minutes of entries),
+so keep `since` short. A failure the user only sees as an empty screen should log: the currency
+rates, the update check and extension remote icons now say why they came back empty.
 
 ## Limits
 
@@ -119,6 +130,7 @@ Any action also takes `until: {…condition…}` and `timeout` (seconds, default
 | `Model/AgentCondition.swift` | what `waitFor` checks, evaluated over a snapshot |
 | `Model/AgentSnapshot.swift`, `AgentElement.swift` | the snapshot and tree pruning |
 | `Model/AgentReply.swift` | the reply envelope |
+| `Model/AgentLogQuery.swift`, `Service/AgentLogReader.swift` | what `logs` admits, and the `OSLogStore` read |
 | `Service/AgentControlServer.swift` | listener, handshake, token check |
 | `Service/AgentKeyboard.swift` | posting key events and waiting for them to drain |
 | `Service/AgentAccessibilityReader.swift` | the off-main AX walk and AX press |
