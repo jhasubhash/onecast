@@ -101,12 +101,27 @@ struct DockContentOptions: Codable, Sendable, Hashable {
 struct DockPlacement: Codable, Sendable, Hashable {
     /// `NSScreen.displayKey`; nil follows whichever display holds the menu bar.
     var displayKey: String?
+    /// One copy of the dock on every connected display; `displayKey` waits for it to be turned off.
+    var onAllDisplays = false
     var edge: DockEdge = .bottom
     /// Where along the edge the dock's centre sits, 0 = start, 1 = end.
     var alignment: Double = 0.5
 
     mutating func sanitize() {
         alignment = alignment.clamped(to: 0...1)
+    }
+}
+
+extension DockPlacement {
+    /// Decodes field by field, so a key added later never discards a saved dock.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = DockPlacement()
+        displayKey = try c.decodeIfPresent(String.self, forKey: .displayKey)
+        onAllDisplays =
+            try c.decodeIfPresent(Bool.self, forKey: .onAllDisplays) ?? defaults.onAllDisplays
+        edge = (try? c.decodeIfPresent(DockEdge.self, forKey: .edge)) ?? defaults.edge
+        alignment = try c.decodeIfPresent(Double.self, forKey: .alignment) ?? defaults.alignment
     }
 }
 

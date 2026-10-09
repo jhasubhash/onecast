@@ -274,6 +274,11 @@ struct DocksTests {
         }
         expect(back?.showsWidgetLabels == false, "turning widget labels off survives a round-trip")
         expect(back?.hidesInFullScreen == false, "and so does staying over full-screen apps")
+
+        let placed = Data(#"{"displayKey":"abc","edge":"left","alignment":0.25}"#.utf8)
+        let placement = try? JSONDecoder().decode(DockPlacement.self, from: placed)
+        expect(placement?.displayKey == "abc" && placement?.alignment == 0.25, "an old placement keeps its spot")
+        expect(placement?.onAllDisplays == false, "and stays on its one display")
     }
 
     static func customIconsRoundTripAndOldConfigsDecode() {

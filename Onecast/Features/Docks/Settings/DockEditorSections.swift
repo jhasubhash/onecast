@@ -55,18 +55,21 @@ struct DockPlacementSection: View {
                 }
 
                 Picker(selection: displayBinding(dock)) {
-                    Text("Main display").tag(String?.none)
+                    Text("Main display").tag(DockDisplayChoice.main)
+                    Text("All displays").tag(DockDisplayChoice.all)
                     ForEach(displays) { display in
-                        Text(display.name).tag(String?.some(display.key))
+                        Text(display.name).tag(DockDisplayChoice.display(display.key))
                     }
                     if let key = dock.placement.displayKey,
                         !displays.contains(where: { $0.key == key })
                     {
-                        Text("Disconnected display").tag(String?.some(key))
+                        Text("Disconnected display").tag(DockDisplayChoice.display(key))
                     }
                 } label: {
                     SettingsRowTitle(.docksPlacement, "Display")
-                    Text("Main display follows the one that holds the menu bar.")
+                    Text(
+                        "Main display follows the one that holds the menu bar; All displays puts "
+                            + "the same dock on each.")
                 }
 
                 Picker(selection: edgeBinding(dock)) {
@@ -102,10 +105,26 @@ struct DockPlacementSection: View {
             })
     }
 
-    private func displayBinding(_ dock: CustomDock) -> Binding<String?> {
+    private func displayBinding(_ dock: CustomDock) -> Binding<DockDisplayChoice> {
         Binding(
-            get: { dock.placement.displayKey },
-            set: { key in coordinator.updatePlacement(dockID: dock.id) { $0.displayKey = key } })
+            get: {
+                if dock.placement.onAllDisplays { return .all }
+                return dock.placement.displayKey.map(DockDisplayChoice.display) ?? .main
+            },
+            set: { choice in
+                coordinator.updatePlacement(dockID: dock.id) { placement in
+                    switch choice {
+                    case .main:
+                        placement.onAllDisplays = false
+                        placement.displayKey = nil
+                    case .all:
+                        placement.onAllDisplays = true
+                    case .display(let key):
+                        placement.onAllDisplays = false
+                        placement.displayKey = key
+                    }
+                }
+            })
     }
 
     private func edgeBinding(_ dock: CustomDock) -> Binding<DockEdge> {
@@ -351,4 +370,10 @@ struct DockContentSection: View {
                 coordinator.updateContent(dockID: dock.id) { $0[keyPath: keyPath] = value }
             })
     }
+}
+
+/// The Display picker's rows: the menu-bar display, every display, or one by its key.
+private enum DockDisplayChoice: Hashable {
+    case main, all
+    case display(String)
 }

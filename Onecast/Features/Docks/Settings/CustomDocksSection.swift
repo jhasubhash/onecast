@@ -81,7 +81,9 @@ private struct CustomDockRow: View {
     }
 
     private var summary: String {
-        let display = DockDisplays.name(for: dock.placement.displayKey, in: displays)
+        let display =
+            dock.placement.onAllDisplays
+            ? "All displays" : DockDisplays.name(for: dock.placement.displayKey, in: displays)
         return "\(dock.placement.edge.settingsTitle) · \(display)"
     }
 }

@@ -92,6 +92,12 @@ switches nothing back. `HotKeyAction.dockVisibility` shows or hides one dock. Se
   so Mission Control hides them as it hides the real Dock. `reservedFrames` lists the docks that take
   space, which Onecast's own window commands and layouts leave clear
   ([window-management.md](window-management.md)).
+- **All displays.** `DockPlacement.onAllDisplays` gives a dock one panel per connected display, each
+  a `DockSurface` pinned to that display's key (`DockPanelController` keys surfaces by dock and
+  display), all drawn from the same configuration: an edit, a reorder or a drag between two copies
+  is one change to the one dock. A widget is still one object per instance, so every copy draws
+  the same state, and its popover opens beside the copy clicked. Lens, auto-hide, full-screen
+  hiding and reserved space are per copy. Displays coming or going add or drop copies.
 - **The look.** A glass plate and a handle pill at its end (drag it along the edge to move the
   dock); every widget is a card inside it with Dockset's modest corner (`cardRadiusRatio`, about a
   sixth of the tile), and the plate's corner is the card's plus the padding, so the curves run parallel.

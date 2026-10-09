@@ -9,6 +9,8 @@ final class DockSurface {
     let panel: DockPanel
     private let container: DockContainerView
     private unowned let controller: DockPanelController
+    /// The display this copy is pinned to; nil follows the dock's own placement.
+    let display: String?
     private var core: AppCore { controller.core }
     private var floating: DockFloatingController { controller.floating }
 
@@ -69,8 +71,10 @@ final class DockSurface {
         var stepped = false
     }
 
-    init(dock: CustomDock, controller: DockPanelController) {
+    /// `display` pins this copy to one display, for a dock shown on all of them.
+    init(dock: CustomDock, display: String? = nil, controller: DockPanelController) {
         self.controller = controller
+        self.display = display
         let core = controller.core
         model = DockSurfaceModel(
             dock: dock, metrics: core.settings.interfaceSize.metrics, core: core,
@@ -91,6 +95,7 @@ final class DockSurface {
 
     var dockID: UUID { model.dockID }
     private var edge: DockEdge { model.edge }
+    private var screenKey: String? { display ?? model.dock.placement.displayKey }
 
     /// Widget controls' hover labels go to the label's own panel: this window would clip them.
     private func tooltipPresenter(in hosting: NSView) -> TooltipPresenter {
@@ -113,7 +118,7 @@ final class DockSurface {
     }
 
     var displayKey: String? {
-        controller.screen(forKey: model.dock.placement.displayKey)?.displayKey
+        controller.screen(forKey: screenKey)?.displayKey
     }
 
     // MARK: - Configuration
@@ -144,7 +149,7 @@ final class DockSurface {
 
     /// Re-reads everything that sizes the dock; called whenever its slots or the interface change.
     func place() {
-        guard !isClosed, let screen = controller.screen(forKey: model.dock.placement.displayKey)
+        guard !isClosed, let screen = controller.screen(forKey: screenKey)
         else { return }
         let dock = model.dock
         model.setMetrics(core.settings.interfaceSize.metrics)
@@ -394,11 +399,11 @@ final class DockSurface {
     }
 
     var screenFrame: CGRect {
-        controller.screen(forKey: model.dock.placement.displayKey)?.frame ?? visibleFrame
+        controller.screen(forKey: screenKey)?.frame ?? visibleFrame
     }
 
     var reservesEdge: Bool {
-        guard let screen = controller.screen(forKey: model.dock.placement.displayKey) else {
+        guard let screen = controller.screen(forKey: screenKey) else {
             return false
         }
         let frame = screen.frame

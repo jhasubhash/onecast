@@ -9,7 +9,15 @@ final class DockPanelController {
     let actions: DockItemActions
     let floating: DockFloatingController
 
-    private var surfaces: [UUID: DockSurface] = [:]
+    /// One window per dock, or per dock and display for a dock shown on every display.
+    private struct SurfaceKey: Hashable {
+        let dockID: UUID
+        let display: String?
+    }
+
+    private var surfaces: [SurfaceKey: DockSurface] = [:]
+    /// The last configuration handed in, so a display coming or going can re-project it.
+    private var visibleDocks: [CustomDock] = []
     private var runningMonitor: DockRunningAppsMonitor?
     private var trashMonitor: DockTrashMonitor?
     private var screenObserver: NotificationToken?
@@ -56,17 +64,22 @@ final class DockPanelController {
             return
         }
         arm()
-        let visible = docks.filter(\.isVisible)
-        let wanted = Set(visible.map(\.id))
-        for (id, surface) in Array(surfaces) where !wanted.contains(id) {
-            surface.close()
-            surfaces[id] = nil
+        visibleDocks = docks.filter(\.isVisible)
+        let displays = NSScreen.screens.map(\.displayKey)
+        var wanted: [SurfaceKey: CustomDock] = [:]
+        for dock in visibleDocks {
+            let keys = dock.placement.onAllDisplays ? displays.map(Optional.some) : [nil]
+            for display in keys { wanted[SurfaceKey(dockID: dock.id, display: display)] = dock }
         }
-        for dock in visible {
-            if let surface = surfaces[dock.id] {
+        for (key, surface) in Array(surfaces) where wanted[key] == nil {
+            surface.close()
+            surfaces[key] = nil
+        }
+        for (key, dock) in wanted {
+            if let surface = surfaces[key] {
                 surface.update(dock)
             } else {
-                surfaces[dock.id] = DockSurface(dock: dock, controller: self)
+                surfaces[key] = DockSurface(dock: dock, display: key.display, controller: self)
             }
         }
         refreshFullScreen()
@@ -77,6 +90,7 @@ final class DockPanelController {
         floating.label.hideAll()
         for surface in surfaces.values { surface.close() }
         surfaces.removeAll()
+        visibleDocks = []
         disarmPointerMonitors()
         yieldTask?.cancel()
         yieldTask = nil
@@ -141,6 +155,9 @@ final class DockPanelController {
 
     private func screensChanged() {
         floating.close()
+        if visibleDocks.contains(where: \.placement.onAllDisplays) {
+            reconcile(visibleDocks, enabled: true)
+        }
         for surface in surfaces.values { surface.place() }
         refreshFullScreen()
     }
