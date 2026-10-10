@@ -1,5 +1,4 @@
 import Foundation
-import Security
 
 /// Claude's plan limits for the account Claude Code is signed in to, read with its own sign-in.
 enum PersonalClaudeUsageClient {
@@ -18,7 +17,7 @@ enum PersonalClaudeUsageClient {
     /// Never refreshes the sign-in itself: that would rotate Claude Code's refresh token under it.
     static func fetch() async -> Result<PersonalAIUsageLimitsReport, PersonalAIUsageLimitsProblem> {
         let credentials: PersonalClaudeCredentials
-        switch await Task.detached(priority: .utility, operation: readCredentials).value {
+        switch await readCredentials() {
         case .success(let read): credentials = read
         case .failure(let problem): return .failure(problem)
         }
@@ -66,39 +65,42 @@ enum PersonalClaudeUsageClient {
         return .success(report)
     }
 
-    /// Blocking: the keychain may stop to ask the user whether Onecast may read Claude Code's item.
-    nonisolated private static func readCredentials()
+    /// Claude Code writes its item with `/usr/bin/security`, which the item's access list therefore
+    /// trusts. Reading it through the same tool asks nobody; reading it directly would ask every time
+    /// Claude Code rewrites the item on a token refresh, or a rebuild re-signs Onecast.
+    private static let securityTool = URL(fileURLWithPath: "/usr/bin/security")
+    /// What `security` exits with when no item matches (errSecItemNotFound).
+    private static let itemNotFound: Int32 = 44
+
+    private static func readCredentials() async
         -> Result<PersonalClaudeCredentials, PersonalAIUsageLimitsProblem>
     {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: NSUserName(),
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        switch status {
-        case errSecSuccess:
-            guard let data = item as? Data, let credentials = PersonalClaudeCredentials.parse(data)
-            else {
-                return .failure(
-                    PersonalAIUsageLimitsProblem(
-                        message: "Claude Code's sign-in could not be read.", canRetry: false))
-            }
-            return .success(credentials)
-        case errSecItemNotFound:
+        let arguments = ["find-generic-password", "-s", keychainService, "-a", NSUserName(), "-w"]
+        guard let result = try? await ToolRunner.run(securityTool, arguments, timeout: timeout) else {
+            return .failure(
+                PersonalAIUsageLimitsProblem(
+                    message: "Onecast could not read Claude Code's sign-in from the keychain.",
+                    canRetry: true))
+        }
+        if result.status == itemNotFound {
             return .failure(
                 PersonalAIUsageLimitsProblem(
                     message: "Sign in to Claude Code (claude, then /login) to see its limits.",
                     canRetry: true))
-        default:
+        }
+        guard result.succeeded else {
             return .failure(
                 PersonalAIUsageLimitsProblem(
                     message: "Onecast was not allowed to read Claude Code's sign-in from the keychain.",
                     canRetry: true))
         }
+        let secret = Data(result.output.trimmingCharacters(in: .whitespacesAndNewlines).utf8)
+        guard let credentials = PersonalClaudeCredentials.parse(secret) else {
+            return .failure(
+                PersonalAIUsageLimitsProblem(
+                    message: "Claude Code's sign-in could not be read.", canRetry: false))
+        }
+        return .success(credentials)
     }
 
     /// The installed Claude Code's own version, so the request reads as that client's.
