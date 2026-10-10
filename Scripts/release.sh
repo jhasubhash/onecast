@@ -70,6 +70,8 @@ build() {
     diskutil image create from "$stage" --format UDZO --volumeName "Onecast" \
         "$OUT/${prefix}-${VERSION}.dmg" >/dev/null
     rm -rf "$stage"
+    # Gatekeeper assesses the image itself before the app inside, so it carries its own signature.
+    codesign --sign "$IDENTITY" --timestamp "$OUT/${prefix}-${VERSION}.dmg"
     # The only zip that leaves the signature verifiable, which the in-app updater requires.
     ditto -c -k --keepParent --sequesterRsrc "$app" "$OUT/${prefix}-${VERSION}.zip"
 
