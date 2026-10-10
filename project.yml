@@ -1,5 +1,7 @@
 name: Onecast
 options:
+  # 2.45 paths the EmojiKeywords folder reference relative to its group, which no build can find.
+  minimumXcodeGenVersion: 2.46.0
   bundleIdPrefix: com.onecast
   deploymentTarget:
     macOS: "26.0"
@@ -21,9 +23,15 @@ settings:
     CODE_SIGN_STYLE: Manual
     SWIFT_STRICT_CONCURRENCY: complete
     ONECAST_BUNDLE_IDENTIFIER: com.onecast.app
+    # The app's name, apart from PRODUCT_NAME so a channel build renames the app and no other target.
+    ONECAST_PRODUCT_NAME: Onecast
   configs:
+    # Debug is its own channel, like a release: a distinct bundle id means a
+    # locally-run build gets its own prefs, caches, TCC grants and login item instead of
+    # inheriting — and corrupting — the installed app's state.
     Debug:
       ONECAST_BUNDLE_IDENTIFIER: com.onecast.app.dev
+      ONECAST_PRODUCT_NAME: Onecast Dev
       DICTATION_EXECUTABLE_NAME: Onecast Dev Dictation
     Release:
       DICTATION_EXECUTABLE_NAME: Onecast Dictation
@@ -89,6 +97,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(ONECAST_BUNDLE_IDENTIFIER)"
+        PRODUCT_NAME: "$(ONECAST_PRODUCT_NAME)"
         INFOPLIST_FILE: Onecast/Info.plist
         CODE_SIGN_ENTITLEMENTS: Onecast/Onecast.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: onecast
@@ -96,12 +105,6 @@ targets:
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
-      configs:
-        # Debug is its own channel, like beta/stable in release.yml: a distinct bundle id means a
-        # locally-run build gets its own prefs, caches, TCC grants and login item instead of
-        # inheriting — and corrupting — the installed app's state.
-        Debug:
-          PRODUCT_NAME: Onecast Dev
     # Xcode strips OnecastPluginKit's Swift module when it embeds the framework, leaving the shipped
     # copy with no `.swiftinterface` — so the app couldn't compile a plugin against its own framework.
     # Restore just the stable textual interface (the binary swiftmodule is compiler-version-specific
@@ -135,11 +138,6 @@ targets:
       - Onecast/Features/Clipboard/Service/ClipboardTextHelper.swift
     settings:
       base:
-        # release.yml passes PRODUCT_NAME on the xcodebuild line, which hits every target: without
-        # these two pinned, a channel build renames the executable `ClipboardTextWorker` looks for
-        # and gives the module a name with a space in it.
-        EXECUTABLE_NAME: ClipboardTextHelper
-        PRODUCT_MODULE_NAME: ClipboardTextHelper
         SKIP_INSTALL: YES
 
   # The zero-capability MCP relay a CLI route spawns to reach a built-in tool set (computer use, the
@@ -152,9 +150,6 @@ targets:
       - Onecast/Features/AI/Service/AIToolHelper.swift
     settings:
       base:
-        # release.yml passes PRODUCT_NAME to every target; pin the name the app looks for in Helpers.
-        EXECUTABLE_NAME: AIToolHelper
-        PRODUCT_MODULE_NAME: AIToolHelper
         SKIP_INSTALL: YES
 
   # The public plugin contract. Embedded in the app so a loaded plugin dylib resolves the exact

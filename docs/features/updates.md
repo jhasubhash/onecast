@@ -128,7 +128,7 @@ setting, clipboard entry, note or snippet is affected by an update, by `brew upg
 
 ## Releasing into it
 
-`.github/workflows/release.yml` publishes two assets from one build: the DMG people download by hand
+`Scripts/release.sh` publishes two assets from one build: the DMG people download by hand
 and the cask installs, and `Onecast-<version>.zip` for the updater. A stable run adds a
 `Onecast-Universal-<version>` pair from its `universal` job, uploaded second so the thin zip stays
 first in the asset list — builds predating architecture-aware selection take whichever comes first.

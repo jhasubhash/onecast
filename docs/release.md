@@ -11,14 +11,14 @@ the signing identity itself is in [signing.md](signing.md).
 ```
 
 It builds a Release `Onecast.app` signed with `Onecast Self-Signed` and packs it with an
-`/Applications` symlink. Official per-channel releases are built by CI, below.
+`/Applications` symlink. An official release is cut with `Scripts/release.sh`, below.
 
 ## Signing & Gatekeeper
 
-Both local builds and CI releases sign with the same stable `Onecast Self-Signed` identity, not an
-Apple Developer ID — so macOS quarantines a directly-downloaded DMG. The Homebrew cask strips that
-automatically; direct downloaders run `xattr -dr com.apple.quarantine "…/Onecast.app"` once. Full
-details in [signing.md](signing.md).
+Releases sign with the `Developer ID Application` identity of team `KX3L7SJ2KL`, with a secure
+timestamp, and `Scripts/notarize.sh` notarizes and staples both the app (before it is zipped) and
+the DMG, so a download opens without a Gatekeeper prompt. Local builds keep `Onecast Self-Signed`
+unless `Signing.local.xcconfig` names a Developer ID. Full details in [signing.md](signing.md).
 
 ## How the in-app updater consumes a release
 
@@ -28,7 +28,7 @@ zip is produced with `ditto -c -k --keepParent --sequesterRsrc` — the only zip
 signature verifiable, which matters because the updater refuses any bundle whose signature does not
 prove it is ours.
 
-A stable release publishes two more from the `universal` job, `Onecast-Universal-<version>.dmg` and
+A release publishes two more from the universal build, `Onecast-Universal-<version>.dmg` and
 `.zip`, built from the same commit at the same version and bundle id but with both slices. They are
 uploaded *after* the thin pair, which keeps the thin zip first in the asset list so builds predating
 architecture-aware selection keep choosing it.
@@ -57,39 +57,37 @@ gate — it neither runs the harnesses nor builds the app, so the whole bar in
 
 ## Releasing
 
-`.github/workflows/release.yml` builds and publishes a DMG from GitHub Actions, no local machine
-needed. Run it from the **Actions** tab (`Release` → **Run workflow**) and pick:
+Releases are cut on this Mac, not in CI: there is no release workflow.
 
-- **channel** — `beta` or `stable`. Each builds a distinct app (`Onecast Beta.app` / `Onecast.app`)
-  with its own bundle id, alongside the local `Onecast Dev.app`. Beta gets an auto-incrementing
-  `-beta.N` suffix (`N` = the Actions run number) so re-running never collides; stable ships the
-  version as-is.
-- **version** — base semver, e.g. `0.2.0`.
+```sh
+xcrun notarytool store-credentials onecast-notary --apple-id <apple-id> --team-id KX3L7SJ2KL  # once
+./Scripts/release.sh 0.2.0
+```
 
-It builds on a `macos-26` runner with Xcode 26 and publishes a GitHub Release tagged
-`v<full-version>` with a versioned DMG and zip asset, marked prerelease for beta. On success it also
-bumps the matching cask in the tap and announces the release on Discord.
+`Scripts/release.sh` refuses a dirty tree, a commit not yet on `origin/main` (the tag and the notes
+are made on GitHub), a version already released, a missing `Developer ID Application` identity for
+team `KX3L7SJ2KL` or a missing notary profile. It then builds two flavors at that version, each into
+`build/release/<version>/`: `Onecast-<version>` with `ARCHS=arm64` for Apple silicon, and
+`Onecast-Universal-<version>` with `arm64 x86_64` for Intel, since macOS 26 is the last release
+that boots on Intel. For each it asserts the slices of every shipping binary (the app,
+`ClipboardTextHelper`, `AIToolHelper` and `Onecast Dictation`), runs `verify-signature.sh`, then
+notarizes and staples the app before packing the DMG and zip, and notarizes and staples the DMG.
+Finally it publishes the GitHub Release tagged `v<version>` with the thin pair first, and bumps both
+casks in the tap.
 
-A stable run then fans out to a second job, `universal`, which rebuilds the same commit with
-`ARCHS="arm64 x86_64"` and attaches `Onecast-Universal-<version>.dmg` / `.zip` to the release the
-first job created, then bumps `onecast-universal`. macOS 26 is the last release that boots on Intel,
-and those Macs need both slices. Both jobs pin `ARCHS` explicitly and assert the slices on *every*
-shipping binary — the app, `ClipboardTextHelper` and `Onecast Dictation`: trusting `ARCHS_STANDARD` is what
-shipped a thin arm64 build to Intel users once already, and it also keeps the Apple silicon download
-from silently gaining a slice it never needs. A thin helper inside a universal app is the quiet form
-of the same bug: the app boots on Intel and only clipboard OCR or dictation stops working.
+Only stable releases are cut. The app still understands the beta channel (`com.onecast.app.beta`,
+`-beta.N` tags), but nothing publishes one.
 
-Channel builds override `ONECAST_BUNDLE_IDENTIFIER`, not the target-wide `PRODUCT_BUNDLE_IDENTIFIER`.
-The Dictation helper derives its own identifier with a `.dictation` suffix; signature verification
-checks that its bundle and signing identifiers agree and remain distinct from the main app.
+The app's name reaches `xcodebuild` as `ONECAST_PRODUCT_NAME`, never `PRODUCT_NAME`: a command-line
+`PRODUCT_NAME` renames every target, `OnecastPluginKit` included, and the app then cannot import it.
 
 ### Release notes
 
-`Scripts/release-notes.sh` composes the release body, and CI runs it just before `gh release create`.
+`Scripts/release-notes.sh` composes the release body; `release.sh` runs it just before `gh release create`.
 It is safe to run by hand against any tag — it only reads:
 
 ```sh
-CHANNEL=beta TAG=v0.9.13-beta.61 ./Scripts/release-notes.sh /tmp/body.md /tmp/discord.md
+CHANNEL=stable TAG=v0.1.0 ./Scripts/release-notes.sh /tmp/body.md /tmp/discord.md
 ```
 
 The changelog itself comes from GitHub's own release-notes API, which lists every merged PR with its
@@ -107,21 +105,19 @@ Two details the script exists for:
   window cuts at that marker — see [features/updates.md](features/updates.md). Full PR URLs are
   shortened to `#304`, which still autolinks on the web and fits a 460pt window.
 
-The Discord announcement carries the same changelog, truncated to fit Discord's component limit, and
-pings `@everyone`.
+Its second file is the same changelog cut to Discord's component limit; nothing posts it any more.
 
-### Homebrew tap automation
+### Homebrew tap
 
-Each job's final step rewrites the `version` + `sha256` of its cask (`onecast`, `onecast@beta` or
-`onecast-universal`) in the [`homebrew-onecast`](https://github.com/jhasubhash/homebrew-onecast) tap
-and pushes. It needs a `HOMEBREW_TAP_TOKEN` repo secret — a fine-grained PAT with **Contents:
-read/write** on the tap repo. Without the secret the step logs a warning and skips; the release still
-publishes. The `sed` is anchored to `^  version` / `^  sha256`, so a cask's two-space indent on those
-lines is load-bearing.
+`release.sh` rewrites the `version` and `sha256` of the `onecast` and `onecast-universal` casks in
+the [`homebrew-onecast`](https://github.com/jhasubhash/homebrew-onecast) tap and pushes, with the
+`gh` sign-in it already used for the release. The `sed` is anchored to `^  version` / `^  sha256`,
+so a cask's two-space indent on those lines is load-bearing.
 
-The three macOS 26 / macOS 15 casks all install `Onecast.app` under `com.onecast.app`, so they
-`conflicts_with` one another and Homebrew routes each Mac by `depends_on`: `onecast` requires
-`arch: :arm64`, `onecast-universal` takes the Intel Macs, and `onecast-sequoia` covers macOS 15.
+Both casks install `Onecast.app` under `com.onecast.app`, so they `conflicts_with` one another and
+Homebrew routes each Mac by `depends_on`: `onecast` requires `arch: :arm64`, `onecast-universal`
+takes the Intel Macs. The release is notarized, so neither cask strips a quarantine flag.
+
 
 ## Website
 

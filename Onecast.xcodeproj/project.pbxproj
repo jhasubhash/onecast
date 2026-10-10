@@ -739,6 +739,7 @@
 		A332D8E154AD90DF475E5F6C /* AIChatCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31ED8D16B7B87DBD89D195B /* AIChatCoordinator.swift */; };
 		A3A5ADD7A84C49E6A3BD69D1 /* TimeCountdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81BFC583A4A87D4946F83DEC /* TimeCountdown.swift */; };
 		A3EBBA6792E711FC138A9033 /* MCPProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50474B0E6DAE1E1B88FBDC1 /* MCPProtocol.swift */; };
+		A3FC556008F386B557998AA3 /* KeyChord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 942777F11359A955AF579D48 /* KeyChord.swift */; };
 		A412062C10048ADAE9588081 /* DockWidgetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3A2969FDF9CB6CA15CDECE /* DockWidgetManager.swift */; };
 		A41CB23DDA6948FA5A28E0C4 /* MenuTreeNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B954D3A45875DA9F5CB34CEB /* MenuTreeNode.swift */; };
 		A423FFFD94E7429858C380DC /* CustomWindowSizeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1EFED3B9FAF532B250F7C4 /* CustomWindowSizeStore.swift */; };
@@ -1098,7 +1099,6 @@
 		FD4E378E1EB67A3C7E685609 /* SystemActivitySampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E49EED0F33505B2E6A5E99 /* SystemActivitySampler.swift */; };
 		FD65B60A77E67F3497D10B73 /* UninstallRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38A0C68D124D5C8CF886312D /* UninstallRules.swift */; };
 		FD78BA8BD0A886671367B08B /* MeetingDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1DC0D0B8F9A4708D6D6FAF /* MeetingDay.swift */; };
-		A3FC556008F386B557998AA3 /* KeyChord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 942777F11359A955AF579D48 /* KeyChord.swift */; };
 		FE5C27BFDC0BF49CC8C15288 /* AgentWindowInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA52B892A4F8C8586C0BEE7D /* AgentWindowInspector.swift */; };
 		FEEBA49B00ED508FBA0B38B4 /* NativeDockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CFD6BD18F537611970DBC1 /* NativeDockService.swift */; };
 		FEF4FA2B1EF7667BD89B45F3 /* SystemMemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D443378649DA067161DD4C /* SystemMemoryUsage.swift */; };
@@ -1367,7 +1367,6 @@
 		365997C430FC26AB32372235 /* ImageThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageThumbnail.swift; sourceTree = "<group>"; };
 		3681CDED4174B72D5B7D561B /* SnippetEditorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetEditorScreen.swift; sourceTree = "<group>"; };
 		36BC0F775DECB00899AAB395 /* SystemActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemActionRunner.swift; sourceTree = "<group>"; };
-		942777F11359A955AF579D48 /* KeyChord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyChord.swift; sourceTree = "<group>"; };
 		379C2B11C60CC006E159AE47 /* ShellCommandRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellCommandRunner.swift; sourceTree = "<group>"; };
 		37E1A9AAD84FAA7438CBEB79 /* DictationTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationTokenizer.swift; sourceTree = "<group>"; };
 		37F21F4A7CDD4740531785D8 /* TimeSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSnapshot.swift; sourceTree = "<group>"; };
@@ -1780,6 +1779,7 @@
 		939A5ABFDF52B95A6FFBFB37 /* ChatHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryView.swift; sourceTree = "<group>"; };
 		93AA8086844249B359E98B70 /* PersonalHydrationFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalHydrationFormat.swift; sourceTree = "<group>"; };
 		9407B06B1C9B52B7AC6F7617 /* AIChatSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatSidebarView.swift; sourceTree = "<group>"; };
+		942777F11359A955AF579D48 /* KeyChord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyChord.swift; sourceTree = "<group>"; };
 		9439CEA82D10EB56BEA94177 /* AIToolTokenLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIToolTokenLedger.swift; sourceTree = "<group>"; };
 		9552023543CB1513D5870126 /* MathFormula.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathFormula.swift; sourceTree = "<group>"; };
 		9552C3B1BE71288C383AC4F8 /* WindowCommandCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCommandCoordinator.swift; sourceTree = "<group>"; };
@@ -2272,7 +2272,7 @@
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
 		FFEE3E52A2BABF365CFA8F82 /* PresentationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSession.swift; sourceTree = "<group>"; };
-		"TEMP_C57A2E4F-2298-4A0E-AA5C-43EB5C6AB2F5" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_189AC1F2-30D4-41FD-98FD-4A8AB48260DE" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -4883,10 +4883,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_5772483A-26D6-413B-8705-421F278F78F8" /* onecast */ = {
+		"TEMP_11C10BB7-0A88-419C-BDE1-80FEB53E0A0A" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_C57A2E4F-2298-4A0E-AA5C-43EB5C6AB2F5" /* Signing.xcconfig */,
+				"TEMP_189AC1F2-30D4-41FD-98FD-4A8AB48260DE" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -5033,11 +5033,11 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				DA288FC089CD08695C6F0DEE /* AIToolHelper */,
-				50AEBC4AA476185CD2289800 /* ClipboardTextHelper */,
-				45395C93740B71A93868A541 /* DictationHelper */,
 				E7D6D2A6AD68D9D5D36FAA25 /* Onecast */,
+				50AEBC4AA476185CD2289800 /* ClipboardTextHelper */,
+				DA288FC089CD08695C6F0DEE /* AIToolHelper */,
 				5661B6775AD220F087DFE378 /* OnecastPluginKit */,
+				45395C93740B71A93868A541 /* DictationHelper */,
 			);
 		};
 /* End PBXProject section */
@@ -5157,7 +5157,6 @@
 				9097BC5346D42537BD85E49A /* AgentControlServer.swift in Sources */,
 				68BB5CA2EBDF88EB4AB7B9D5 /* AgentElement.swift in Sources */,
 				D85720FE713193E15E265ACC /* AgentHTTPRequest.swift in Sources */,
-				A3FC556008F386B557998AA3 /* KeyChord.swift in Sources */,
 				9AAB0E3BD369D415D43CBC73 /* AgentKeyboard.swift in Sources */,
 				8072A616300A611D05D9D8C6 /* AgentLogQuery.swift in Sources */,
 				6FC90A3F8DE3678D3F39F477 /* AgentLogReader.swift in Sources */,
@@ -5590,6 +5589,7 @@
 				87503A9C172DB040F14960DD /* InterfaceSize.swift in Sources */,
 				3510BC279636A1BADE3ADC39 /* JSONValue.swift in Sources */,
 				B44DFC5577319F9A371C5FFA /* KeyCapChip.swift in Sources */,
+				A3FC556008F386B557998AA3 /* KeyChord.swift in Sources */,
 				941334063039098758B07DB5 /* KeyShortcut.swift in Sources */,
 				2792DD4684011CFFCC89F8F0 /* KeyboardFocus.swift in Sources */,
 				16BBA3FF62D067D437D9CB42 /* KeychainSecretStore.swift in Sources */,
@@ -6235,7 +6235,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_C57A2E4F-2298-4A0E-AA5C-43EB5C6AB2F5" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_189AC1F2-30D4-41FD-98FD-4A8AB48260DE" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6290,6 +6290,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONECAST_BUNDLE_IDENTIFIER = com.onecast.app;
+				ONECAST_PRODUCT_NAME = Onecast;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = YES;
@@ -6305,13 +6306,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				EXECUTABLE_NAME = ClipboardTextHelper;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.onecast.ClipboardTextHelper;
-				PRODUCT_MODULE_NAME = ClipboardTextHelper;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 			};
@@ -6333,6 +6332,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(ONECAST_BUNDLE_IDENTIFIER)";
+				PRODUCT_NAME = "$(ONECAST_PRODUCT_NAME)";
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -6362,13 +6362,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				EXECUTABLE_NAME = ClipboardTextHelper;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.onecast.ClipboardTextHelper;
-				PRODUCT_MODULE_NAME = ClipboardTextHelper;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 			};
@@ -6378,13 +6376,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				EXECUTABLE_NAME = AIToolHelper;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.onecast.AIToolHelper;
-				PRODUCT_MODULE_NAME = AIToolHelper;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 			};
@@ -6434,7 +6430,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(ONECAST_BUNDLE_IDENTIFIER)";
-				PRODUCT_NAME = "Onecast Dev";
+				PRODUCT_NAME = "$(ONECAST_PRODUCT_NAME)";
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -6464,13 +6460,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				EXECUTABLE_NAME = AIToolHelper;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.onecast.AIToolHelper;
-				PRODUCT_MODULE_NAME = AIToolHelper;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 			};
@@ -6506,7 +6500,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_C57A2E4F-2298-4A0E-AA5C-43EB5C6AB2F5" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_189AC1F2-30D4-41FD-98FD-4A8AB48260DE" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6564,6 +6558,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONECAST_BUNDLE_IDENTIFIER = com.onecast.app.dev;
+				ONECAST_PRODUCT_NAME = "Onecast Dev";
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
