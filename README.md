@@ -22,6 +22,10 @@
 </p>
 
 <p align="center">
+  <a href="https://www.buymeacoffee.com/subhashjha"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=subhashjha&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" height="44"></a>
+</p>
+
+<p align="center">
   <img src="docs/images/readme/launcher.png" alt="The Onecast launcher" width="720">
 </p>
 
@@ -216,7 +220,7 @@ needs, but issues and pull requests are welcome. Security reports go through
 **[SECURITY.md](SECURITY.md)**, not the issue tracker.
 
 If Onecast earns a spot in your day, you can
-<a href="https://www.buymeacoffee.com/subhashjha">buy me a coffee ☕</a>.
+[buy me a coffee](https://www.buymeacoffee.com/subhashjha) ☕
 
 ## License
 
