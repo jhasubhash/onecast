@@ -1,4 +1,4 @@
-<h1 align="center">Onecast</h1>
+<h1 align="center">OneCast</h1>
 
 <p align="center">
   <b>One keystroke for everything on your Mac.</b><br>
