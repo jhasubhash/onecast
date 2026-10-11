@@ -116,10 +116,12 @@ public struct DockWidgetContext: Sendable {
     public let tileLength: CGFloat
     public let preferences: DockWidgetPreferences
     public let actions: DockWidgetActions
+    /// Onecast's notifications and scheduler; this instance's schedules end when it is removed.
+    public let services: OnecastHostServices
 
     public init(
         instanceID: String, size: DockWidgetSize, edge: DockWidgetEdge, tileLength: CGFloat,
-        preferences: DockWidgetPreferences, actions: DockWidgetActions
+        preferences: DockWidgetPreferences, actions: DockWidgetActions, services: OnecastHostServices
     ) {
         self.instanceID = instanceID
         self.size = size
@@ -127,6 +129,7 @@ public struct DockWidgetContext: Sendable {
         self.tileLength = tileLength
         self.preferences = preferences
         self.actions = actions
+        self.services = services
     }
 }
 

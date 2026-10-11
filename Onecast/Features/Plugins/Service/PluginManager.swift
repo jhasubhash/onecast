@@ -53,6 +53,9 @@ final class PluginManager {
     @ObservationIgnored var onDidRefresh: (() -> Void)?
 
     @ObservationIgnored private weak var appIndex: AppIndex?
+    @ObservationIgnored private var schedules: AddonScheduleCoordinator?
+    /// A plugin with schedules stays loaded after its session ends, so its handlers keep firing.
+    @ObservationIgnored private var background: [String: (plugin: any OnecastPlugin, sourceHash: String)] = [:]
     @ObservationIgnored private var loaded: (any OnecastPlugin)?
     @ObservationIgnored private var runningID: String?
     /// The build the running plugin mapped, so a diagnostic can tell it from today's sources.
@@ -64,8 +67,9 @@ final class PluginManager {
     @ObservationIgnored private var watcherGeneration = 0
     @ObservationIgnored private var rescanTask: Task<Void, Never>?
 
-    func start(appIndex: AppIndex) {
+    func start(appIndex: AppIndex, schedules: AddonScheduleCoordinator) {
         self.appIndex = appIndex
+        self.schedules = schedules
     }
 
     // MARK: - Switches
@@ -76,6 +80,8 @@ final class PluginManager {
         guard enabled else {
             stopWatching()
             stop()
+            for identifier in background.keys { schedules?.detach(Self.owner(identifier)) }
+            background = [:]
             installed = []
             appIndex?.setPluginCommands([])
             return
@@ -146,6 +152,7 @@ final class PluginManager {
             self.publishLauncherEntries()
             self.onDidRefresh?()
             self.prewarm(found)
+            self.loadScheduledPlugins(found)
             if !vanished.isEmpty { self.confirmRemoval(of: vanished) }
         }
     }
@@ -171,7 +178,9 @@ final class PluginManager {
             let found = await Task.detached(priority: .utility) { PluginCatalog.scan() }.value
             guard let self, self.isEnabled else { return }
             let gone = entryIDs.subtracting(found.map(\.entryID))
-            if !gone.isEmpty { self.onDidUninstall?(gone.sorted()) }
+            guard !gone.isEmpty else { return }
+            self.forgetSchedules(entryIDs: gone)
+            self.onDidUninstall?(gone.sorted())
         }
     }
 
@@ -258,6 +267,7 @@ final class PluginManager {
                     levels = [.root]
                 }
                 plugin.bind { [weak self] in self?.reloadRows() }
+                bindServices(to: plugin, install: install)
                 state = .active
             } catch {
                 state = .failed(error.localizedDescription)
@@ -342,8 +352,61 @@ final class PluginManager {
     func uninstall(_ install: PluginInstall) {
         if runningID == install.id { stop() }
         try? FileManager.default.removeItem(at: install.directory)
+        forgetSchedules(entryIDs: [install.entryID])
         onDidUninstall?([install.entryID])
         refresh()
+    }
+
+    // MARK: - Host services
+
+    private static func owner(_ identifier: String) -> AddonScheduleOwner {
+        AddonScheduleOwner(kind: .plugin, id: identifier)
+    }
+
+    /// Hands a freshly loaded plugin Onecast's services. Registering a schedule pins that instance as
+    /// the plugin's background copy; cancelling its last one lets the copy go.
+    func bindServices(to plugin: any OnecastPlugin, install: PluginInstall) {
+        guard let schedules else { return }
+        let identifier = install.manifest.identifier
+        let owner = Self.owner(identifier)
+        let base = schedules.services(for: owner, name: install.manifest.name)
+        let services = OnecastHostServices(
+            notify: { notification, onAction in base.notify(notification, onAction: onAction) },
+            dismissNotification: { base.dismissNotification($0) },
+            schedule: { [weak self, weak plugin] schedule, fire in
+                base.schedule(schedule, fire: fire)
+                if let plugin { self?.background[identifier] = (plugin, install.sourceHash) }
+            },
+            unschedule: { [weak self, weak schedules] id in
+                base.unschedule(id)
+                if schedules?.hasSchedules(owner) == false { self?.background[identifier] = nil }
+            })
+        plugin.bind(services: services)
+    }
+
+    /// At launch, and after a plugin with schedules is edited, load it in the background so it can
+    /// re-register them before anyone opens it.
+    private func loadScheduledPlugins(_ installs: [PluginInstall]) {
+        guard let owners = schedules?.ownerIDs(kind: .plugin), !owners.isEmpty else { return }
+        for install in installs where owners.contains(install.manifest.identifier) {
+            if background[install.manifest.identifier]?.sourceHash == install.sourceHash { continue }
+            Task { [weak self] in
+                let built = await Task.detached(priority: .utility) {
+                    PluginBuilder.buildResult(install)
+                }.value
+                guard let self, self.isEnabled, case .success(let dylib) = built,
+                    let plugin = try? PluginLoader.load(install, builtDylib: dylib)
+                else { return }
+                self.bindServices(to: plugin, install: install)
+            }
+        }
+    }
+
+    private func forgetSchedules(entryIDs: some Sequence<String>) {
+        for identifier in entryIDs.compactMap(PluginInstall.identifier(fromEntryID:)) {
+            background[identifier] = nil
+            schedules?.forget(Self.owner(identifier))
+        }
     }
 
     // MARK: - Import

@@ -50,6 +50,8 @@ struct SchedulerSettingsView: View {
             }
             .settingsEnabled(settings.schedulerEnabled)
 
+            AddonSchedulesSection()
+
             Section {
                 Toggle(isOn: $settings.schedulerPlaysSound) {
                     SettingsRowTitle(.schedulerNotifications, "Play a sound")
@@ -175,6 +177,65 @@ private struct ReminderAppsSection: View {
             remindersAccess = Permissions.remindersAccess()
             if !granted { settings.schedulerReminderApps.remove(app) }
         }
+    }
+}
+
+/// Schedules plugins and DockWidgets registered in code: listed so they can be silenced, never
+/// edited, and live whether or not the scheduler itself is on.
+private struct AddonSchedulesSection: View {
+    @Environment(AddonScheduleCoordinator.self) private var coordinator
+
+    var body: some View {
+        Section {
+            if coordinator.schedules.isEmpty {
+                Text("None yet. A plugin or DockWidget that schedules reminders lists them here.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(sorted) { schedule in
+                    SettingsRow(title: schedule.title, subtitle: subtitle(schedule)) {
+                        Image(
+                            systemName: schedule.owner.kind == .plugin
+                                ? "puzzlepiece.extension" : "square.grid.2x2")
+                    } trailing: {
+                        Toggle(
+                            "",
+                            isOn: Binding(
+                                get: { schedule.isEnabled },
+                                set: { coordinator.setEnabled($0, id: schedule.id) })
+                        )
+                        .labelsHidden()
+                        .toggleStyle(.checkbox)
+                        .help("Enabled")
+                        .accessibilityLabel("Enable \(schedule.title)")
+                    }
+                }
+            }
+        } header: {
+            SettingsSectionHeader(.schedulerAddons)
+        } footer: {
+            Text(
+                "Each belongs to its plugin or widget, which sets when it fires and what it does. "
+                    + "They run whether or not the scheduler is enabled; switch one off to silence it.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var sorted: [AddonSchedule] {
+        coordinator.schedules.sorted {
+            ($0.ownerName, $0.title) < ($1.ownerName, $1.title)
+        }
+    }
+
+    private func subtitle(_ schedule: AddonSchedule) -> String {
+        let when = ScheduleFormatter.rule(schedule.rule)
+        guard schedule.isEnabled else { return "\(schedule.ownerName) · \(when) · Off" }
+        guard coordinator.liveIDs.contains(schedule.id) else {
+            return "\(schedule.ownerName) · \(when) · Not running"
+        }
+        let next = coordinator.nextFire(of: schedule)
+            .map { " · Next \($0.formatted(date: .abbreviated, time: .shortened))" } ?? ""
+        return "\(schedule.ownerName) · \(when)\(next)"
     }
 }
 

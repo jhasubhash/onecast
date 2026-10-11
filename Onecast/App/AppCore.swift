@@ -13,6 +13,7 @@ final class AppCore {
     let windowLayouts = WindowLayoutStore()
     let customWindowSizes = CustomWindowSizeStore()
     let scheduledTasks = ScheduledTaskStore()
+    let addonSchedules = AddonScheduleStore()
     let computerController = ComputerController()
     let clipboardStore = ClipboardStore()
     @ObservationIgnored private var clipboardTextIndexer: ClipboardTextIndexer?
@@ -218,6 +219,8 @@ final class AppCore {
     @ObservationIgnored private(set) lazy var schedulerCoordinator = SchedulerCoordinator(
         store: scheduledTasks, settings: settings, notifications: notificationPresenter,
         appIndex: appIndex)
+    @ObservationIgnored private(set) lazy var addonScheduleCoordinator = AddonScheduleCoordinator(
+        store: addonSchedules, notifications: notificationPresenter)
     @ObservationIgnored private(set) lazy var schedulerEditorCoordinator =
         SchedulerEditorCoordinator(store: scheduledTasks, core: self)
     @ObservationIgnored private(set) lazy var presentationCoordinator = PresentationCoordinator(
@@ -295,7 +298,8 @@ final class AppCore {
             clipboardCoordinator.applyEnabled()
             extensions.start(appIndex: appIndex, coordinator: extensionCoordinator)
             extensionCoordinator.applyEnabled()
-            plugins.start(appIndex: appIndex)
+            addonScheduleCoordinator.start()
+            plugins.start(appIndex: appIndex, schedules: addonScheduleCoordinator)
             pluginCoordinator.applyEnabled()
             dockCoordinator.start()
             dockCoordinator.applyEnabled()

@@ -589,6 +589,8 @@ run presentation-test      Onecast/Features/Presentation/Model/*.swift
 run scheduler-test         Onecast/Features/Notifications/Model/NotificationSpec.swift \
                            Onecast/Features/Notifications/Model/NotificationContrast.swift \
                            Onecast/Features/Scheduler/Model/*.swift
+run addon-schedule-test   Onecast/Features/Notifications/Model/NotificationSpec.swift \
+                           Onecast/Features/Scheduler/Model/*.swift
 run scheduler-ai-test      Onecast/Features/Notifications/Model/NotificationSpec.swift \
                            Onecast/Features/Scheduler/Model/*.swift \
                            Onecast/Features/Scheduler/Service/ScheduledTaskStore.swift \

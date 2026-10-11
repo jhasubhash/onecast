@@ -216,6 +216,11 @@ public protocol OnecastPlugin: AnyObject {
     /// rows never change on their own can ignore this.
     func bind(reload: @escaping () -> Void)
 
+    /// The host calls this once, just after your plugin loads, with Onecast's notifications and
+    /// scheduler. Register schedules here: a plugin that has any is also loaded at launch, in the
+    /// background, so this runs again and can re-register them before the palette is ever opened.
+    func bind(services: OnecastHostServices)
+
     /// Return a view here to open the plugin straight into a surface, skipping the root row list —
     /// the whole plugin is then that one SwiftUI screen. Nil (the default) keeps the row model, and
     /// `results(for:)` supplies the root list. A plugin does one or the other, not both.
@@ -242,6 +247,7 @@ public extension OnecastPlugin {
     func perform(resultID: String, context: PluginContext) async -> PluginActionResult { .close }
     func surface(for resultID: String, context: PluginContext) -> AnyView { AnyView(EmptyView()) }
     func bind(reload: @escaping () -> Void) {}
+    func bind(services: OnecastHostServices) {}
 }
 
 // MARK: - Loader handshake

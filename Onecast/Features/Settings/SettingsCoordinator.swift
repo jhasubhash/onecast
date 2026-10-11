@@ -52,6 +52,7 @@ final class SettingsCoordinator {
             .environment(core.docks)
             .environment(core.customWindowSizes)
             .environment(core.scheduledTasks)
+            .environment(core.addonScheduleCoordinator)
             .environment(core.customWindowSizeCoordinator)
             .environment(core.windowShortcutPresetCoordinator)
             .environment(core.calendarStore)

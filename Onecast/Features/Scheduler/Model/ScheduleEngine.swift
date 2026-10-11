@@ -4,31 +4,43 @@ import Foundation
 enum ScheduleEngine {
     static func nextFireDate(for task: ScheduledTask, after: Date, calendar: Calendar) -> Date? {
         guard task.isEnabled else { return nil }
-        switch task.rule {
+        return nextFireDate(
+            rule: task.rule, anchor: task.lastFired ?? task.createdAt, after: after, calendar: calendar)
+    }
+
+    /// The rule's first occurrence after `after`, counting from `anchor` (its last fire or creation).
+    static func nextFireDate(rule: ScheduleRule, anchor: Date, after: Date, calendar: Calendar) -> Date? {
+        switch rule {
         case .once(let date):
             return date > after ? date : nil
         case .interval(let seconds):
             guard seconds > 0 else { return nil }
-            let anchor = task.lastFired ?? task.createdAt
             let step = stepIndex(strictlyAfter: after, anchor: anchor, seconds: seconds)
             return anchor.addingTimeInterval(step * seconds)
         case .daily, .weekly, .monthly:
-            guard let rule = recurrenceRule(for: task.rule, calendar: calendar) else { return nil }
-            let anchor = task.lastFired ?? task.createdAt
-            return rule.recurrences(of: anchor).first { $0 > after }
+            guard let recurrence = recurrenceRule(for: rule, calendar: calendar) else { return nil }
+            return recurrence.recurrences(of: anchor).first { $0 > after }
         }
     }
 
     static func missedOccurrences(
         for task: ScheduledTask, since: Date, until: Date, calendar: Calendar, cap: Int
     ) -> [Date] {
-        guard task.isEnabled, cap > 0, since < until else { return [] }
-        switch task.rule {
+        guard task.isEnabled else { return [] }
+        return missedOccurrences(
+            rule: task.rule, anchor: task.lastFired ?? task.createdAt, since: since, until: until,
+            calendar: calendar, cap: cap)
+    }
+
+    static func missedOccurrences(
+        rule: ScheduleRule, anchor: Date, since: Date, until: Date, calendar: Calendar, cap: Int
+    ) -> [Date] {
+        guard cap > 0, since < until else { return [] }
+        switch rule {
         case .once(let date):
             return since < date && date <= until ? [date] : []
         case .interval(let seconds):
             guard seconds > 0 else { return [] }
-            let anchor = task.lastFired ?? task.createdAt
             var step = stepIndex(strictlyAfter: since, anchor: anchor, seconds: seconds)
             var result: [Date] = []
             while result.count < cap {
@@ -39,10 +51,9 @@ enum ScheduleEngine {
             }
             return result
         case .daily, .weekly, .monthly:
-            guard let rule = recurrenceRule(for: task.rule, calendar: calendar) else { return [] }
-            let anchor = task.lastFired ?? task.createdAt
+            guard let recurrence = recurrenceRule(for: rule, calendar: calendar) else { return [] }
             var result: [Date] = []
-            for date in rule.recurrences(of: anchor) {
+            for date in recurrence.recurrences(of: anchor) {
                 if date > until { break }
                 if date > since { result.append(date) }
                 if result.count >= cap { break }

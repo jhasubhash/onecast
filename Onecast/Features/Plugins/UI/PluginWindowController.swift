@@ -87,6 +87,8 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
             return
         }
 
+        core.plugins.bindServices(to: plugin, install: install)
+
         let context = PluginContext(
             frontmostAppBundleID: core.paletteCoordinator.targetApp?.bundleIdentifier,
             route: route.payload,

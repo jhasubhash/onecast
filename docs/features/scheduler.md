@@ -35,6 +35,9 @@ without re-firing what was skipped.
 - **The AI tool schedules notifications only.** `SchedulerAITool` (`scheduler__create_reminder`) can
   post a *future notification* but can never register a shell script — untrusted model output must not
   gain unattended code execution.
+- **An add-on schedule fires only through live code.** A plugin's or DockWidget's schedule calls the
+  handler its owner registered this session; a record whose owner is not loaded never fires, and
+  missed occurrences collapse into one late fire when the owner registers again.
 - **A reminder reaches another app only with consent.** Apple Reminders and Things are each off
   until switched on in **Settings → Scheduler → Reminder apps** (`schedulerReminderApps`, never in a
   backup), and Apple Reminders also needs macOS's own Reminders grant. A phrase naming an app that
@@ -189,6 +192,42 @@ app's data. The Reminders grant also shows in **Settings → Permissions**, besi
 The opt-in [settings file](settings-file.md) follows the same split: `scheduler.showInLauncher`,
 `scheduler.playsSound` and `scheduler.defaultReminderApp` are keys, while the switch and the reminder
 apps have none.
+
+## Add-on schedules
+
+Plugins and DockWidgets reach the scheduler and notifications through `OnecastHostServices`
+(`OnecastPluginKit/HostServicesKit.swift`): a DockWidget reads it from `DockWidgetContext.services`,
+a plugin is handed it through `OnecastPlugin.bind(services:)`. Unlike a `ScheduledTask`, an
+**add-on schedule** carries no action: it is a rule plus a handler, and the handler decides what to
+do, so a reminder can stay quiet once its job is done.
+
+`AddonSchedule` (`Model/`) is the persisted record: owner (`AddonScheduleOwner`, a plugin identifier
+or a DockWidget instance UUID), the owner's display name, the schedule's own id, title, a
+`ScheduleRule`, the user's `isEnabled` switch and the same `lastFired`/`createdAt` anchor tasks use.
+`AddonSchedule.registering` re-registers: an unchanged rule keeps its anchor and the user's switch, a
+changed rule restarts the anchor so it never replays what the old rule owed. `missedOccurrence`
+returns only the latest owed occurrence (an interval rule computes it directly).
+`AddonScheduleStore` persists the records as JSON under `addonSchedules`; `addon-schedule-test`
+pins the model.
+
+`AddonScheduleCoordinator` (on `AppCore`) builds each owner's `OnecastHostServices`, holds the live
+handlers and, like `SchedulerCoordinator`, one pending wake for the whole set, armed only over
+schedules with a handler. A fire records the occurrence via `markFired` before calling back, reports
+`isLate` when it runs over a minute behind, and a spent one-shot removes itself. Switching a schedule
+back on in Settings restarts its anchor, so what it skipped while off never fires. Add-on schedules
+are independent of `schedulerEnabled`: they are the owner's feature, already consented to when the
+plugin or third-party DockWidget was allowed.
+
+Ownership follows the code. `DockWidgetManager` detaches an instance's handlers whenever its object
+is retired (a rebuild, third-party widgets switched off) and forgets its records when the tile is
+deleted. `PluginManager` keeps a **background instance** of any plugin that registered a schedule,
+so its handler survives the end of the palette session, loads one at launch (and after its sources
+change) for every plugin with records so `bind(services:)` can re-register, and forgets a plugin's
+records on uninstall. Notifications post through `NotificationPresenter`: a banner, or a card when
+it has actions, with the add-on's own tint, dwell and sound flag.
+
+**Settings › Scheduler › From plugins and widgets** lists every record — owner, rule, next fire, or
+*Not running* when its owner is not loaded — with a switch to silence it; nothing there is editable.
 
 ## Notifications module
 

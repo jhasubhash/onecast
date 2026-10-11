@@ -135,6 +135,7 @@ public struct DockWidgetContext {
     let tileLength: CGFloat           // the dock's tile size, in points
     let preferences: DockWidgetPreferences
     let actions: DockWidgetActions
+    let services: OnecastHostServices  // notifications and schedules, below
 }
 ```
 
@@ -205,6 +206,36 @@ keys are deleted with the instance too.
 
 A third-party widget has no other access to Onecast — no stores, no coordinators — though, being
 native code in the same process, it can of course do anything the app can.
+
+### Notifications and schedules
+
+`context.services` (`OnecastHostServices`, in `OnecastPluginKit/HostServicesKit.swift`) is Onecast's
+own notification cards and scheduler, shared with [plugins](plugins.md#notifications-and-schedules).
+
+```swift
+let id = context.services.notify(
+    OnecastNotification(title: "Stand up", body: "Two hours sitting", tint: .orange,
+                        actions: [OnecastNotificationAction(id: "done", title: "Done")], dwell: nil)
+) { action in /* "done" */ }
+context.services.dismissNotification(id)
+
+context.services.schedule(
+    OnecastSchedule(id: "daily", title: "Daily check at 20:00", rule: .daily(hour: 20, minute: 0))
+) { fire in /* decide here whether to notify; fire.isLate after a sleep or relaunch */ }
+context.services.unschedule("daily")
+```
+
+- **Code-owned.** A schedule is registered by code, not restored for it: register it every time the
+  widget object is made (the LeetCode widget does it in its first `tile(context:)`). Registering the
+  same `id` again replaces the rule and handler; an unchanged rule keeps its last-fired anchor.
+- **The handler decides.** The host only calls back; the widget chooses whether a notification is
+  still worth posting, so a reminder can stay quiet once its job is done.
+- **Missed occurrences fire once, late.** Onecast persists each schedule's last fire. One missed while
+  Onecast was quit or the Mac slept fires once, with `isLate`, on the next registration or wake.
+- **Listed, not editable.** Settings › Scheduler › *From plugins and widgets* lists every schedule
+  under its owner with a switch to silence it. They run whether or not the Scheduler feature is on.
+- **Bound to the instance.** Deleting the tile forgets its schedules; a rebuild or switching
+  third-party widgets off only detaches them until the new object registers again.
 
 ### Popover
 

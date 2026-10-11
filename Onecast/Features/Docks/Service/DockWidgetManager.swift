@@ -159,6 +159,7 @@ final class DockWidgetManager {
     /// Releases the instance's widget object and deletes every value stored for it.
     func removeInstance(_ instanceID: UUID) {
         retire { id, _ in id == instanceID }
+        AppCore.shared.addonScheduleCoordinator.forget(Self.owner(instanceID))
         widgetIDs[instanceID] = nil
         instanceFailures[instanceID] = nil
         let prefix = Self.key(instanceID, "")
@@ -234,7 +235,14 @@ final class DockWidgetManager {
             instanceID: instanceID.uuidString, size: span.widgetSize, edge: edge.widgetEdge,
             tileLength: tileLength,
             preferences: DockWidgetPreferences(instanceID: instanceID.uuidString),
-            actions: actions(for: instanceID))
+            actions: actions(for: instanceID),
+            services: AppCore.shared.addonScheduleCoordinator.services(
+                for: Self.owner(instanceID),
+                name: widgetIDs[instanceID].flatMap { descriptor(id: $0)?.metadata.name } ?? "DockWidget"))
+    }
+
+    private static func owner(_ instanceID: UUID) -> AddonScheduleOwner {
+        AddonScheduleOwner(kind: .dockWidget, id: instanceID.uuidString)
     }
 
     /// The editor wrote a preference; every tile re-asks its widget, which reads the value afresh.
@@ -251,6 +259,7 @@ final class DockWidgetManager {
         for (instanceID, entry) in live where matches(instanceID, entry) {
             entry.widget.didRemove()
             live[instanceID] = nil
+            AppCore.shared.addonScheduleCoordinator.detach(Self.owner(instanceID))
         }
     }
 

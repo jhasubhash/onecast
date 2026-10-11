@@ -79,6 +79,8 @@ never shares plugins with a release build. Built dylibs are cached separately un
     func children(of resultID: String, context: PluginContext) async -> [PluginResult]   // default: []
     func perform(resultID: String, context: PluginContext) async -> PluginActionResult    // default: .close
     func surface(for resultID: String, context: PluginContext) -> AnyView                 // default: EmptyView
+    func bind(reload: @escaping () -> Void)                                               // default: no-op
+    func bind(services: OnecastHostServices)                                              // default: no-op
 }
 ```
 
@@ -98,6 +100,17 @@ never shares plugins with a release build. Built dylibs are cached separately un
   `string(_:)`, `integer(_:)`, `bool(_:)` by name, and `set(_:for:)` for a value the plugin itself
   changes (a ⌘K switch). Read one when it is used, never once at launch: an edit in Settings ›
   Plugins then applies to the very next use. An unset one reads as its manifest `default`.
+
+### Notifications and schedules
+
+`bind(services:)` runs once after every load and hands the plugin `OnecastHostServices`, the same
+API a DockWidget reads from `context.services` (see [dockwidgets.md](dockwidgets.md#notifications-and-schedules)):
+`notify(_:onAction:)` posts a Onecast notification card, and `schedule(_:fire:)` registers a code-owned
+schedule whose handler runs at each occurrence. A plugin object normally dies with its palette
+session; one that registers a schedule is kept as a **background instance** so its handler keeps
+firing, and Onecast loads it at launch (and again after its sources change) so `bind(services:)` can
+re-register before anyone opens it. Register schedules in `bind(services:)` for that reason.
+Uninstalling the plugin forgets its schedules.
 
 `results(for:)` is re-asked on every keystroke — filter on `context.query` yourself. Pushed child
 lists are filtered by the host. A surface owns the entire panel and its own keyboard: wrap it in a

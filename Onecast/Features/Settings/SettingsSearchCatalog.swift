@@ -774,6 +774,9 @@ enum SettingsSearchCatalog {
             .schedulerScheduler, "Create Scheduled Task",
             keywords: ["new", "cron", "timer", "reminder", "script", "recurring"]),
         .init(
+            group: .schedulerAddons, "From plugins and widgets",
+            keywords: ["dockwidget", "widget", "plugin", "reminder", "third-party", "addon"]),
+        .init(
             .schedulerNotifications, "Play a sound",
             keywords: ["notification", "sound", "chime", "alert", "mute", "silent"]),
         .init(
