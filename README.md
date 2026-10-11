@@ -97,6 +97,17 @@ Type **"remind me to stretch every weekday at 4pm"** into the launcher and press
   was closed.
 - Your AI assistants can schedule things for you too, with on-device tool calling.
 
+### 🎨 Notifications in colour
+
+Onecast draws its own notification cards rather than using macOS banners, and you can colour each
+one in the same sentence: *"…make it green"*, *"a purple reminder"*, *"colour: teal"*. There are
+nine colours, and each card picks white or black text automatically so it stays readable in light
+and dark mode.
+
+<p align="center">
+  <img src="docs/images/readme/notifications.png" alt="Onecast notification cards in blue, purple, green, orange, pink, yellow, teal and neutral" width="760">
+</p>
+
 <p align="center">
   <img src="docs/images/readme/scheduler.png" alt="Scheduler settings with the default reminder app picker" width="620">
 </p>
