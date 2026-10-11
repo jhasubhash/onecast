@@ -1,173 +1,224 @@
-# OneCast
+<h1 align="center">Onecast</h1>
 
-**A native macOS launcher with an AI cockpit built in.** One keystroke starts apps, pastes from a
-rich clipboard, runs your Raycast extensions natively, and holds a real conversation with your own AI
-models — SwiftUI and AppKit, no Electron, no telemetry, comfortably under 100 MB of RAM.
-
-> OneCast is a personal, opinionated fork of [tinycast](https://github.com/jhasubhash/tinycast). It
-> started from that repo and has since **deviated substantially** — a whole AI, plugin and automation
-> layer upstream doesn't carry — and is developed independently. The original fork stays up for
-> lineage.
+<p align="center">
+  <b>One keystroke for everything on your Mac.</b><br>
+  A launcher, an AI cockpit, custom docks with live widgets, a plain-English scheduler and a native
+  Swift plugin runtime: one fast, native app.
+</p>
 
 <p align="center">
   <a href="https://github.com/jhasubhash/onecast/releases/latest">
     <img alt="Latest release"
          src="https://img.shields.io/github/v/release/jhasubhash/onecast?sort=semver&style=flat&label=release&color=1F6FEB"></a>
-  <img alt="Swift 6.0"
-       src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat&logo=swift&logoColor=white">
+  <img alt="Swift 6"
+       src="https://img.shields.io/badge/Swift-6-F05138?style=flat&logo=swift&logoColor=white">
   <img alt="macOS 26 or later"
        src="https://img.shields.io/badge/macOS-26%2B-000000?style=flat&logo=apple&logoColor=white">
+  <img alt="Notarized"
+       src="https://img.shields.io/badge/Developer%20ID-notarized-2EA043?style=flat&logo=apple&logoColor=white">
   <a href="LICENSE">
     <img alt="License: AGPL-3.0"
          src="https://img.shields.io/badge/License-AGPL--3.0-3DA639?style=flat"></a>
-  <a href="https://www.buymeacoffee.com/subhashjha">
-    <img alt="Buy Me a Coffee"
-         src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Tip%20the%20dev-FFDD00?style=flat&logo=buymeacoffee&logoColor=black"></a>
 </p>
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="OneCast command palette" width="720">
+  <img src="docs/images/readme/launcher.png" alt="The Onecast launcher" width="720">
 </p>
 
-OneCast keeps everything that makes the base app small and fast — zero third-party dependencies, a
-single hotkey, native SwiftUI — and adds the pieces I reach for every day: assistants I can summon by
-name, a scheduler that speaks plain English, and a Swift plugin runtime for surfaces the JavaScript
-extension API can't reach.
+<p align="center">
+  <img src="docs/images/readme/dock.png" alt="A custom Onecast dock with live widgets" width="900">
+</p>
 
-## Highlights — what OneCast adds
+<p align="center">
+  <code>brew install --cask jhasubhash/onecast/onecast</code>
+</p>
 
-### AI, front and center
+Onecast is built with SwiftUI and AppKit, with **zero third-party dependencies**. There's no Electron
+and no telemetry, and it stays comfortably under 100 MB of RAM. It runs the **Raycast extensions** you
+already use and adds the things a launcher usually can't do: docks you design yourself, widgets you
+can write in Swift, assistants you summon by name, and reminders you type the way you'd say them.
 
-- **Floating AI Chat bar** — a dedicated hotkey drops a compact *"Ask anything…"* composer anywhere on
-  screen, sharing the palette's chat and history, with its own per-display placement and an optional
-  *stay-open-on-blur* mode.
-- **Configured Assistants** — save named assistants, each with its own hotkey, tint, model and skills,
-  and summon any of them straight to a chat bar.
-- **Bring your own CLI** — route an installed **Claude**, **Codex**, **GitHub Copilot** or **OpenCode**
-  CLI as a first-class provider. Per assistant you can opt into **MCP tool calling**, **shell tools**
-  (so a script-based skill like a Jira query actually runs), and **environment variables** stored one
-  Keychain item at a time.
-- **Streamed reasoning** — a model's thinking streams live into the transcript (togglable), with a
-  reasoning-effort picker across Claude and Copilot models.
-- **On-device tool calling** — Apple Intelligence (FoundationModels) runs host tools, including the
-  scheduler, entirely in-process.
+---
 
-### Native Swift plugins
+## 🧱 Docks, as many as you want
 
-- **Compiled SwiftUI plugins** load into the palette through `OnecastPluginKit` and render real
-  SwiftUI — the BetterTouchTool-style escape hatch for anything the JavaScript extension API can't
-  express, alongside the existing Raycast extension runtime.
-- **Pin & deep-link** a plugin's inner view onto the launcher (it's stored as an ordinary Quicklink,
-  so it inherits aliases, shortcuts and backup), or **pop it out** into its own borderless, resizable
-  window.
+<table>
+<tr>
+<td width="80" valign="top"><img src="docs/images/readme/dock-vertical.png" alt="A vertical dock of widgets" width="80"></td>
+<td valign="top">
 
-### Automation
+Onecast draws its **own docks**, on any edge of any display, **several at once**: a bottom dock for
+apps, a side rail of widgets, one per monitor. Keep the macOS Dock next to them, or let Onecast take
+over and hide it, with your settings restored when you switch back.
 
-- **Task scheduler** — run a script or fire a notification on a rule, created and edited right from the
-  launcher, with a natural-language *"remind me…"* fallback and an on-device parser for phrases like
-  *"in 20 minutes"*.
+- **Liquid Glass plates** with real magnification, auto-hide, drag and drop, and a lens that grows
+  from the centre just like the system Dock.
+- **Apps, folders, files, links, Shortcuts, spacers and the Trash**, plus running apps and
+  minimized windows with live previews and unread badges.
+- **Layouts and setups.** Swipe or ⌘-scroll a dock through its layouts. A *setup* switches every
+  dock and the macOS Dock at once, from a hotkey, the launcher, a `onecast://` link or a
+  **Focus filter**: work, home and presenting each get their own Mac.
 
-### Faster editing
+</td>
+</tr>
+</table>
 
-- **Inline ⌘K editing** — change an app's alias or global shortcut in a box on the row itself
-  (Raycast-parity; the menu stays open, a taken chord is flagged inline), and edit or rename a
-  Quicklink the same way. Extension commands are bindable to hotkeys too.
-- **Smarter Translate** — an optional AI engine handles transliterated text Apple's translator
-  misreads (romanized Hindi and the like), plus an auto-direction language pair so one shortcut flips
-  English ↔ Hindi with no dialog.
+### 📊 DockWidgets
 
-## Features
+Live tiles that sit right in a dock. **21 ship built-in**, and anyone can write more in Swift
+against `OnecastPluginKit`:
 
-Everything the base app does is still here:
+| | |
+| --- | --- |
+| ⏱ **Time** | Clock · World Clock · Focus Timer · Stopwatch · Countdown · Alarm · Time Progress |
+| ✅ **Productivity** | Calendar · Reminders · Sticky Note · Shortcut · AirDrop · Presentation |
+| 🖥 **System** | Now Playing · Battery · System Activity · Network Activity |
+| 💧 **Personal** | Hydration · Weather · AI Usage (Claude Code, Codex, Copilot limits) · Stock · Watchlist |
 
-- **App launcher** — fuzzy search, pin favorites, see and quit what's running.
-- **Global & per-app hotkeys** — bind a chord to anything, including a double-tapped modifier or a
-  Hyper key.
-- **Clipboard history** — text and images, searchable from the palette.
-- **Inline calculator** — math plus unit and currency conversions as you type.
-- **Floating note** — one always-available Markdown scratchpad.
-- **Snippets** — keyword-triggered text expansion, off until you turn it on.
-- **Quicklinks** — parameterised URLs and deep links, aliasable and bindable.
-- **Window management** — move, resize and tile with keyboard commands.
-- **Emoji picker** — a searchable grid, one keystroke away.
-- **Quick Actions** — fix grammar, rewrite, translate or summarize the selection in any app.
-- **Raycast extensions** — run the ones you already have, rendered natively as SwiftUI.
-- **Backup & import** — export your setup to a file, or import from Raycast.
+<p align="center">
+  <img src="docs/images/readme/docks-settings.png" alt="Docks settings" width="620">
+</p>
 
-## Extensions & plugins
+---
 
-My own OneCast extensions and native Swift plugins live in a separate repo —
-**[onecast_addons](https://github.com/jhasubhash/onecast_addons)** — so they cost zero rebase
-surface and survive every release untouched. Build them there, then add them from
-**Settings → Extensions**.
+## ⏰ A scheduler that speaks English
 
-## Install
+Type **"remind me to stretch every weekday at 4pm"** into the launcher and press ↵. That's it.
 
-Add the tap:
+- An **on-device parser** reads *"in 20 minutes"*, *"tomorrow at 9"* and *"every Monday"*, and
+  an AI fallback handles everything else.
+- **Pick where reminders live.** Onecast notifications, **Apple Reminders** or **Things**, with a
+  default of your choice. Say *"…and add it to Things"* to send one somewhere specific.
+- **Scheduled scripts** run shell commands on a rule, and catch up on fires missed while the app
+  was closed.
+- Your AI assistants can schedule things for you too, with on-device tool calling.
+
+<p align="center">
+  <img src="docs/images/readme/scheduler.png" alt="Scheduler settings with the default reminder app picker" width="620">
+</p>
+
+---
+
+## 🧩 Native Swift plugins
+
+When the JavaScript extension API isn't enough, write a **compiled SwiftUI plugin**. Onecast builds
+and loads it straight into the palette with full native rendering, real views and real speed.
+
+- **Pin** a plugin's inner view to the launcher as a deep link, or **pop it out** into its own
+  borderless, resizable window.
+- The same kit powers **DockWidgets**, so one Swift package can ship both.
+- Plugins and third-party widgets run only after your explicit consent.
+
+<p align="center">
+  <img src="docs/images/readme/plugin.png" alt="A Stock Quotes plugin rendered in the palette" width="620">
+</p>
+
+Plugins and extensions of my own live in
+**[onecast_addons](https://github.com/jhasubhash/onecast_addons)**.
+
+---
+
+## ✨ AI, front and centre
+
+<p align="center">
+  <img src="docs/images/readme/ai-chat.png" alt="AI Chat in the palette" width="620">
+</p>
+
+- **AI Chat** in the palette, or a **floating chat bar** on its own hotkey, anywhere on screen.
+- **Named assistants**, each with its own hotkey, tint, model and skills.
+- **Bring your own CLI.** Use your installed **Claude**, **Codex**, **GitHub Copilot** or
+  **OpenCode** as a first-class provider, with opt-in shell tools and Keychain-stored env vars.
+- **MCP servers**, remote or local, offer their tools to any chat.
+- **Streamed reasoning** with an effort picker, plus **Apple Intelligence** that runs tools entirely
+  on-device.
+- **Quick Actions**: fix grammar, rewrite, translate or summarize the selection in any app, or write
+  your own prompt.
+- **Local dictation** *(experimental)*: Parakeet and Qwen3-ASR running on Core ML, typed into
+  whatever app is in front.
+
+---
+
+## 🚀 And everything a launcher should do
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/readme/calculator.png" alt="Inline calculator with currency conversion"></td>
+<td width="50%"><img src="docs/images/readme/emoji.png" alt="Emoji picker"></td>
+</tr>
+</table>
+
+| | |
+| --- | --- |
+| 🔎 **Launcher** | Fuzzy search over apps, commands, quicklinks, files and calendar events |
+| 🧩 **Raycast extensions** | Run the ones you already have, natively, in JavaScriptCore |
+| ⌨️ **Hotkeys** | Global and per-app chords, double-tapped modifiers, a Hyper key, and inline ⌘K editing |
+| 📋 **Clipboard history** | Text and images, searchable |
+| 🧮 **Calculator** | Maths, units and live currency rates as you type |
+| 📝 **Notes** | Unlimited plain-Markdown notes in one floating editor |
+| ✂️ **Snippets** | Keyword text expansion, off until you turn it on |
+| 🪟 **Windows** | Tile and resize from the keyboard, saved **Window Layouts**, and **Switch Windows** |
+| 📽 **Presentation Mode** | One click before a screen share: tidy the screen, fit the window, pick a readable resolution, then undo it all |
+| 📅 **Meetings** | A join card for your next call, a Join Next Meeting hotkey, and auto-join |
+| 🍔 **Menu Search** | Press any menu item of the front app by name |
+| ⚙️ **Shortcuts & commands** | Apple Shortcuts and your own shell commands, with arguments |
+| 😀 **Emoji & symbols** | A searchable grid, one keystroke away |
+| 💾 **Backup** | Export your setup, import from Raycast, or mirror it to an editable `settings.json` |
+
+---
+
+## 📦 Install
 
 ```sh
-brew trust --tap jhasubhash/onecast   # required for third-party taps
-brew tap jhasubhash/onecast
+brew install --cask jhasubhash/onecast/onecast            # Apple silicon
+brew install --cask jhasubhash/onecast/onecast-universal  # Intel
 ```
 
-Then run the line that matches your Mac:
+You can also grab a DMG from [Releases](https://github.com/jhasubhash/onecast/releases/latest).
+Every build is signed with a Developer ID and **notarized by Apple**, so it opens with no
+workarounds. Onecast **updates itself** in place. Needs **macOS 26** or later.
 
-| Your Mac                                           | Install                                  |
-| -------------------------------------------------- | ---------------------------------------- |
-| Apple silicon, macOS 26 or newer                   | `brew install --cask onecast`            |
-| Intel, macOS 26                                    | `brew install --cask onecast-universal`  |
-| macOS 15 Sequoia <sub>(unmaintained)</sub>         | `brew install --cask onecast-sequoia`    |
+## 🏁 Quick start
 
-Not sure which you have? **Apple menu → About This Mac** — Homebrew checks too and refuses the wrong
-build. Want early builds? `brew install --cask onecast@beta` installs `OneCast Beta.app` beside the
-stable app with its own settings and permissions.
+1. **Settings → General**: record a shortcut to summon Onecast.
+2. Press it anywhere, type, then press **↵**. **Tab** jumps to AI Chat, **⌘K** opens actions, and
+   **Esc** closes the palette.
+3. **Settings → Docks**: turn on Docks and add a widget or two.
+4. **Settings → AI**: add a model or an installed CLI, and give the chat bar its own hotkey.
+5. Type *"remind me to drink water in 2 hours"* and press **↵**.
 
-Homebrew clears the macOS quarantine flag on install and update, so there's nothing else to run.
-Grabbing a DMG from [Releases](https://github.com/jhasubhash/onecast/releases) instead? OneCast is
-self-signed, so clear the flag once:
-`xattr -dr com.apple.quarantine "/Applications/OneCast.app"`.
+## 🔐 Permissions
 
-## Permissions
+Nothing is asked for up front. **Accessibility** is the main one: it's needed to paste, expand
+snippets and manage windows, and you're prompted the first time a feature needs it. Everything else
+asks on first use: **Notifications** for the scheduler, **Calendar** and **Reminders** for meetings
+and reminders, **Screen Recording** for window previews, and **Camera**, **Microphone** or
+**Bluetooth** for their own actions. Snippet keystrokes are matched locally, never stored and never
+sent anywhere.
 
-**Accessibility** is the one that matters: it's needed to paste or expand text into another app and to
-listen for snippet keywords. You're prompted the first time a feature needs it — grant it in **System
-Settings → Privacy & Security → Accessibility**. Snippets ship disabled, and keystrokes are matched
-locally, never stored and never sent anywhere.
+## 🛠 Building from source
 
-Everything else asks for its own access on first use, never up front — **Notifications** for the
-scheduler, **Calendar** to join meetings, and **Camera** / **Bluetooth** for their respective actions.
+```sh
+brew install xcodegen      # 2.46.0 or newer
+xcodegen generate
+./Scripts/dev-run.sh       # builds and launches "Onecast Dev"
+```
 
-## Quick start
+**[docs/](docs/README.md)** covers the architecture, the engineering standards, the design system
+and one page per feature. Fork-specific build and signing notes are in
+**[CUSTOM.md](custom_docs/CUSTOM.md)**, and cutting a release is in
+**[release.md](docs/release.md)**.
 
-1. Open **Settings → General** and record a global shortcut to summon OneCast.
-2. Press it anywhere — the palette floats in. Type to filter, **↵** to launch.
-3. **Tab** switches between Apps and Clipboard; **↑ / ↓** move, **Esc** dismisses.
-4. **Settings → AI** — add a model or an installed CLI, then bind the **Floating AI Chat bar** (or a
-   named Assistant) to its own hotkey.
-5. **Settings → Shortcuts / Snippets / Scheduler** — bind commands, add expansions, or schedule a
-   reminder in plain English.
+## 🤝 Contributing
 
-## Building from source
-
-Fork-specific build and signing notes live in **[CUSTOM.md](custom_docs/CUSTOM.md)**; the base
-toolchain, packaging and release workflow are in **[docs/development.md](docs/development.md)**, and
-**[docs/](docs/README.md)** indexes the architecture, engineering standards, design system and one
-document per feature.
-
-## Contributing
-
-OneCast is a personal fork shaped around how I work, so its feature set follows my own needs rather
-than an open roadmap. Issues and pull requests are welcome, but it is not a drop-in replacement for
-upstream — see **[CUSTOM.md](custom_docs/CUSTOM.md)** for how this fork tracks and deliberately
-diverges from [tinycast](https://github.com/jhasubhash/tinycast). Security reports go through
+Onecast is a personal, opinionated fork of [tinycast](https://github.com/jhasubhash/tinycast) and has
+since grown a whole AI, docks, plugin and automation layer of its own. Its roadmap follows my own
+needs, but issues and pull requests are welcome. Security reports go through
 **[SECURITY.md](SECURITY.md)**, not the issue tracker.
 
-## Support
-
-OneCast is free and open source. If it earns a spot in your daily flow, feel free to contribute back 
-and keep it actively maintained:
+If Onecast earns a spot in your day, you can
+<a href="https://www.buymeacoffee.com/subhashjha">buy me a coffee ☕</a>.
 
 ## License
 
-[AGPL-3.0](LICENSE). OneCast is a modified fork of [tinycast](https://github.com/jhasubhash/tinycast)
+[AGPL-3.0](LICENSE). Onecast is a modified fork of [tinycast](https://github.com/jhasubhash/tinycast)
 (Copyright © 2026 Abue Ammar) and stays under the same license. Modifications © 2026 Subhash Jha.
