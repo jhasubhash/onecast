@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <code>brew install --cask jhasubhash/onecast/onecast</code>
+  <code>brew install --cask jhasubhash/tap/onecast</code>
 </p>
 
 Onecast is built with SwiftUI and AppKit, with **zero third-party dependencies**. There's no Electron
@@ -184,8 +184,8 @@ Plugins and extensions of my own live in
 ## 📦 Install
 
 ```sh
-brew install --cask jhasubhash/onecast/onecast            # Apple silicon
-brew install --cask jhasubhash/onecast/onecast-universal  # Intel
+brew install --cask jhasubhash/tap/onecast            # Apple silicon
+brew install --cask jhasubhash/tap/onecast-universal  # Intel
 ```
 
 You can also grab a DMG from [Releases](https://github.com/jhasubhash/onecast/releases/latest).

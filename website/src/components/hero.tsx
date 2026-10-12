@@ -1,5 +1,5 @@
 import { ArrowRight, Download } from "lucide-react";
-import { brewInstallCommand, brewTrustCommand, hero, site } from "../data/site";
+import { brewInstallCommand, hero, site } from "../data/site";
 import { latestVersion } from "../lib/version";
 import { HeroPalette } from "./hero-palette";
 import { Button } from "./ui/button";
@@ -61,7 +61,6 @@ export async function Hero() {
             className="rise mt-8 max-w-xl space-y-2"
             style={{ animationDelay: "180ms" }}
           >
-            <CommandLine command={brewTrustCommand} />
             <CommandLine command={brewInstallCommand} />
           </div>
 

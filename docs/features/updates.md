@@ -145,6 +145,6 @@ The body it publishes is composed by `Scripts/release-notes.sh`: GitHub's genera
 then `<!-- onecast:install -->`, then the install text. Anything a release wants the update window to
 show has to go above that marker — see [release.md](../release.md#release-notes).
 
-**The casks must declare `auto_updates true`** in `jhasubhash/homebrew-onecast`. Without it Homebrew
+**The casks must declare `auto_updates true`** in `jhasubhash/homebrew-tap`. Without it Homebrew
 compares its Caskroom receipt against the cask version, sees a self-updated app as outdated forever,
 and re-installs over it on the next `brew upgrade`.

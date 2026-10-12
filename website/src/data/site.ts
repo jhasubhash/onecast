@@ -34,11 +34,10 @@ export const nav = [
   { label: "Docs", href: "/docs" },
 ] as const;
 
-// The hero's two lines. Every other channel lives in docs/install.md, which is
+// The hero's install line. Every other channel lives in docs/install.md, which is
 // where both install CTAs point.
-export const brewTrustCommand = "brew trust --tap jhasubhash/onecast";
 export const brewInstallCommand =
-  "brew install --cask jhasubhash/onecast/onecast";
+  "brew install --cask jhasubhash/tap/onecast";
 
 // The logo wall under the hero, in render order. The track starts at the first
 // entry with the left edge under the mask, so the two least-known names lead

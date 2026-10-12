@@ -12,11 +12,8 @@ This is the easiest route. Homebrew clears the macOS quarantine flag for you, so
 without a warning.
 
 ```bash
-brew trust --tap jhasubhash/onecast
-brew install --cask jhasubhash/onecast/onecast
+brew install --cask jhasubhash/tap/onecast
 ```
-
-You run `brew trust` once. Homebrew will not install from a third-party tap until you trust it.
 
 ### Intel Macs
 
@@ -25,7 +22,7 @@ command above installs a smaller build for Apple silicon only. On an Intel Mac, 
 cask instead:
 
 ```bash
-brew install --cask jhasubhash/onecast/onecast-universal
+brew install --cask jhasubhash/tap/onecast-universal
 ```
 
 You do not need to work out which one you need. `onecast` refuses to install on Intel, and both
@@ -44,7 +41,7 @@ by side, so you can keep stable and try a beta at the same time.
 | Beta    | `onecast@beta`      | `Onecast Beta.app` |
 
 ```bash
-brew install --cask jhasubhash/onecast/onecast@beta
+brew install --cask jhasubhash/tap/onecast@beta
 ```
 
 The beta does not share settings with stable. To move your setup across, use
@@ -56,7 +53,7 @@ of them installed.
 Onecast also runs on macOS 15 Sequoia through its own cask:
 
 ```bash
-brew install --cask jhasubhash/onecast/onecast-sequoia
+brew install --cask jhasubhash/tap/onecast-sequoia
 ```
 
 macOS 26 is the main target and gets new features first.
@@ -90,7 +87,7 @@ working across updates.
 ## Uninstalling
 
 ```bash
-brew uninstall --cask jhasubhash/onecast/onecast
+brew uninstall --cask jhasubhash/tap/onecast
 ```
 
 To remove the files Onecast made, delete its Application Support and Caches folders:

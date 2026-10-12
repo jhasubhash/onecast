@@ -54,10 +54,10 @@ CHANGELOG="$(printf '%s\n' "$GENERATED" | sed -E \
     if [ -n "$COMPARE_URL" ]; then printf ' [Full changelog](%s)' "$COMPARE_URL"; fi
     printf '\n\n'
     printf '%s\n' "**Recommended:** install via Homebrew:"
-    printf '```sh\nbrew trust --tap jhasubhash/onecast\nbrew install --cask jhasubhash/onecast/%s\n```\n' "$CASK"
+    printf '```sh\nbrew install --cask jhasubhash/tap/%s\n```\n' "$CASK"
     # The stable DMG is arm64-only; macOS 26 is the last release that boots on Intel.
     if [ "$CHANNEL" = "stable" ]; then
-        printf '%s\n' "On an **Intel** Mac, install \`jhasubhash/onecast/onecast-universal\` instead — same app, built with both slices."
+        printf '%s\n' "On an **Intel** Mac, install \`jhasubhash/tap/onecast-universal\` instead — same app, built with both slices."
     fi
     printf '%s\n' "Or download the DMG below: it is signed with a Developer ID and notarized by Apple, so it opens like any other app."
 } > "$BODY_OUT"

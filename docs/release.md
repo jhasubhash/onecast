@@ -111,7 +111,7 @@ Its second file is the same changelog cut to Discord's component limit; nothing 
 ### Homebrew tap
 
 `release.sh` rewrites the `version` and `sha256` of the `onecast` and `onecast-universal` casks in
-the [`homebrew-onecast`](https://github.com/jhasubhash/homebrew-onecast) tap and pushes, with the
+the shared [`homebrew-tap`](https://github.com/jhasubhash/homebrew-tap) tap and pushes, with the
 `gh` sign-in it already used for the release. The `sed` is anchored to `^  version` / `^  sha256`,
 so a cask's two-space indent on those lines is load-bearing.
 
