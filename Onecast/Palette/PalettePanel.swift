@@ -23,6 +23,8 @@ final class PalettePanel: NSPanel {
     var onMenuInlineKey: ((NSEvent) -> Bool)?
     /// Text and backspace typed while a menu is open, so it filters as you type instead of freezing.
     var onMenuFilterKey: ((NSEvent) -> Bool)?
+    var onDismissMenu: (() -> Void)?
+    private var dismissingMouseButton: Int?
     /// Arms hover from `sendEvent`, the one place both event streams pass through.
     weak var paletteState: PaletteState? {
         didSet {
@@ -175,6 +177,7 @@ final class PalettePanel: NSPanel {
     }
 
     override func sendEvent(_ event: NSEvent) {
+        if consumeMenuDismissal(event) { return }
         switch event.type {
         case .mouseMoved: paletteState?.notePointerMoved(to: NSEvent.mouseLocation)
         // Keys and scrolling both slide rows under the pointer without it choosing any of them.
@@ -241,6 +244,26 @@ final class PalettePanel: NSPanel {
             return
         }
         super.sendEvent(event)
+    }
+
+    /// Swallows the whole dismissing click, so no control beneath the menu inherits half of it.
+    private func consumeMenuDismissal(_ event: NSEvent) -> Bool {
+        switch event.type {
+        case .leftMouseDown, .rightMouseDown:
+            dismissingMouseButton = nil
+            guard paletteState?.menuOpen == true, let onDismissMenu else { return false }
+            dismissingMouseButton = event.buttonNumber
+            onDismissMenu()
+            return true
+        case .leftMouseDragged, .rightMouseDragged, .leftMouseUp, .rightMouseUp:
+            guard dismissingMouseButton == event.buttonNumber else { return false }
+            if event.type == .leftMouseUp || event.type == .rightMouseUp {
+                dismissingMouseButton = nil
+            }
+            return true
+        default:
+            return false
+        }
     }
 
     /// The app menu's Settings… answers ⌘, before `sendEvent`; the palette picks the pane first.

@@ -84,8 +84,8 @@ _this Mac_:
 ## Storage
 
 Everything lives in Onecast's Application Support folder, and **uninstalling an extension removes
-all of it**: the extension, its storage and cache, its preferences, its support folder, its sign-ins
-in the Keychain, its icon choice, its command shortcuts, favorites, aliases and learned ranking.
+all of it**: the extension, its storage and cache, its preferences and sign-ins, its support folder,
+its icon choice, its command shortcuts, favorites, aliases and learned ranking.
 
 **Settings → Extensions → Storage** measures leftover build folders, the kind a crashed install can
 leave behind, and offers to clean them up. It works even while extensions are off, and it is empty in

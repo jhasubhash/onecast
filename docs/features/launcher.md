@@ -52,6 +52,10 @@ immediate subfolder, are indexed. That catches vendor-folder installs like
 `Contents/` tree, because `.app` is treated as a leaf, and a subfolder nested deeper than one level
 still needs its own scope.
 
+Directory symlinks work as scopes, subfolders, and embedded-app folders. App paths stay under the
+configured scope, not the resolved target. `AppBundleScanner` skips links back to an ancestor
+directory to prevent cycles.
+
 Within one folder, bundles are listed newest `CFBundleShortVersionString` first, compared as numbers
 so `26.6` outranks `9.4`. A tie or an unreadable version falls back to Finder's name order. Because
 the scan keeps a bundle ID's first copy, two Xcodes in `/Applications` resolve to the newest, every

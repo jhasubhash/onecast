@@ -61,6 +61,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     func show() {
         Signposts.interval("PaletteWindowController.show") {
             isPoppedToRoot = false
+            core.palette.focusToken = UUID()
             // Summoned over one of our own windows: there is no external paste or focus target.
             let frontmost = NSWorkspace.shared.frontmostApplication
             let ownPID = NSRunningApplication.current.processIdentifier
@@ -176,8 +177,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     /// Pop to Root Search: reset now, or after the delay unless a reopen consumes it.
     private func schedulePopToRoot() {
-        // Don't pop to root if an extension is waiting for OAuth authorization in the browser.
-        guard !core.extensions.isAuthorizing else { return }
+        guard !core.extensions.isSigningIn else { return }
         popToRootTimer?.invalidate()
         let timeout = core.settings.popToRootTimeout
         guard timeout != .immediately else {
@@ -186,7 +186,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         }
         popToRootTimer = Timer.scheduledTimer(withTimeInterval: timeout.interval, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self, !self.core.extensions.isAuthorizing else { return }
+                guard let self else { return }
                 self.popToRootTimer = nil
                 self.popToRoot()
             }
@@ -201,15 +201,14 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     /// Skip the Pop to Root Search delay, for a close that means to reset as well as hide.
     func popToRootNow() {
-        guard !core.extensions.isAuthorizing else { return }
         popToRootTimer?.invalidate()
         popToRootTimer = nil
         popToRoot()
     }
 
-    /// True while a hidden palette still holds pre-close state; consuming cancels the reset.
+    /// True while a hidden palette keeps its screen: a reset is pending, or a sign-in holds it.
     func consumePreservedState() -> Bool {
-        guard let timer = popToRootTimer else { return false }
+        guard let timer = popToRootTimer else { return core.extensions.isSigningIn }
         timer.invalidate()
         popToRootTimer = nil
         queryWasPreserved = true
@@ -242,12 +241,10 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         core.paletteCoordinator.hidePalette(restoreFocus: false)
     }
 
-    /// Re-bump a turn later: on the first show a synchronous bump lands before `onChange`.
     func windowDidBecomeKey(_ notification: Notification) {
         panel?.level = .palette
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            core.palette.focusToken = UUID()
             // A re-summon leaves first responder where it was, so neither of these gets an event.
             panel?.trackComposition()
             if let context = panel?.fieldEditorContext {

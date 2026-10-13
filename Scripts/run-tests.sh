@@ -157,6 +157,7 @@ run launcher-settings-file-test \
                            Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
                            Onecast/Features/HotKeys/Model/ModifierKey.swift \
                            Onecast/Features/HotKeys/Model/HyperKey.swift \
+                           Onecast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Onecast/Platform/ASCIIKeyboardLayout.swift \
                            Onecast/Features/QuickActions/Model/BuiltInQuickAction.swift \
                            Onecast/Features/Quicklinks/Model/Quicklink.swift \
@@ -232,6 +233,13 @@ run palette-placement-test Onecast/Platform/Appearance.swift \
                            Onecast/DesignSystem/InterfaceMetrics.swift \
                            Onecast/Features/Settings/InterfaceSize.swift \
                            Onecast/Palette/PalettePlacement.swift
+run palette-menu-click-test Onecast/Platform/Appearance.swift \
+                           Onecast/DesignSystem/Theme.swift \
+                           Onecast/Platform/WindowLevel.swift \
+                           Onecast/Platform/NotificationToken.swift \
+                           Onecast/Platform/NSWindow+AccessibilityName.swift \
+                           Onecast/DesignSystem/Interaction/KeyboardFocus.swift \
+                           Onecast/Palette/PalettePanel.swift
 run scroll-reveal-test     Onecast/DesignSystem/Scrolling/SelectionReveal.swift
 run redaction-test         Onecast/DesignSystem/RedactedPlaceholder.swift
 run keyboard-focus-test    Onecast/DesignSystem/Interaction/KeyboardFocus.swift
@@ -336,6 +344,7 @@ run hotkey-test            Onecast/Features/HotKeys/Model/DoubleTapModifier.swif
                            Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
                            Onecast/Features/HotKeys/Model/HotKeySpelling.swift \
                            Onecast/Features/HotKeys/Model/HyperKey.swift \
+                           Onecast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Onecast/Platform/ASCIIKeyboardLayout.swift \
                            Onecast/Features/HotKeys/Service/KeyShortcut.swift \
                            Onecast/Features/HotKeys/Model/HotKeyAction.swift \
@@ -374,8 +383,6 @@ run ext-icon-test          Onecast/Platform/Appearance.swift \
                            Onecast/Features/Extensions/Service/ExtensionCatalog.swift \
                            Onecast/Features/Extensions/Service/ExtensionFetcher.swift \
                            Onecast/Features/Extensions/Service/ExtensionNodeShims.swift \
-                           Onecast/Features/Extensions/Service/ExtensionOAuthKeychain.swift \
-                           Onecast/Features/Extensions/Service/ExtensionOAuthSession.swift \
                            Onecast/Features/Extensions/Service/ExtensionRuntime.swift \
                            Onecast/Features/Extensions/Service/ExtensionIconCache.swift \
                            Onecast/Features/Extensions/UI/ExtensionAnimatedImage.swift \
@@ -397,6 +404,7 @@ run window-preset-test     Onecast/Features/WindowManagement/Model/WindowCommand
                            Onecast/Features/HotKeys/Model/ModifierKey.swift \
                            Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
                            Onecast/Features/HotKeys/Model/HyperKey.swift \
+                           Onecast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Onecast/Platform/ASCIIKeyboardLayout.swift \
                            Onecast/Features/HotKeys/Service/KeyShortcut.swift
 run space-gesture-test     Onecast/Features/WindowManagement/Model/WindowCommand.swift \
@@ -473,6 +481,20 @@ run slow -O raycast-test   Onecast/Features/Backup/Model/RaycastImportError.swif
                            Onecast/Platform/Compression/Zlib.swift
 run settings-backup-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/Backup/Model/SettingsBackupCoverage.swift
+run hyper-key-test         Onecast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Onecast/Features/HotKeys/Model/HyperKeyConflictPolicy.swift \
+                           Onecast/Features/HotKeys/Service/KeyboardRemapper.swift \
+                           Tests/hyper-key-fixtures.swift
+run hotkey-dispatch-test   Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
+                           Onecast/Features/HotKeys/Model/ModifierKey.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyBinding.swift \
+                           Onecast/Features/HotKeys/Model/HyperKey.swift \
+                           Onecast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Onecast/Features/HotKeys/Service/KeyShortcut.swift \
+                           Onecast/Features/HotKeys/Service/HotKeyManager.swift \
+                           Onecast/Platform/ASCIIKeyboardLayout.swift \
+                           Tests/hotkey-dispatch-fixtures.swift
 run settings-file-test     Onecast/Features/Settings/Model/*.swift \
                            Onecast/Features/Settings/Service/SettingsFileMonitor.swift \
                            Onecast/Features/Settings/Service/SettingsFileRepository.swift \
@@ -563,8 +585,6 @@ run slow ext-test          -parse-as-library \
                            $E/Service/ExtensionFetcher.swift \
                            $E/Service/ExtensionIconCache.swift \
                            $E/Service/ExtensionNodeShims.swift \
-                           $E/Service/ExtensionOAuthKeychain.swift \
-                           $E/Service/ExtensionOAuthSession.swift \
                            $E/Service/ExtensionRuntime.swift \
                            $E/UI/ExtensionAnimatedImage.swift \
                            $E/UI/ExtensionImage.swift \

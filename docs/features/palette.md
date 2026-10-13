@@ -56,17 +56,22 @@ only the closure wiring; the behaviour is `PaletteCoordinator`'s.
 ## Screens
 
 `PaletteState` (mode / query / selection / `focusToken`) is the bridge between the panel and the app.
-Showing the palette calls `prepare(mode:)`, which resets state and bumps `focusToken` (a UUID) so the
-SwiftUI search field re-focuses. `prepare` is one of four motions over the screen — see
+Preparing a screen resets state and bumps `focusToken` (a UUID). `PaletteWindowController.show()`
+also bumps it before presenting the panel, so a preserved screen re-focuses its search field too.
+Window activation does not request another search refocus after a shortcut's argument handoff.
+Closing a palette menu restores search focus unless the screen hides the field or an inline argument
+field owns the keyboard. `prepare` is one of four motions over the screen — see
 [Navigation](#navigation).
 
 Hiding schedules Pop to Root Search, and `PaletteWindowController.popToRoot` is its only path: the
 palette returns to the launcher *and* chat starts a new conversation, at once or after
 `popToRootTimeout`, unless a re-summon inside that window consumes the pending reset first. An
 unfinished chat is a thing being done, exactly like a typed query, so the screen and the conversation
-are reset together rather than the screen alone. A reply still streaming is the one exception — it was
-asked for, and resetting would throw the answer away. Nothing is lost either way: a conversation is
-written to Chat History as soon as it has a message.
+are reset together rather than the screen alone. A reply still streaming is one exception — it was
+asked for, and resetting would throw the answer away. The other is an extension's browser sign-in:
+while `ExtensionManager.isSigningIn`, hiding schedules no reset and a re-summon counts as preserved,
+because a reset would stop the command and cancel its sign-in. Nothing is lost either way: a
+conversation is written to Chat History as soon as it has a message.
 
 Each `PaletteMode` maps to one type conforming to `PaletteScreen`, and the protocol is what keeps the
 selection invariant honest: a screen exposes `rows` as its single source of visible order, and the
@@ -211,7 +216,9 @@ The typed values live on `PaletteState.commandArguments`, keyed by
 `PaletteState.argumentKey(entryID, name)`, and are cleared with the rest of the screen.
 `PaletteState.pendingArgumentEntryID` is how a *shortcut* reaches them: a quicklink opened with values
 still missing shows its own screen and names the row, and the header focuses that row's first empty
-field instead of the search field. It is set **after** `showPalette`, since `prepare` clears it.
+field instead of the search field. On first mount the view handles the pending request itself; later
+requests wait a turn for the show's search refocus to settle. It is set **after** `showPalette`,
+since `prepare` clears it.
 
 The flat `selection` index is the single source of truth for highlight / activation and **must always
 match the visible row order**, including the card at index 0 when present — the calculator's (see
@@ -428,7 +435,7 @@ hangs `.bottomTrailing`, the app menu `.bottomLeading`, and everything drawn as 
 the clipboard type filter, the AI model and effort menus, an `options=` argument field's choices and
 a running command's `searchBarAccessory` dropdown — hangs `.belowHeaderTrailing`, under its own
 button. `menuContent` resolves the open case to one `PaletteMenuContent` — a row count, a row action
-and a view built on demand — so ↑/↓, plain ↵, Esc and the click-away catcher serve every menu without
+and a view built on demand — so ↑/↓, plain ↵, Esc and the click-away serve every menu without
 knowing which is up. A screen supplies its rows as a `PopoverMenuContent` through `actions(at:)` and
 the default `menuContent` wraps them; a screen whose rows the palette's menu can't express overrides
 `menuContent` and hands over its own view instead — `ExtensionCommandScreen` is the only one, for
@@ -439,10 +446,12 @@ and states where the highlight starts: the first row, except the pop-up-shaped m
 filter, the AI model and effort menus, an extension's search-bar dropdown — which open on the choice
 they already hold.
 
-**The click-away catcher answers either mouse button.** A left press arrives as a `DragGesture`, so a
-drifting press still dismisses the way a native menu's does; a right press arrives through
-`onRightClick`, whose `NSView` sits above the row catchers beneath it, so a right click on a row
-closes the open menu rather than reopening it on that row.
+**The palette window consumes a click-away press through its release.** While a menu is open,
+`PalettePanel` dismisses it on either mouse button's press and consumes the matching drag and release
+before SwiftUI sees them. A row or footer button beneath the menu cannot inherit a partial click,
+and the next click reaches its control normally. The menu controller installs the dismissal callback
+only while the menu is open and clears it as the menu hides. A SwiftUI overlay over the palette for
+this would strand SwiftUI's hover target if mounted on open, so none exists.
 
 Every row closes the menu behind it — `activateMenuItem` is the one path, and a row that reorders the
 list under itself (Move Favorite Up/Down) is no exception, so no row ever runs against a rebuilt menu.

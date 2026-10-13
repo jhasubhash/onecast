@@ -13,6 +13,7 @@ struct QuicklinkCoordinatorTests {
         try await clipboardFallback()
         try await combinedArguments()
         try await plainLink()
+        try copying()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -122,6 +123,35 @@ struct QuicklinkCoordinatorTests {
         expect(
             QuicklinkLauncher.opened.first?.link == fixture.link.link,
             "a plain link opens without selection input")
+    }
+
+    static func copying() throws {
+        for succeeds in [true, false] {
+            let fixture = try Fixture(link: "https://example.com/?q={argument}&selection={selection}")
+            defer { fixture.cleanUp() }
+            Paster.copies = []
+            Paster.succeeds = succeeds
+            fixture.window.isVisible = true
+            fixture.coordinator.copyQuicklink(id: fixture.link.id)
+            expect(Paster.copies == [fixture.link.link], "copying writes the saved template literally")
+            expect(!fixture.window.isVisible, "copying dismisses the palette")
+            expect(QuicklinkLauncher.opened.isEmpty, "copying never opens the destination")
+            let expected =
+                succeeds
+                ? AppCore.Message(text: "Link copied", tone: .success)
+                : AppCore.Message(text: "Couldn’t copy link", tone: .danger)
+            expect(
+                fixture.core.messages == [expected],
+                "copy feedback reflects whether the clipboard write succeeded")
+        }
+        Paster.succeeds = true
+
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        Paster.copies = []
+        fixture.settings.quicklinksEnabled = false
+        fixture.coordinator.copyQuicklink(id: fixture.link.id)
+        expect(Paster.copies.isEmpty && fixture.core.messages.isEmpty, "a disabled feature copies nothing")
     }
 
     static func waitForOpen() async {
@@ -274,6 +304,16 @@ enum PluginRouteURL {
     static func decode(_ link: String) -> (identifier: String, payload: [String: String])? { nil }
 }
 @MainActor
+enum Paster {
+    static var copies: [String] = []
+    static var succeeds = true
+    static func copyPlainText(_ text: String) -> Bool {
+        copies.append(text)
+        return succeeds
+    }
+}
+
+@MainActor
 final class AppCore {
     let palette = PaletteState()
     let settings = AppSettings()
@@ -287,7 +327,14 @@ final class AppCore {
         false
     }
     func confirm(title: String, message: String, symbol: String, confirmTitle: String) async -> Bool { false }
-    func showMessage(_ message: String) {}
+    struct Message: Equatable {
+        let text: String
+        let tone: DialogTone
+    }
+    var messages: [Message] = []
+    func showMessage(_ message: String, tone: DialogTone = .success) {
+        messages.append(Message(text: message, tone: tone))
+    }
 }
 
 enum BackupActions {

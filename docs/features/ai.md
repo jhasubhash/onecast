@@ -401,17 +401,22 @@ Out carries the bar's conversation, a reply still arriving included, into the de
 Assistant's window, which comes to the front as the key window; Chat History's **Open in AI Chat
 Window** opens a saved one there. The window is
 an `AppWindowController` with `AIChatWindowChrome` (toolbar: sidebar, New Chat ⌘N, Find in Chat ⌘F,
-Actions ⌘K; ⌘Y shows and hides the sidebar, and ⌘, opens Settings on AI rather than where it was
-left) and an `AIChatSplitViewController`: `AIChatSidebarView` groups the scope's conversations
-as Pinned then `DateBucket`, and pins, renames, copies, exports and deletes them; `AIChatDetailView`
-is the transcript over the composer, with the model, reasoning and per-chat **Tools** menus and a
-context gauge. Each window's `AIChatWindowSession` owns its own `ChatHistoryStore`, coordinator
-(pinned to the scope) and `ChatFindState`. Opening another chat never cancels a reply: the answering
-`AIChatState` is handed off and parked, the sidebar shows its spinner, and reopening it takes the
-live state back. A window chat keeps its own model (`ChatSession.model`, stored in
-`conversation_details`); the launcher's bar never does, so a window pick cannot override the bar. The
-Tools menu narrows `ChatToolScope`, turned into the `allowed` server set the tool loop already
-takes. Quitting remembers the open windows (`closeAllForQuit`), so they reopen, unfocused, at launch.
+Actions ⌘K; ⌘Y or ⌘B shows and hides the sidebar, ⌃⇥ / ⌃⇧⇥ open the next or previous chat, and ⌘,
+opens Settings on AI rather than where it was left) and an `AIChatSplitViewController`:
+`AIChatSidebarView` groups the scope's conversations as Pinned then `DateBucket`, and pins,
+renames, copies, exports and deletes them. The open chat is the selected row; ⌃⇥ / ⌃⇧⇥
+(`AIChatWindowSession.openAdjacentChat`) walk the rows in that order, wrapping at either end, over
+every saved chat of the scope whatever the sidebar's filter shows. A chat with no row yet enters
+from the top, or the bottom going back, and a held chord does not repeat into the composer as tabs.
+`AIChatDetailView` is the transcript over the composer, with the model, reasoning and per-chat
+**Tools** menus and a context gauge. Each window's `AIChatWindowSession` owns its own
+`ChatHistoryStore`, coordinator (pinned to the scope) and `ChatFindState`. Opening another chat
+never cancels a reply: the answering `AIChatState` is handed off and parked, the sidebar shows its
+spinner, and reopening it takes the live state back. A window chat keeps its own model
+(`ChatSession.model`, stored in `conversation_details`); the launcher's bar never does, so a window
+pick cannot override the bar. The Tools menu narrows `ChatToolScope`, turned into the `allowed`
+server set the tool loop already takes. Quitting remembers the open windows (`closeAllForQuit`),
+so they reopen, unfocused, at launch.
 
 Escape closes the window (`closesOnEscape` on its `AppWindowController`, like Command Output); an
 open composer menu, the Find field, a rename and the Actions menu take Escape first. The sidebar's
@@ -485,12 +490,12 @@ unrecognised model keeps the generic sparkle. Provenance, the MIT notice and the
 are recorded in [`NOTICE.md`](../../NOTICE.md) — the CC0 on the Simple Icons project does not extend
 to the brands it depicts. The header's model switcher shows the selected model's mark the same way.
 
-The palette's click-away catcher is mounted permanently and only toggles `allowsHitTesting` with the
-open menu. Inserting it on open and removing it on close could strand SwiftUI's hover target on the
-header button underneath — AppKit kept delivering clicks, but neither the button nor the catcher saw
-them until an unrelated render or a window exit/re-enter recomputed hover. It dismisses on a
-`DragGesture(minimumDistance: 0)` rather than a tap, so a press that drifts a few points still closes
-the menu, as a native menu's click-away does.
+The palette's click-away is `PalettePanel`'s, not a SwiftUI overlay: inserting an overlay on open and
+removing it on close could strand SwiftUI's hover target on the header button underneath — AppKit
+kept delivering clicks, but neither the button nor the overlay saw them until an unrelated render or
+a window exit/re-enter recomputed hover. The panel dismisses on the press and swallows the click
+through its release, so a press that drifts a few points still closes the menu, as a native menu's
+click-away does.
 
 Seven more `@MainActor @Observable` types join the shared state: `AISettingsStore`,
 `ChatGPTSubscriptionManager`, `InstalledAIManager`, `ChatHistoryStore`, `AIChatState`,
@@ -532,8 +537,8 @@ and `MCPCoordinator` the twentieth.
   delimiters, LaTeX subset and mid-stream hold-back, the copy text `MarkdownRenderer` gives a
   selection, formula attachments and their geometry, `ChatHistoryStore` with renames, pins, generated titles and
   per-chat models, regenerate, export, `ChatTitle`, `ChatChoices`, `ChatReferences`,
-  `ChatToolScope`, `AIToolLoopProvider` with its per-round cost, reasoning stretches placed, timed
-  and reloaded),
+  `ChatToolScope`, the sidebar's pinned-first order and ⌃⇥ chat stepping, `AIToolLoopProvider` with
+  its per-round cost, reasoning stretches placed, timed and reloaded),
   `codex-turn-test` (the Stop path, driven against a stub app-server stalled where Stop races the
   turn ID, plus the no-config-mutation boundary), `installed-ai-test` (Claude/OpenCode flags, prompt
   framing, streaming and cleanup) and `apple-intelligence-test` (status copy, snapshot deltas,

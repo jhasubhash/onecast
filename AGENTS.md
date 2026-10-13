@@ -19,9 +19,14 @@ deprecation debt, and that is the single largest reason the codebase stays as sm
 
 Write code as if the platform released yesterday:
 
-- **Prefer the modern Apple API**, always. Observation over `ObservableObject`. Swift Concurrency over
-  `DispatchQueue` or completion handlers. `SMAppService` over login-item shims. Structured concurrency
-  over detached bookkeeping.
+- **Prefer the modern Apple API**, always. Observation over `ObservableObject`. `SMAppService` over
+  login-item shims.
+- **Prefer synchronous code.** Keep short UI and state operations synchronous on `@MainActor`.
+  Introduce concurrency only for genuinely asynchronous operations or blocking work that must leave
+  the main actor. Shared state alone does not justify `async`, a `Task`, or an actor. Preserve
+  synchronous callback returns and event ordering. When concurrency is needed, prefer structured
+  concurrency with clear ownership and cancellation. Strict concurrency checking enforces safety;
+  it does not require making operations asynchronous.
 - **Migrate, never wrap.** When an API gains a modern replacement, adopt it and delete the old call
   site. A wrapper that preserves an old spelling is the thing this project has spent the most effort
   removing.

@@ -50,6 +50,16 @@ harnesses are not still running after everything else has finished.
 The script is the **only** place the harness set is written down. Nothing runs it for you, so run it
 before you open a PR. Adding a harness means adding one `run` line.
 
+Runtime dependency resolution also has standalone checks:
+
+```sh
+node Scripts/raycast-runtime/modules-fixtures.mjs
+```
+
+They cover shipped CommonJS packages, exports maps, relative directories, nested dependencies,
+cycles, failed-load retries and the extension-root boundary. The runtime fixture suite
+(`node Scripts/raycast-runtime/fixtures.mjs`) includes the same checks.
+
 Each harness compiles the **shipped sources** it guards rather than a copy of them, which is what makes
 the pure-layer boundary real: a harness that stops *compiling* means AppKit or SwiftUI has leaked into a
 `Model/` folder, or an effect has leaked into a decision. That is a more common failure than a broken
@@ -88,7 +98,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `file-search-session-test` | serialized query execution, debounce coalescing and cancellation |
 | `menu-search-test` | `MenuSearch/Model/` decisions, `MenuSearch/Service/` session filtering, the shared `FuzzyMatch` scorer |
 | `ranking-test` | `Launcher/Model/LauncherRankingStore.swift` |
-| `scopes-test` | `Launcher/Model/SearchScopes.swift` |
+| `scopes-test` | `Launcher/Model/SearchScopes.swift`, `Launcher/Service/AppBundleScanner.swift` — scope paths, the walk's order, and directory symlinks (kept logical paths, retargeting, cycles) |
 | `app-name-test` | `Platform/AppDisplayName.swift` — every path that names a scanned bundle |
 | `calc-test` | all of `Calculator/Model/` |
 | `calendar-test` | all of `Calendar/Model/` — link detection, the join window, the day buckets |
@@ -103,7 +113,10 @@ If a change touches anything in the right column, the harness on the left is man
 | `palette-selection-test` | `Features/PaletteRowIndex.swift` |
 | `interface-size-test` | `DesignSystem/InterfaceMetrics.swift`, `Features/Settings/InterfaceSize.swift`, `Extensions/Model/ExtensionFormMetrics.swift` |
 | `palette-placement-test` | `DesignSystem/Theme.swift`, `Palette/PalettePlacement.swift` |
-| `hotkey-test` | `HotKeys/Model/DoubleTapModifier.swift`, `DoubleTapDetector.swift`, `ModifierKey.swift`, `ModifierKeyDetector.swift`, `HotKeyBinding.swift`, `HotKeySpelling.swift`, `HyperKey.swift`, `HotKeyAction.swift`, `Service/KeyShortcut.swift`, and the command→action mapping in `Launcher/Model/CommandID.swift` |
+| `palette-menu-click-test` | `Palette/PalettePanel.swift` — complete click-away presses and subsequent control activation |
+| `hotkey-test` | `HotKeys/Model/DoubleTapModifier.swift`, `DoubleTapDetector.swift`, `ModifierKey.swift`, `ModifierKeyDetector.swift`, `HotKeyBinding.swift`, `HotKeySpelling.swift`, `HyperKey.swift`, `HIDKeyMapping.swift`, `HotKeyAction.swift`, `Service/KeyShortcut.swift`, and the command→action mapping in `Launcher/Model/CommandID.swift` |
+| `hyper-key-test` | `HotKeys/Model/HIDKeyMapping.swift`, `HyperKeyConflictPolicy.swift`, `Service/KeyboardRemapper.swift` — mapping ownership, refused writes, crash recovery, device reconnection, conflict severities, Modifier Keys and Karabiner parsing |
+| `hotkey-dispatch-test` | `HotKeys/Service/HotKeyManager.swift` — Secure Input side isolation, shared Control registrations, press/release routing, recording and cancellation; isolated preferences and simulated Carbon registration |
 | `dictation-test` | `Dictation/Model/DictationModel.swift`, `DictationTextFormatter.swift`, `DictationLiveTranscript.swift` — model paths, text formatting, and live typing's word agreement, cut carry-over and continued context |
 | `dictation-field-test` | Composer rebinding and teardown, field-scoped dictation cancellation, queued insertion validity, and live typing (agreed words typed, changing words previewed, Escape keeps typed words); synthetic capture and real AppKit editors |
 | `dictation-volume-test` | Volume recovery across fade steps, user changes, output switching, failed writes and cancellation; injected audio controls only |
@@ -119,7 +132,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `custom-command-test` | `CustomCommands/Model/CustomCommand.swift`, `Service/ShellCommandRunner.swift` |
 | `uninstall-test` | all five pure files in `Uninstall/Model/` |
 | `quicklink-test` | all of `Quicklinks/Model/` |
-| `quicklink-coordinator-test` | Quicklink opening and inline argument focus — missing selection, manual input, clipboard fallback and default-app overrides; no platform effects |
+| `quicklink-coordinator-test` | Quicklink opening and requested argument field — missing selection, manual input, clipboard fallback and default-app overrides — and Copy Link (the saved template, feedback, palette dismissal); no platform effects or on-screen focus checks |
 | `dock-badges-test` | `Docks/Model/DockBadges.swift` — mapping the macOS Dock's tiles to bundle ID → badge label |
 | `apple-shortcut-test` | all of `AppleShortcuts/Model/` — the `shortcuts list` parser and entry ids |
 | `docks-test` | `Docks/Model/{DockModels,DockGeometry,DockSlots,DockURL}.swift` — sanitizing a configuration, slot order, frames and the lens, layout stepping, `onecast://dock` links |
@@ -137,7 +150,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `ext-version-test` | `Extensions/Service/ExtensionVersionStore.swift` — what an update check reports, adopts and forgets |
 | `ext-process-test` | `Extensions/Service/ExtensionFetcher.swift`'s `ExtensionAsyncProcess`, `ExtensionNodeShims`' `child_process` — a timeout stopping the whole group, both pipes drained at once, a cancelled `wait` and a closed context stopping their children |
 | `ext-metadata-test` | `Extensions/Service/ExtensionCommandMetadataStore.swift` — round-trip, failure runs, uninstall |
-| `ext-test` | the extension runtime and native menu-bar lifecycle — boots shipped sources in JavaScriptCore; menu tests cover restoration, refresh serialization, actions and teardown; fetch tests cover HTTP connection cleanup, cancellation and request isolation |
+| `ext-test` | the extension runtime and native menu-bar lifecycle — boots shipped sources in JavaScriptCore; menu tests cover restoration, refresh serialization, actions and teardown; fetch tests cover HTTP connection cleanup, cancellation and request isolation, plus Unix-socket HTTP against a real socket; bundled `node_modules` resolve from an installed extension |
 | `ext-icon-test` | `Extensions/Service/ExtensionIconCache.swift` — artwork sizing and its fallback |
 | `icon-cache-test` | `Platform/Images/IconCache.swift` — row sizing at 1×/2×, warm reuse, stamp and style invalidation, bitmap release, and that a row icon draws identically to the 96px one |
 | `entry-icon-test` | `EntryIcon` — that each case draws, caches and prints apart from the others, and that a moved `FileIconStamp` retires the bitmap decoded before it |
@@ -363,6 +376,11 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   System Actions, Window Management, Custom Commands, Commands
 - With a non-ASCII input source active, ⌘K opens Actions; ↑/↓ move it, ↵ activates, Escape closes it
 - While a menu is open, typing does **not** change the query and the caret is hidden
+- In the launcher and Search Quicklinks, open Actions with ⌘K and close with ⌘K, Escape or a click in
+  the palette outside the menu. Immediately type a query, use the arrows and press Return; the search
+  field must accept keyboard input again. The click closes only the menu, never activating the
+  control beneath it, and the next click on that control opens its menu once and leaves it open,
+  including when the clicks form a double click
 - Tab toggles launcher ↔ clipboard; bare Backspace on an empty query backs out of a sub-screen
 - Launching an app focuses it; escaping the palette returns focus to the app you came from
 - Paste from clipboard history lands in that app, not in Onecast
@@ -408,6 +426,19 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Recording captures a shortcut, and the old binding does not fire while recording
 - A conflicting binding is rejected and names its current owner
 - A double-tap binding fires; Hyper Key remaps and its status dot is green
+- Each Hyper Key choice — Caps Lock and all eight Left/Right modifiers — sends the chord, and Quick
+  Press is offered for Caps Lock only. Plug in a second keyboard: Caps Lock is Hyper on it too
+- Lock the screen: Caps Lock types capitals in the password field; unlocking restores Hyper. Sleep
+  and wake do the same
+- With Hyperkey running, the status reads Blocked and a HUD names it; quitting Hyperkey restores
+  Hyper without a relaunch. Diagnostics… lists BetterTouchTool as a warning when it runs
+- Remap Caps Lock in Keyboard ▸ Modifier Keys: Diagnostics… reports it with the keyboard's name
+- In a password field, Hyper with Caps Lock shows the Secure Input HUD. Turn on Secure Input
+  Compatibility: a Hyper shortcut now fires there, and Diagnostics… names the Secure Input holder
+- Quit Onecast: Caps Lock types capitals again on every keyboard, the built-in one included
+- With Karabiner-Elements running and Caps Lock left alone there, Hyper with Caps Lock still works;
+  quit Onecast and Karabiner's own remaps keep working. Remap Caps Lock in Karabiner instead:
+  Diagnostics… reports a Karabiner conflict
 - Every binding survives quit and relaunch
 - `Enable Commands` off leaves every pane-owned command listed, searchable and firing — Notes,
   Clipboard, Emoji, File Search, Snippets, Quicklinks, Calendar, AI and the two layout commands
@@ -425,6 +456,14 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 
 - A quicklink opens its destination; `{argument}` prompts in order and Backspace steps back
 - `{selection}` falls back per the Settings choice
+- With "Ask for it" and no selection, a quicklink's hotkey focuses "Selected Text": typing fills that
+  field and Return opens the link. Check the first palette opening after launch, reopening, and an
+  already-open palette; repeat with a required `{argument}` and confirm the first missing field wins
+- Opening Search Quicklinks normally focuses search; a readable selection and clipboard fallback open
+  directly
+- Copy Link (⌃⌘C, or in ⌘K from root search and Search Quicklinks) puts the saved link on the
+  clipboard with `{argument}` and `{selection}` left as written, closes the palette and shows
+  "Link copied"; it never opens the destination
 - Pin, duplicate, delete and Open with Default all behave; import and export round-trip
 - Display order is pinned first by pin time, then by name
 

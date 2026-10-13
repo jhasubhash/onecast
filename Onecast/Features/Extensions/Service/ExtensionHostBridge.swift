@@ -33,10 +33,6 @@ protocol ExtensionHostContext: AnyObject {
         fallbackText: String?, launchType: ExtensionLaunchType, launchContext: [String: RenderValue]
     ) throws
     func launch(_ link: ExtensionDeepLink) throws
-    func authorizeOAuth(options: ExtensionOAuthAuthorizeOptions) async throws -> ExtensionOAuthAuthorizeResult
-    func getOAuthTokens(providerId: String) -> String?
-    func setOAuthTokens(providerId: String, tokens: String)
-    func removeOAuthTokens(providerId: String)
 }
 
 /// A toast as the palette shows it.
@@ -128,6 +124,9 @@ final class ExtensionHostBridge: ExtensionHostAPI {
     weak var context: ExtensionHostContext?
     private let clipboardStore: ClipboardStore
     private let fetcher: ExtensionFetcher
+    private var reportedSocketFailures: Set<String> = []
+    /// One browser sign-in at a time; the palette keeps its command alive while it is out.
+    private(set) var isSigningIn = false
 
     init(clipboardStore: ClipboardStore, fetcher: ExtensionFetcher = ExtensionFetcher()) {
         self.clipboardStore = clipboardStore
@@ -154,10 +153,36 @@ final class ExtensionHostBridge: ExtensionHostAPI {
         case "window": return window(method: method, arguments: arguments)
         case "feedback": return try await feedback(method: method, arguments: arguments)
         case "system": return try await system(method: method, arguments: arguments)
-        case "fetch": return try await fetcher.request(arguments.first)
+        case "fetch": return try await fetch(arguments.first)
         case "proc": return try await ExtensionAsyncProcess.wait(arguments.first)
         case "oauth": return try await oauth(method: method, arguments: arguments)
         default: throw ExtensionHostError.unknown("\(api).\(method)")
+        }
+    }
+
+    private func fetch(_ spec: RenderValue?) async throws -> [String: Any] {
+        let context = context
+        let name = context?.activeExtensionName
+        do {
+            let response = try await fetcher.request(spec)
+            try Task.checkCancellation()
+            if self.context === context, context?.activeExtensionName == name,
+                let path = spec?.objectValue?["socketPath"]?.stringValue
+            {
+                reportedSocketFailures.remove(path)
+            }
+            return response
+        } catch let error as ExtensionFetcher.FetchError {
+            try Task.checkCancellation()
+            if case .socketUnavailable(let path) = error,
+                let context, self.context === context, context.activeExtensionName == name,
+                context.activeLaunchType != .background, reportedSocketFailures.insert(path).inserted
+            {
+                _ = context.present(toast: ExtensionToast(
+                    style: .failure, title: "Connection failed",
+                    message: "Start the local service or check its socket path: \(path)"))
+            }
+            throw error
         }
     }
 
@@ -166,6 +191,11 @@ final class ExtensionHostBridge: ExtensionHostAPI {
             throw ExtensionHostError.noActiveExtension
         }
         return (context, name)
+    }
+
+    /// A discarded context takes its reported socket failures with it, so a new one can toast again.
+    func sessionEnded() {
+        reportedSocketFailures.removeAll()
     }
 
     // MARK: - Clipboard
@@ -194,7 +224,9 @@ final class ExtensionHostBridge: ExtensionHostAPI {
             }
             guard let text = clipboardText(from: content) else { return nil }
             if method != "copy" {
-                Paster.pasteString(text, previousApp: context?.pasteTarget)
+                let target = context?.pasteTarget
+                context?.closeMainWindow(clearRootSearch: false)
+                Paster.pasteString(text, previousApp: target)
             } else if concealed {
                 // `concealed` opts a copy out of history; every other copy enters it unmarked,
                 // like the app's own Copy actions. A paste is always marked so it can't re-enter.
@@ -521,34 +553,35 @@ final class ExtensionHostBridge: ExtensionHostAPI {
     // MARK: - OAuth
 
     private func oauth(method: String, arguments: [RenderValue]) async throws -> Any? {
-        guard let context else { throw ExtensionHostError.noActiveExtension }
+        let (context, name) = try requireContext()
         switch method {
         case "authorize":
-            guard let urlString = arguments.first?.stringValue, let url = URL(string: urlString) else {
-                throw ExtensionHostError.unsupported("authorize requires url")
+            guard context.activeLaunchType != .background else {
+                throw ExtensionHostError.unsupported("Signing in during a background refresh")
             }
-            let options = ExtensionOAuthAuthorizeOptions(
-                url: url, state: arguments[safe: 1]?.stringValue)
-            let result = try await context.authorizeOAuth(options: options)
-            var dict: [String: Any] = ["authorizationCode": result.authorizationCode]
-            if let token = result.accessToken { dict["accessToken"] = token }
-            if let state = result.state { dict["state"] = state }
-            return dict
+            guard !isSigningIn else {
+                throw ExtensionHostError.unsupported("A second sign-in while one is open")
+            }
+            guard let url = arguments.first?.stringValue.flatMap(URL.init(string:)),
+                let scheme = arguments[safe: 1]?.stringValue
+            else { throw URLError(.badURL) }
+            isSigningIn = true
+            defer {
+                isSigningIn = false
+                // Come forward like Raycast once the redirect lands, unless the command stopped.
+                if !Task.isCancelled { context.reopenPalette() }
+            }
+            return try await ExtensionSignInSession().run(url: url, callbackScheme: scheme)
+                .absoluteString
 
         case "getTokens":
-            let providerId = arguments.first?.stringValue ?? ""
-            guard let tokens = context.getOAuthTokens(providerId: providerId) else { return nil }
-            return tokens
+            let provider = arguments.first?.stringValue ?? ""
+            return context.storage.oauthTokens(extension: name, provider: provider)
 
         case "setTokens":
-            let providerId = arguments.first?.stringValue ?? ""
-            let tokens = arguments[safe: 1]?.stringValue ?? ""
-            context.setOAuthTokens(providerId: providerId, tokens: tokens)
-            return nil
-
-        case "removeTokens":
-            let providerId = arguments.first?.stringValue ?? ""
-            context.removeOAuthTokens(providerId: providerId)
+            let provider = arguments.first?.stringValue ?? ""
+            let tokens = arguments[safe: 1]?.stringValue
+            context.storage.setOAuthTokens(extension: name, provider: provider, tokens: tokens)
             return nil
 
         default:

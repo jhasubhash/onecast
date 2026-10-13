@@ -62,9 +62,17 @@ struct QuicklinkListScreen: PaletteScreen {
     func perform(_ shortcut: PaletteShortcut, at selection: Int) -> Bool {
         switch shortcut {
         case .commandDelete: return delete(at: selection)
+        case .copyPath: return copyLink(at: selection)
         case .pin: return pin(at: selection)
         default: return false
         }
+    }
+
+    /// ⌃⌘C — mirrors the Copy Link row.
+    private func copyLink(at selection: Int) -> Bool {
+        guard let quicklink = quicklink(at: selection) else { return false }
+        core.quicklinkCoordinator.copyQuicklink(id: quicklink.id)
+        return true
     }
 
     /// ⌘. — mirrors the Actions menu row; pinning lifts the row into the Pinned section.
@@ -135,6 +143,10 @@ enum QuicklinkActionsMenu {
                         id: quicklink.id, forcingDefaultApp: true, values: values)
                 })
         }
+        items.append(
+            PopoverMenuItem(title: "Copy Link", systemImage: "doc.on.clipboard", shortcut: "⌃⌘C") {
+                core.quicklinkCoordinator.copyQuicklink(id: quicklink.id)
+            })
         items.append(
             PopoverMenuItem(title: "Edit Quicklink", systemImage: "pencil", startsSection: true) {
                 core.quicklinkCoordinator.editQuicklink(quicklink)

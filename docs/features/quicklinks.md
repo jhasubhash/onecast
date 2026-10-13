@@ -187,9 +187,17 @@ like Search Snippets and the clipboard: the list on the left, a **detail pane** 
 the selected quicklink's glyph over an Information block (name, link, the app it opens with, its
 shortcut, when it was created). Like Calculator History it stays out of the Tab cycle and exits via the
 back chevron or a bare backspace.
-Its ⌘K menu carries Open (`↵`), Open With Default App (`⌘↵`, only when a handler is saved), Edit,
-Duplicate, Pin/Unpin (`⌘.`), Hide/Show in Root Search, Show in Finder (`⌘F`, only for a resolved
-path), and Delete (`⌘⌫`).
+Its ⌘K menu carries Open (`↵`), Open With Default App (`⌘↵`, only when a handler is saved), Copy Link
+(`⌃⌘C`), Edit, Duplicate, Pin/Unpin (`⌘.`), Hide/Show in Root Search, Show in Finder (`⌘F`, only for a
+resolved path), and Delete (`⌘⌫`). A root-search quicklink row's ⌘K menu leads with Open, Copy Link
+(`⌃⌘C`), then Edit Quicklink and the inline Rename Quicklink.
+
+**Copy Link** (`⌃⌘C`) writes the saved destination to the clipboard without opening it. Placeholders stay
+literal, even when the header has argument values filled in. Copying closes the palette and shows
+"Link copied" only after a successful clipboard write, or "Couldn’t copy link" if the write fails.
+It never reads the selected text or expands the template. `PaletteShortcut.copyPath` carries the
+chord on both screens, and `QuicklinkCoordinator.copyQuicklink` owns the action, so the row and the
+chord can't drift.
 
 Choosing an _arbitrary_ app belongs to the editor, which has a picker; `PopoverMenu` is a flat list
 with no nesting, so the palette offers the one alternative that always exists — bypass the saved app

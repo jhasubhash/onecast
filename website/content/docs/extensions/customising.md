@@ -56,8 +56,8 @@ To keep it cheap:
 
 ## Uninstalling
 
-Removes the extension and everything attached to it: storage, cache, preferences, its support folder,
-Keychain sign-ins, the icon choice, command shortcuts, favorites, hidden items, aliases and learned
+Removes the extension and everything attached to it: storage, cache, preferences, sign-ins, its
+support folder, the icon choice, command shortcuts, favorites, hidden items, aliases and learned
 ranking.
 
 <kbd>⌘</kbd><kbd>K</kbd> → **Uninstall Extension** in the launcher does the same.

@@ -52,12 +52,9 @@ struct AIChatSidebarView: View {
 
     /// Recency order already puts each day's chats together, so a day opens exactly once.
     private var groups: [Group] {
-        let results = session.history.search(query)
         var groups: [Group] = []
-        let pinned = results.filter(\.isPinned)
-        if !pinned.isEmpty { groups.append(Group(title: "Pinned", conversations: pinned)) }
-        for conversation in results where !conversation.isPinned {
-            let title = DateBucket(for: conversation.updatedAt).title
+        for conversation in session.history.search(query).pinnedFirst {
+            let title = conversation.isPinned ? "Pinned" : DateBucket(for: conversation.updatedAt).title
             if groups.last?.title == title {
                 groups[groups.count - 1].conversations.append(conversation)
             } else {

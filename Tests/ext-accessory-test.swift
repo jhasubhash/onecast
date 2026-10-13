@@ -174,6 +174,24 @@ struct ExtensionSearchAccessoryTests {
             "a pick survives a reload",
             reloaded.accessoryValue(extension: "sample", key: "filter") == "selected")
 
+        storage.setOAuthTokens(extension: "sample", provider: "github", tokens: #"{"accessToken":"a"}"#)
+        storage.setOAuthTokens(extension: "sample", provider: "other", tokens: #"{"accessToken":"b"}"#)
+        storage.setOAuthTokens(extension: "sample", provider: "other", tokens: nil)
+        storage.flush()
+        let signedIn = ExtensionStorage(directory: directory)
+        check(
+            "a provider's token set survives a reload",
+            signedIn.oauthTokens(extension: "sample", provider: "github") == #"{"accessToken":"a"}"#)
+        check(
+            "signing a provider out leaves the other providers and the pick",
+            signedIn.oauthTokens(extension: "sample", provider: "other") == nil
+                && signedIn.accessoryValue(extension: "sample", key: "filter") == "selected")
+        signedIn.removeAll(extension: "sample")
+        check(
+            "uninstalling drops the token sets with the rest of the data",
+            ExtensionStorage(directory: directory)
+                .oauthTokens(extension: "sample", provider: "github") == nil)
+
         // A store written before dropdowns held anything: the missing key must cost nothing.
         storage.setLocalStorage(extension: "older", key: "kept", value: .string("value"))
         storage.setPreference(extension: "older", key: "token", value: .string("secret"))

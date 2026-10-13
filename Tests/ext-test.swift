@@ -24,7 +24,6 @@ struct ExtensionTests {
         var calls: [String] = []
         var toasts: [String] = []
         var huds: [String] = []
-        var oauthTokens: [String: String] = [:]
         private let fetcher = ExtensionFetcher()
 
         func perform(api: String, method: String, arguments: [RenderValue]) async throws -> String {
@@ -52,25 +51,12 @@ struct ExtensionTests {
                     #"{"name":"Finder","path":"/System/Library/CoreServices/Finder.app","bundleId":"com.apple.finder"}"#
             case "system.applications":
                 return "[]"
-            case "oauth.authorize":
-                let state = arguments[safe: 1]?.stringValue ?? ""
-                return "{\"authorizationCode\":\"auth_code_swift_test\",\"state\":\"\(state)\"}"
-            case "oauth.getTokens":
-                let providerId = arguments.first?.stringValue ?? ""
-                return oauthTokens[providerId] ?? ""
-            case "oauth.setTokens":
-                let providerId = arguments.first?.stringValue ?? ""
-                let tokens = arguments[safe: 1]?.stringValue ?? ""
-                oauthTokens[providerId] = tokens
-                return ""
-            case "oauth.removeTokens":
-                let providerId = arguments.first?.stringValue ?? ""
-                oauthTokens.removeValue(forKey: providerId)
-                return ""
             default:
                 return ""
             }
         }
+
+        func sessionEnded() {}
     }
 
     @MainActor
@@ -156,6 +142,15 @@ struct ExtensionTests {
         try? await Task.sleep(nanoseconds: milliseconds * 1_000_000)
     }
 
+    @MainActor
+    static func settle(until condition: () -> Bool) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(5))
+        while !condition(), clock.now < deadline {
+            do { try await Task.sleep(for: .milliseconds(20)) } catch { return }
+        }
+    }
+
     // MARK: - Results
 
     nonisolated(unsafe) static var failures = 0
@@ -178,10 +173,10 @@ struct ExtensionTests {
         renderNodeChecks()
         screenChecks()
         actionIconChecks()
-        oauthUnitChecks()
         deepLinkChecks()
         nodeShimChecks()
         await runtimeChecks()
+        await bundledModuleChecks()
         await searchAccessoryRuntimeChecks()
         await nodeContractChecks()
         await bufferEventChecks()
@@ -193,6 +188,52 @@ struct ExtensionTests {
 
         print("\n\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
+    }
+
+    @MainActor
+    static func bundledModuleChecks() async {
+        let base = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ext-bundled-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let source = base.appendingPathComponent("source", isDirectory: true)
+        let package = source.appendingPathComponent("node_modules/bundled", isDirectory: true)
+        let (runtime, _, recorder) = makeRuntime()
+        defer { runtime.shutdown() }
+        do {
+            try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+            let manifest =
+                #"{"name":"fixture","title":"Fixture","commands":[{"name":"main","title":"Main","mode":"view"}]}"#
+            try Data(manifest.utf8).write(to: source.appendingPathComponent("package.json"))
+            let command = #"""
+                const React = require("react");
+                const { Detail } = require("@raycast/api");
+                const value = require("bundled");
+                module.exports.default = () => React.createElement(Detail, { markdown: String(value) });
+                """#
+            try Data(command.utf8).write(to: source.appendingPathComponent("main.js"))
+            try Data(#"{"exports":{".":"./index.js","./data":"./data.json"}}"#.utf8)
+                .write(to: package.appendingPathComponent("package.json"))
+            try Data(#"module.exports = require("bundled/data").value + 1;"#.utf8)
+                .write(to: package.appendingPathComponent("index.js"))
+            try Data(#"{"value":41}"#.utf8).write(to: package.appendingPathComponent("data.json"))
+            let installed = try ExtensionCatalog.install(
+                from: source, in: base.appendingPathComponent("installed"))
+            let file = installed.directory.appendingPathComponent("main.js")
+            try await runtime.boot(config: .current(supportDirectory: base))
+            await runtime.start(
+                session: "bundled", code: try String(contentsOf: file, encoding: .utf8), file: file,
+                mode: .view, context: launchContext())
+            await settle(until: { recorder.trees.last?.activeRoot?.string("markdown") == "42" })
+            check(
+                "installed packages resolve in JavaScriptCore",
+                recorder.trees.last?.activeRoot?.string("markdown") == "42")
+            check(
+                "bundled packages report no native runtime failures", recorder.failures.isEmpty,
+                recorder.failures.joined())
+            await runtime.stop(session: "bundled")
+        } catch {
+            check("bundled module fixture completes", false, String(describing: error))
+        }
     }
 
     static func nodeShimChecks() {
@@ -716,82 +757,6 @@ struct ExtensionTests {
             String(describing: destructiveArtwork))
     }
 
-    private final class MockTokenStore: ExtensionOAuthTokenStore, @unchecked Sendable {
-        var storage: [String: String] = [:]
-
-        func get(account: String) -> String? {
-            storage[account]
-        }
-
-        func set(_ value: String, account: String) -> Bool {
-            storage[account] = value
-            return true
-        }
-
-        func remove(account: String) -> Bool {
-            storage.removeValue(forKey: account) != nil
-        }
-
-        func removeAll(prefix: String, exactMatch: String) {
-            storage = storage.filter { key, _ in
-                key != exactMatch && !key.hasPrefix(prefix)
-            }
-        }
-    }
-
-    @MainActor
-    static func oauthUnitChecks() {
-        let originalStore = ExtensionOAuthKeychain.store
-        ExtensionOAuthKeychain.store = MockTokenStore()
-        defer { ExtensionOAuthKeychain.store = originalStore }
-
-        // Keychain round-trip
-        let extName = "com.test.unit"
-        let provId = "unit_provider"
-        let json = "{\"accessToken\":\"token_xyz\",\"refreshToken\":\"refresh_abc\"}"
-
-        ExtensionOAuthKeychain.setTokens(json, extensionName: extName, providerId: provId)
-        let read = ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: provId)
-        check("OAuth Keychain sets and gets tokens", read == json, read ?? "nil")
-
-        ExtensionOAuthKeychain.removeTokens(extensionName: extName, providerId: provId)
-        let afterRemove = ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: provId)
-        check("OAuth Keychain removes tokens", afterRemove == nil, afterRemove ?? "not nil")
-
-        ExtensionOAuthKeychain.setTokens(json, extensionName: extName, providerId: "prov1")
-        ExtensionOAuthKeychain.setTokens(json, extensionName: extName, providerId: "prov2")
-        ExtensionOAuthKeychain.removeAllTokens(extensionName: extName)
-        let afterRemoveAll1 = ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: "prov1")
-        let afterRemoveAll2 = ExtensionOAuthKeychain.getTokens(extensionName: extName, providerId: "prov2")
-        check(
-            "OAuth Keychain removeAllTokens clears all for extension",
-            afterRemoveAll1 == nil && afterRemoveAll2 == nil)
-
-        // URL parsing in ExtensionOAuthSession
-        let raycastURL = URL(string: "raycast://oauth?code=auth_123&state=state_456")!
-        let params = ExtensionOAuthSession.parseCallback(url: raycastURL)
-        check(
-            "parseCallback parses query parameters",
-            params["code"] == "auth_123" && params["state"] == "state_456")
-
-        let fragmentURL = URL(string: "raycast://oauth#access_token=token_xyz&state=state_789")!
-        let fragParams = ExtensionOAuthSession.parseCallback(url: fragmentURL)
-        check(
-            "parseCallback parses hash fragment",
-            fragParams["access_token"] == "token_xyz" && fragParams["state"] == "state_789")
-
-        let nonOAuthURL = URL(string: "raycast://extensions/installed")!
-        check(
-            "handleCallbackURL ignores a non-oauth URL",
-            ExtensionOAuthSession.handleCallbackURL(nonOAuthURL) == .ignored)
-
-        // A callback with nothing waiting for it is reported, not silently dropped.
-        let strayURL = URL(string: "onecast://oauth?code=abc&state=xyz")!
-        check(
-            "handleCallbackURL reports an expired callback",
-            ExtensionOAuthSession.handleCallbackURL(strayURL) == .expired)
-    }
-
     static func deepLinkChecks() {
         let canonical = ExtensionDeepLink.parse(
             url: URL(string: "raycast://extensions/linear/linear/create-issue")!)
@@ -1052,46 +1017,6 @@ struct ExtensionTests {
                 screen.items.first?.node.string("title") == "count=11",
                 screen.items.first?.node.string("title") ?? "nil")
         }
-
-        // OAuth PKCE and TokenSet runtime tests
-        let (oauthRuntime, oauthHost, oauthRecorder) = makeRuntime()
-        try? await oauthRuntime.boot(
-            config: .current(supportDirectory: FileManager.default.temporaryDirectory))
-        let oauthCommand = """
-            "use strict";
-            const { OAuth, showHUD } = require("@raycast/api");
-            module.exports.default = async function () {
-              const client = new OAuth.PKCEClient({
-                redirectMethod: OAuth.RedirectMethod.Web,
-                providerName: "GitHub",
-                providerId: "gh",
-              });
-              const req = await client.authorizationRequest({
-                endpoint: "https://github.com/login/oauth/authorize",
-                clientId: "id123",
-              });
-              const auth = await client.authorize(req);
-              const tokens = new OAuth.TokenSet({
-                accessToken: "token_" + auth.authorizationCode,
-                refreshToken: "refresh_123",
-                expiresIn: 3600,
-              });
-              await client.setTokens(tokens);
-              const read = await client.getTokens();
-              await showHUD(read.accessToken);
-            };
-            """
-        await oauthRuntime.start(
-            session: "sOAuth", code: oauthCommand,
-            file: URL(fileURLWithPath: "/tmp/oauth.js"), mode: .noView,
-            context: launchContext(mode: .noView))
-        await settle()
-        check("oauth command finished", oauthRecorder.finished, oauthRecorder.failures.joined())
-        check(
-            "oauth flow reached token storage",
-            oauthHost.huds == ["token_auth_code_swift_test"],
-            oauthHost.huds.joined(separator: ","))
-        await oauthRuntime.stop(session: "sOAuth")
 
         // Command arguments must reach `props.arguments`, and the bag must exist even when empty.
         let (withArguments, _, argumentRecorder) = makeRuntime()
@@ -1359,7 +1284,10 @@ struct ExtensionTests {
                 () => "none", (error) => error.code), "EEXIST");
               fs.mkdirSync(listing + "/folder", { recursive: true });
               fs.utimesSync(listing, new Date(1000000), new Date(2000005));
-              assert.equal(fs.statSync(listing).mtime.getTime(), 2000005);
+              const stamped = fs.statSync(listing);
+              assert.equal(stamped.atime.getTime(), 1000000);
+              assert.equal(stamped.mtime.getTime(), 2000005);
+              assert.equal(stamped.mode & 0o170000, 0o040000);
               await call("utimes", listing, 3000, 4000.25);
               assert.equal(fs.statSync(listing).mtime.getTime(), 4000250);
               await fs.promises.utimes(listing, "5000", "6000.125");

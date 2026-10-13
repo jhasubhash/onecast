@@ -58,7 +58,8 @@ final class MenuPanelController {
 
     func show(
         _ content: AnyView, corner: MenuPanelCorner, parent: NSWindow, core: AppCore,
-        clipPath: @escaping MenuPanelClipPath, motion: MenuPanelMotion
+        clipPath: @escaping MenuPanelClipPath, motion: MenuPanelMotion,
+        onDismiss: @escaping () -> Void
     ) {
         let transition = beginTransition(closing: false)
         self.motion = motion
@@ -71,6 +72,7 @@ final class MenuPanelController {
         let root = AnyView(content.paletteEnvironment(core))
         setContent(root, clipPath: clipPath, in: panel)
         self.parent = parent
+        (parent as? PalettePanel)?.onDismissMenu = onDismiss
         panel.ignoresMouseEvents = false
         // Open disarmed: a menu opened by click lands under the pointer, which chose no row of it.
         core.palette.disarmHoverHighlight(pointerAt: NSEvent.mouseLocation)
@@ -157,6 +159,7 @@ final class MenuPanelController {
     }
 
     func hide() {
+        (parent as? PalettePanel)?.onDismissMenu = nil
         guard let panel else {
             cancelTransitions()
             return

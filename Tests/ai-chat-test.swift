@@ -64,6 +64,7 @@ struct AIChatTests {
         await regenerateAsksTheSameQuestionAgain()
         chatsKeepTheirOwnModel()
         titlesAreCleanedAndNeverBeatARename()
+        chatStepsFollowTheSidebarAndWrap()
         referencesAreTheLinksAReplyCites()
         closingLinkLineIsLeftToTheChips()
         toolScopeSwitchesServersPerChat()
@@ -1566,6 +1567,27 @@ struct AIChatTests {
         let reopened = AIChatState(history: ChatHistoryStore(directory: directory))
         expect(reopened.open(id: chat.session.id), "the chat reopens")
         expect(reopened.session.model == sonnet, "a later pick is what the chat reopens on")
+    }
+
+    static func chatStepsFollowTheSidebarAndWrap() {
+        func conversation(pinned: Bool = false) -> ChatConversation {
+            ChatConversation(
+                id: UUID(), title: "", preview: "", createdAt: .distantPast, updatedAt: .distantPast,
+                messageCount: 2, isPinned: pinned)
+        }
+        let newest = conversation()
+        let pinned = conversation(pinned: true)
+        let oldest = conversation()
+        let ordered = [newest, pinned, oldest].pinnedFirst
+        expect(ordered.map(\.id) == [pinned.id, newest.id, oldest.id], "pins lead, recency holds")
+
+        expect(ordered.adjacent(to: pinned.id, step: 1) == newest, "a step goes one row down")
+        expect(ordered.adjacent(to: oldest.id, step: 1) == pinned, "the last row wraps to the top")
+        expect(ordered.adjacent(to: pinned.id, step: -1) == oldest, "the top wraps back to the end")
+        expect(ordered.adjacent(to: UUID(), step: 1) == pinned, "an unsaved chat steps to the top")
+        expect(ordered.adjacent(to: UUID(), step: -1) == oldest, "or back to the bottom")
+        expect([pinned].adjacent(to: pinned.id, step: 1) == nil, "a lone chat stays where it is")
+        expect([ChatConversation]().adjacent(to: UUID(), step: 1) == nil, "no chats, no step")
     }
 
     static func titlesAreCleanedAndNeverBeatARename() {

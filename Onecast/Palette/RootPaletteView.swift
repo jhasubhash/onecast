@@ -308,15 +308,6 @@ struct RootPaletteView: View {
                 // The panel has no title bar, so this thin top margin is the only place left to grab
                 // it — kept even over a plugin surface, so Drag to reposition still works there.
                 .overlay(alignment: .top) { topDragStrip }
-                // Never conditionally mounted: unmounting strands SwiftUI's hover target and eats clicks.
-                .overlay {
-                    Color.black.opacity(0.001)
-                        .contentShape(Rectangle())
-                        // Not a tap: a drifting press must still dismiss, the way a native menu's does.
-                        .gesture(DragGesture(minimumDistance: 0).onEnded { _ in closeMenus() })
-                        .onRightClick { closeMenus() }
-                        .allowsHitTesting(menuOpen)
-                }
                 // The menu lives in its own window; this only reports the one to hang it from.
                 .background(
                     WindowReader {
@@ -431,7 +422,7 @@ struct RootPaletteView: View {
                 if vm.mode != .switchWindows { windowSwitch.reset() }
                 if vm.mode != .meetingDetails { calendarStore.clearDetails() }
                 // Leaving the screen any other way than Escape still ends the command's session.
-                if vm.mode != .extensionCommand, extensions.running != nil, !extensions.isAuthorizing {
+                if vm.mode != .extensionCommand, extensions.running != nil {
                     Task { await extensions.stop() }
                 }
                 // A half-filled argument form: leaving the screen abandons the pending run.
@@ -482,7 +473,11 @@ struct RootPaletteView: View {
                 menuPanel.hide()
                 (hostWindow as? PalettePanel)?.onHeaderFieldBoundaryArrow = nil
             }
-            .onAppear { searchFocused = !screen.hidesSearchField }
+            // The first show builds this view after `prepare`, so no handler saw that reset.
+            .onAppear {
+                searchFocused = !screen.hidesSearchField
+                focusPendingArgument()
+            }
             .onChange(of: pluginSurfaceActive) { _, active in
                 // Drop the header's focus so the surface's own field can take the keyboard; on the
                 // way out, refocus it a tick later, once the header field has remounted.
@@ -850,8 +845,10 @@ struct RootPaletteView: View {
         .frame(height: metrics.size.headerHeight + (vm.mode == .ai ? vm.aiComposerExtraHeight : 0))
         .padding(composeAtBottom ? .bottom : .top, metrics.size.headerPadding)
         .frame(maxWidth: .infinity)
-        // Set after the show, so the field it names is focused rather than the search field.
-        .onChange(of: vm.pendingArgumentEntryID) { focusPendingArgument() }
+        // A turn later, so the show's own search refocus has settled and can't take the field back.
+        .onChange(of: vm.pendingArgumentEntryID) {
+            Task { @MainActor in focusPendingArgument() }
+        }
         .onChange(of: core.aiChat.pendingAttachments.map(\.id)) { refreshAttachmentsMenu() }
     }
 
@@ -1247,6 +1244,7 @@ struct RootPaletteView: View {
 
     private func closeMenus() {
         menuPanel.hide()
+        if menuOpen, argumentFocused == nil { searchFocused = !screen.hidesSearchField }
         openMenu = nil
         argumentOptionsField = nil
         // A menu carrying an open editor takes it down with it, and stops any live recording.
@@ -1265,7 +1263,7 @@ struct RootPaletteView: View {
         if presenting, let hostWindow {
             menuPanel.show(
                 view, corner: corner, parent: hostWindow, core: core,
-                clipPath: content.clipPath, motion: content.motion)
+                clipPath: content.clipPath, motion: content.motion, onDismiss: closeMenus)
         } else {
             menuPanel.update(
                 view, corner: corner, core: core, clipPath: content.clipPath,

@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Observation
 
 /// The AI Chat window's toolbar, title and shortcuts: sidebar, New Chat, Find in Chat and Actions.
@@ -150,6 +151,11 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
 
     private func handle(_ event: NSEvent, in window: NSWindow) -> Bool {
         let modifiers = event.modifierFlags.intersection([.command, .shift, .option, .control])
+        // Key code, as Shift turns Tab into back-tab; a repeat is swallowed so none types a tab.
+        if event.keyCode == UInt16(kVK_Tab), modifiers == [.control] || modifiers == [.control, .shift] {
+            if !event.isARepeat { session.openAdjacentChat(step: modifiers.contains(.shift) ? -1 : 1) }
+            return true
+        }
         guard !event.isARepeat, let key = event.charactersIgnoringModifiers?.lowercased() else {
             return false
         }
@@ -165,7 +171,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
             showActions()
         case ([.command], "n"):
             session.newChat()
-        case ([.command], "y"):
+        case ([.command], "y"), ([.command], "b"):
             toggleHistory(in: window)
         case ([.command], ","):
             // The app menu's ⌘, opens Settings where it was left; from a chat, AI is the pane.
@@ -190,7 +196,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
         return true
     }
 
-    /// The sidebar is this window's chat history, so ⌘Y shows and hides it as the bar's does.
+    /// ⌘Y shows and hides the sidebar as it does the bar's history; ⌘B is the usual Mac chord.
     private func toggleHistory(in window: NSWindow) {
         (window.contentViewController as? NSSplitViewController)?.toggleSidebar(nil)
     }

@@ -90,6 +90,12 @@ reviews:
         - Respect intentional Onecast conventions even when they differ from generic Swift advice.
 
         Concurrency (Swift 6 strict; concurrency violations are defects):
+        - Prefer synchronous code. Keep short UI and state operations synchronous on @MainActor.
+          Introduce concurrency only for genuinely asynchronous operations or blocking work that
+          must leave the main actor. Shared state alone does not justify async, a Task, or an actor.
+          Preserve synchronous callback returns and event ordering. When concurrency is needed,
+          prefer structured concurrency with clear ownership and cancellation. Strict concurrency
+          checking enforces safety; it does not require making operations asynchronous.
         - @MainActor is the default. Flag any new custom actor or global actor; the app has one actor.
         - Heavy or IO work (file scans, image decode, SQLite, shell, JSON of real size) must run
           off-main as a nonisolated (usually static) function driven by Task.detached.
@@ -122,7 +128,7 @@ reviews:
         - @Observable only. Flag ObservableObject, @Published, @StateObject, @ObservedObject,
           @EnvironmentObject and Combine used for state.
         - @ObservationIgnored on memo caches and lazy collaborators.
-        - SMAppService for login items; Swift Concurrency over callbacks.
+        - SMAppService for login items; Swift Concurrency over callbacks for asynchronous work only.
         - No #available/@available(macOS …) gates, version flags, compatibility shims,
           migration code or "just in case" fallbacks. Suggest deleting obsolete compatibility code.
         - Carbon is allowed only for global hotkeys (RegisterEventHotKey) and TIS input sources;

@@ -45,12 +45,12 @@ enum Paster {
     }
 
     /// Put a string on the pasteboard unmarked, so it enters history like any other copy.
-    @MainActor
-    static func copyPlainText(_ text: String) {
+    @MainActor @discardableResult
+    static func copyPlainText(_ text: String) -> Bool {
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.declareTypes([.string], owner: nil)
-        pb.setString(text, forType: .string)
+        return pb.setString(text, forType: .string)
     }
 
     /// A copy the source asked to conceal: on the pasteboard for pasting, but marked so history —

@@ -26,7 +26,8 @@ final class AppCore {
     let dictationAudioDucker = DictationAudioDucker()
     @ObservationIgnored private(set) lazy var dictationModels =
         DictationModelStore(idleRelease: settings.dictationIdleRelease)
-    let hyperKeyTap = HyperKeyTap()
+    @ObservationIgnored private(set) lazy var hyperKey = HyperKeyManager(
+        settings: settings, hotKeys: hotKeys)
     let windowMover = WindowMover()
     let spaceSwitcher = SpaceSwitcher()
     let inputSourceSwitcher = InputSourceSwitcher()
@@ -363,7 +364,7 @@ final class AppCore {
             supportReminders.onDue = { [weak self] in self?.supportCoordinator.presentIfDue() }
             supportReminders.start()
 
-            hyperKeyTap.healthTicker = healthTicker
+            hyperKey.healthTicker = healthTicker
             hotKeys.modifierTapMonitor.healthTicker = healthTicker
             snippetListener.healthTicker = healthTicker
 
@@ -461,8 +462,9 @@ final class AppCore {
                 scheduledTaskIDs: Set(scheduledTasks.tasks.map(\.id)),
                 dockSetupIDs: Set(docks.configuration.setups.map(\.id)),
                 dockIDs: Set(docks.docks.map(\.id)))
-            // Keeps running while Carbon pauses: the recorder needs its rewritten flags.
-            hyperKeyTap.start(settings: settings)
+            // After `hotKeys.start`: Secure Input equivalents are built from the loaded bindings.
+            hyperKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
+            hyperKey.start()
 
             snippetsStore.onSnapshot = { [weak self] snapshot in
                 guard let self else { return }
@@ -503,16 +505,6 @@ final class AppCore {
     }
 
     func handleOpenURL(_ url: URL) {
-        switch ExtensionOAuthSession.handleCallbackURL(url) {
-        case .delivered:
-            paletteCoordinator.showPalette(mode: .extensionCommand, restoreAnyMode: true)
-            return
-        case .expired:
-            showMessage("Sign-in expired — run the command again", tone: .danger)
-            return
-        case .ignored:
-            break
-        }
         if DockURL.claims(url) {
             dockSwitchCoordinator.handle(url)
             return
@@ -606,7 +598,7 @@ final class AppCore {
         settingsFile?.flush()
         clipboardTextIndexer?.stop()
         // Caps Lock first: its remap is the one teardown that outlives the process.
-        hyperKeyTap.prepareForTermination()
+        hyperKey.prepareForTermination()
         windowLayoutCoordinator.prepareForTermination()
         dockCoordinator.prepareForTermination()
         presentationCoordinator.prepareForTermination()

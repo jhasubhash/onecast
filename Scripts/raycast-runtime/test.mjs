@@ -300,7 +300,6 @@ function syncHostCall(api, method, args) {
   }
 }
 
-const oauthTokens = new Map();
 const runningChildren = new Map();
 
 async function stubHostCall(api, method, args) {
@@ -338,17 +337,6 @@ async function stubHostCall(api, method, args) {
       runningChildren.delete(args[0]);
       return exit;
     }
-    // Positional arguments throughout, matching `src/api/oauth.js`.
-    case "oauth.authorize":
-      return { authorizationCode: "auth-code-12345", state: args[1] ?? "" };
-    case "oauth.getTokens":
-      return oauthTokens.get(args[0]) ?? null;
-    case "oauth.setTokens":
-      oauthTokens.set(args[0], args[1]);
-      return null;
-    case "oauth.removeTokens":
-      oauthTokens.delete(args[0]);
-      return null;
     default:
       if (["window", "feedback", "cache", "storage", "clipboard", "system"].includes(api)) return null;
       throw new Error(`harness: no async stub for ${api}.${method}`);
@@ -465,7 +453,7 @@ async function runExtension(dir, commandName) {
       },
     }),
   );
-  harness.start("s1", readFileSync(file, "utf8"), file, dir, target.mode === "view" ? "view" : "no-view", {});
+  harness.start("s1", readFileSync(file, "utf8"), file, dir, target.mode, {});
 
   await new Promise((resolve) => setTimeout(resolve, 1500));
   if (harness.state.failures.length) {

@@ -45,12 +45,13 @@ produces, rendered natively into the palette. No Electron, no browser, no Node.j
 
 ## How it works
 
-A Raycast extension command is a **single prebuilt CommonJS file** that keeps `react`,
-`react/jsx-runtime`, `@raycast/api` and the Node built-ins external. Onecast supplies exactly those,
-runs the bundle, and renders the React tree it produces:
+A Raycast extension command is a **prebuilt CommonJS file** that keeps `react`,
+`react/jsx-runtime`, `@raycast/api` and the Node built-ins external. Onecast supplies those,
+runs the bundle, resolves any third-party packages shipped under `node_modules/`, and renders the
+React tree it produces:
 
 ```
-  <command>.js  (esbuild output, deps inlined)
+  <command>.js  (esbuild output, deps inlined or in node_modules)
         │  require("@raycast/api"), require("react"), require("node:fs"), …
         ▼
   RaycastRuntime.generated.js          ← in the app bundle; React 19 + react-reconciler
@@ -100,7 +101,7 @@ same arrangement as `EmojiData.generated.swift`: building Onecast never needs No
 | `src/reconciler.js` | `react-reconciler` host config that commits into a JSON tree |
 | `src/api/components.js` | every `@raycast/api` component |
 | `src/api/system.js` | Clipboard, LocalStorage, Cache, Toast, preferences, environment |
-| `src/api/oauth.js` | `OAuth.PKCEClient`, `OAuth.TokenSet`, redirect url builders |
+| `src/api/oauth.js` | `OAuth.PKCEClient` and `RedirectMethod`; the browser step and token storage are host calls |
 | `src/api/enums.generated.js` | Icon / Color / Toast.Style / … extracted from the real `@raycast/api` types |
 | `src/node-shims.js` | `path`, `fs`, `os`, `child_process`, `crypto`, `zlib`, `util`, `events`, `buffer`, `punycode`, … |
 | `src/url.js`, `src/punycode.js`, `src/buffer.js` | web/Node primitives JavaScriptCore lacks |
@@ -123,9 +124,8 @@ Two host-call flavours:
 | `Service/ExtensionRuntime.swift` | the `JSContext`, host-function installation, timers, exception reporting |
 | `Service/ExtensionHostBridge.swift` | main-actor host APIs (clipboard, storage, cache, window, toasts, system, oauth) |
 | `Service/ExtensionNodeShims.swift` | the synchronous `fs` / `os` / `child_process` / `crypto` / `zlib` services |
-| `Service/ExtensionFetcher.swift` | `fetch` over `URLSession`, plus collecting async `exec` children and the shared PATH resolver |
-| `Service/ExtensionOAuthKeychain.swift` | secure OAuth token storage backed by macOS Keychain |
-| `Service/ExtensionOAuthSession.swift` | PKCE state tracking, browser launch, and callback redirect resolution |
+| `Service/ExtensionFetcher.swift` | HTTP over `URLSession` or a Unix socket, plus async `exec` collection and the shared PATH resolver |
+| `Service/ExtensionSignInSession.swift` | the browser step of an extension's OAuth sign-in (`ASWebAuthenticationSession`) |
 | `Service/ExtensionStorage.swift` | per-extension `LocalStorage`, `Cache` and preference values (one JSON file each) |
 | `Service/ExtensionCommandMetadataStore.swift` | every command's subtitle override, refresh bookkeeping and menu-bar state, in one small file |
 | `Service/ExtensionCatalog.swift` | discovery on disk, install, uninstall, import-from-Raycast |
@@ -466,8 +466,11 @@ Settings → Extensions offers four routes, under **Install**:
 4. **Add from folder** — pick any directory with a manifest and built command files, e.g. an extension
    you just ran `ray build` in.
 
-Only `package.json`, the built commands and `assets/` are copied — never `node_modules` or the
-multi-megabyte `.js.map` Raycast writes beside each bundle.
+Only `package.json`, the built commands, `assets/` and any bundled `node_modules/` are copied —
+never the multi-megabyte `.js.map` Raycast writes beside each bundle. Store `dist` bundles leave
+third-party packages external and ship them, pre-built CommonJS, under `node_modules/`; the embedded
+runtime resolves those from the command's directory, never above the extension's own folder, so
+they must survive the install. A build that inlined everything simply has no such folder.
 
 ## Installing from GitHub
 
@@ -500,6 +503,9 @@ directory first, so aiming it at the source deleted `assets/` before the install
 extension arrived with no icon. Building into its own directory leaves the source intact and yields
 exactly the layout `ExtensionCatalog.install` expects: `package.json`, one `<command>.js` each, and
 `assets/`. What it installs from is that directory, not the source.
+
+A checkout without `ray` runs its own build script and installs from the checkout itself, whose
+`node_modules` is the full dev install rather than build output, so the installer removes it first.
 
 **Only the build survives.** Source, `node_modules` and build all live in the install's workspace
 (below), which a `defer` removes whichever way the install ends. **Closing the sheet cancels the
@@ -644,24 +650,25 @@ interval floor instead of sixty.
 `openExtensionPreferences`,
 `useNavigation`, `OAuth`, `Icon`, `Color`, `Image.Mask`, `Keyboard.Shortcut.Common`, `LaunchType`.
 
-**OAuth 2.0 PKCE** — `OAuth.PKCEClient`, `OAuth.TokenSet`, `OAuth.RedirectMethod`, with S256 challenges and
-tokens in the login Keychain (service `com.onecast.extensions.oauth`, `kSecAttrAccessibleWhenUnlocked`),
-scoped per extension and dropped on uninstall.
+**`OAuth`** — `PKCEClient` builds the RFC 7636 request in JS, and `@raycast/utils`' `OAuthService`
+runs on top of it unchanged. The browser step is `ExtensionSignInSession`: providers have Raycast's
+fixed redirect URIs registered, which all end on `raycast://oauth` or `com.raycast:/oauth`, and
+`ASWebAuthenticationSession` intercepts that scheme itself, so an installed Raycast cannot take the
+redirect — Onecast's own claim on those schemes in `Info.plist` is for `raycast://` links, not for
+sign-in. Raycast's web redirect page drops `state`, so only a returned `state` is checked. Each
+provider's token set lives in the extension's data file, beside its preferences, keyed by
+`providerId`. Only a command the user opened can start a sign-in; a background refresh fails until
+then. While the browser is up the palette hides, but Pop to Root Search holds off, because resetting
+would stop the command and cancel the sign-in. Summoning the palette meanwhile returns to the waiting
+command, and the palette comes back on its own when the redirect lands.
 
-The redirect address belongs to the extension author's OAuth app registration, so Onecast cannot choose
-it — it can only be there to catch it. **Onecast therefore claims `raycast`, `com.raycast` and `onecast`
-as URL schemes**, which is what makes all three of Raycast's redirect methods land back in the app:
-
-| `RedirectMethod` | Registered address | How it returns |
-| --- | --- | --- |
-| `App` | `raycast://oauth?package_name=Extension` | straight to Onecast, no server |
-| `AppURI` | `com.raycast:/oauth?package_name=Extension` | straight to Onecast, no server |
-| `Web` | `https://raycast.com/redirect?packageName=Extension` | through Raycast's page, which reopens a claimed scheme |
-
-Claiming `raycast` means an installed Raycast competes with Onecast for those links and macOS picks the
-winner. That is a deliberate trade: without it, `App` redirects have nowhere to land. `Web` additionally
-depends on a page Raycast can change at any time — `ExtensionOAuthSession` times out after five minutes so
-a redirect that never arrives cannot wedge the palette.
+**Bundled packages** — a store `dist` build leaves third-party packages external and ships them,
+pre-built CommonJS, under `node_modules/` beside the commands. `require` resolves relative paths,
+directories, `main` and `exports` maps (conditions, subpaths and `*` patterns, most specific first),
+JSON files and nested dependencies, and a cycle sees partial exports. Lookup stops at the command's
+own folder, so a package above the extension never loads, and a failed load is retried rather than
+cached. `module.createRequire` hands back that same resolver, which is how an extension that requires
+`@raycast/api` lazily gets it.
 
 **`raycast://` URLs** — extensions address Raycast by scheme; the most common is a bare
 `open("raycast://")` to bring the window back after something stole focus (1Password's auth flow does
@@ -677,7 +684,7 @@ each async form reporting the child's real `pid` for `process.kill` — Timers p
 a command closing stops any non-detached child still running for it),
 `crypto` (hashes, HMAC, PBKDF2, AES-CBC/ECB, random, UUID), `zlib` (gzip/zlib/raw deflate, both
 directions, plus `create*` streams that buffer until `end`), `http`/`https` (`request`, `get` and `Agent`, buffered over the same URLSession bridge
-as `fetch`), `stream` (`Readable`, `Writable`, `Duplex`, `Transform`, `PassThrough`, `pipeline`,
+as `fetch`, with `socketPath` for Unix-socket HTTP), `stream` (`Readable`, `Writable`, `Duplex`, `Transform`, `PassThrough`, `pipeline`,
 `finished`, plus `stream/promises` and `stream/web`), `util`, `events`, `buffer`, `url`, `querystring`, `punycode`, `assert`,
 `string_decoder`, `timers`. Every other built-in resolves to a stub that throws only when used, so a
 bundle that merely references `dgram` or `http2` still loads. Those stubs are manufactured lazily,
@@ -722,13 +729,34 @@ always does) would otherwise pass `isFolderEntry` and reach `fileURLToPath`, whi
 Search Recent Projects command down.
 
 Non-recursive `mkdir` is atomic and returns POSIX error codes. `utimes` updates real timestamps,
-so extension lockfiles can detect stale owners and refresh their heartbeat.
+so extension lockfiles can detect stale owners and refresh their heartbeat. `stat` and `lstat` read one
+`fstatat`, so `atimeMs`, `ctimeMs` and `mode` (with its file-type bits) are the file's own.
+
+`Buffer#toString` and `TextDecoder` decode malformed UTF-8 as Node does: each bad sequence becomes
+U+FFFD, and `TextDecoder`'s `fatal` option throws `ERR_ENCODING_INVALID_ENCODED_DATA`, so binary in a
+plist's `<data>` cannot abort a read. `URLSearchParams` carries Node's `toStringTag`; axios sends an
+untagged instance as an object, which is how Bring!'s sign-in broke.
 
 A bundle that ships its own HTTP client rather than calling `fetch` — node-fetch travels inside
 `@raycast/utils`, and axios has a Node adapter — reaches the network through `http.request`, so the
 shim answers it: one request when the body ends, one response chunk when the bridge replies. The
 transport decodes for us, so the response drops `content-encoding` and `content-length` rather than
 have the client gunzip plaintext.
+
+An explicit `socketPath` selects Unix-socket HTTP, which Docker uses for its local daemon. The host
+runs macOS's bundled `/usr/bin/curl` off-main because URLSession has no public Unix-socket transport.
+Pipe draining and process-exit waits run on a Dispatch worker while the Swift task suspends, so slow
+socket responses do not occupy Swift's cooperative thread pool.
+The child bypasses proxies and user curl configuration, decodes compressed bodies, and returns HTTP
+statuses, headers and binary bodies through the same bridge. Cancellation terminates and collects
+that request's child; request-body scratch files are private and removed on exit. Requests without
+`socketPath` continue through the shared ephemeral URLSession. Responses remain buffered, so Docker
+log streams, event streams and interactive attach sessions are outside this transport's support.
+An unavailable socket reports an actionable connection error and shows the existing failure toast
+for a foreground command. Background commands stay silent, and the extension still receives the
+rejected request so its own error handling can run.
+Repeated failures of that socket show one toast until a connection succeeds or the command session
+ends, so polling cannot continually replay its entrance or undo a dismissal.
 
 Two things decide whether it gets there. Axios enables that adapter only when
 `Object.prototype.toString.call(process)` reads `[object process]`, so `process` carries the tag; and
@@ -832,7 +860,7 @@ never shares with an installed copy.
 | Command subtitle, refresh state | `extension-commands.json` | yes |
 | Installed store version | `extension-versions.json` | yes |
 | `environment.supportPath` | `extension-support/<safe name>/` | yes |
-| OAuth tokens | macOS Keychain (`com.onecast.extensions.oauth`) | yes |
+| OAuth tokens | `extension-data/<safe name>.json`, beside `LocalStorage` | yes |
 | Menu-bar activation and snapshot | `extension-commands.json` | yes |
 | Icon override | `UserDefaults` → `extensionAppearances` | yes |
 | Command shortcuts | `UserDefaults` → `hotkey.extensionCommand.<entry id>` | yes |

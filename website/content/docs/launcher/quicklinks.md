@@ -127,19 +127,25 @@ top of the Quicklinks section, not above your apps.
 The **Search Quicklinks** command opens a screen with the list on the left and details on the right:
 the link, the app it opens with, its shortcut and when you made it.
 
-| Action                          | Shortcut                      |
-| ------------------------------- | ----------------------------- |
-| Open Quicklink                  | <kbd>return</kbd>             |
-| Open With Default App           | <kbd>⌘</kbd><kbd>return</kbd> |
-| Edit Quicklink                  |                               |
-| Duplicate Quicklink             |                               |
-| Pin / Unpin Quicklink           | <kbd>⌘</kbd><kbd>.</kbd>      |
-| Hide from / Show in Root Search |                               |
-| Show in Finder                  | <kbd>⌘</kbd><kbd>F</kbd>      |
-| Delete Quicklink                | <kbd>⌘</kbd><kbd>delete</kbd> |
+| Action                          | Shortcut                             |
+| ------------------------------- | ------------------------------------ |
+| Open Quicklink                  | <kbd>return</kbd>                    |
+| Open With Default App           | <kbd>⌘</kbd><kbd>return</kbd>        |
+| Copy Link                       | <kbd>⌃</kbd><kbd>⌘</kbd><kbd>C</kbd> |
+| Edit Quicklink                  |                                      |
+| Duplicate Quicklink             |                                      |
+| Pin / Unpin Quicklink           | <kbd>⌘</kbd><kbd>.</kbd>             |
+| Hide from / Show in Root Search |                                      |
+| Show in Finder                  | <kbd>⌘</kbd><kbd>F</kbd>             |
+| Delete Quicklink                | <kbd>⌘</kbd><kbd>delete</kbd>        |
 
 **Open With Default App** only appears when the quicklink has its own app, and **Show in Finder** only
 for files and folders.
+
+**Copy Link** is in the actions menu (<kbd>⌘</kbd><kbd>K</kbd> or right-click) in both the launcher and
+Search Quicklinks, or directly with <kbd>⌃</kbd><kbd>⌘</kbd><kbd>C</kbd>. It copies the saved
+destination without opening it. Placeholders such as `{argument}` and `{clipboard}` stay as written,
+even when you've filled in values.
 
 ## Three ways to put one away
 

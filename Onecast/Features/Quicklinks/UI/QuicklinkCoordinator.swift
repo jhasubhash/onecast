@@ -244,6 +244,19 @@ final class QuicklinkCoordinator {
         do { try store.setEnabled(enabled, id: id) } catch { report(error) }
     }
 
+    /// The saved template, literally: placeholders stay unexpanded and nothing is opened.
+    func copyQuicklink(id: UUID) {
+        guard settings.quicklinksEnabled, let quicklink = store.quicklink(id: id),
+            quicklink.isEnabled
+        else { return }
+        paletteCoordinator.hidePalette(restoreFocus: false)
+        guard Paster.copyPlainText(quicklink.link) else {
+            core.showMessage("Couldn’t copy link", tone: .danger)
+            return
+        }
+        core.showMessage("Link copied")
+    }
+
     func duplicateQuicklink(id: UUID) {
         do { _ = try store.duplicate(id: id) } catch { report(error) }
     }

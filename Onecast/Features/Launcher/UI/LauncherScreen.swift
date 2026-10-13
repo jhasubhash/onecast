@@ -282,6 +282,7 @@ struct LauncherScreen: PaletteScreen {
         case .hideFromSearch: return hideFromSearch(at: selection)
         case .quit, .forceQuit: return quit(at: selection, force: shortcut == .forceQuit)
         case .restart: return restart(at: selection)
+        case .copyPath: return copyQuicklink(at: selection)
         case .favoriteSlot(let index): return launchFavorite(at: index)
         case .copyCalculation: return copyCalculation(at: selection)
         case .openInApp, .showDetails:
@@ -289,6 +290,15 @@ struct LauncherScreen: PaletteScreen {
             return MeetingActionsMenu.perform(shortcut, meeting: meeting, core: core)
         default: return false
         }
+    }
+
+    /// ⌃⌘C — only a quicklink row has a link to copy.
+    private func copyQuicklink(at selection: Int) -> Bool {
+        guard let app = entry(at: selection), app.kind == .quicklink,
+            let quicklink = quicklink(for: app)
+        else { return false }
+        core.quicklinkCoordinator.copyQuicklink(id: quicklink.id)
+        return true
     }
 
     private func copyCalculation(at selection: Int) -> Bool {

@@ -46,6 +46,13 @@ final class AIChatWindowSession {
         }
     }
 
+    /// The sidebar's filter is the view's own state, so ⌃⇥ walks every saved chat of the scope.
+    func openAdjacentChat(step: Int) {
+        let ordered = history.conversations.pinnedFirst
+        guard let target = ordered.adjacent(to: chat.session.id, step: step) else { return }
+        open(id: target.id)
+    }
+
     func newChat() {
         guard !chat.session.messages.isEmpty || chat.isStreaming else { return }
         parkIfAnswering()
