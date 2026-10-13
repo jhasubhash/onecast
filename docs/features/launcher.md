@@ -599,7 +599,8 @@ selection.
 
 Only the display name is indexed. Activation resolves the stable UUID through the store and dispatches
 to `ShellCommandRunner`; see [custom-commands.md](custom-commands.md) for persistence, hotkeys and
-execution semantics.
+execution semantics. **Search Custom Commands** and **Create Custom Command** are pane-owned built-ins
+that open the browser and the editor described there.
 
 ## Quick Actions
 
@@ -642,10 +643,12 @@ and three places read it: `FeatureCommandsSection` draws the pane's rows from it
 category gate for it in both `isVisible` and `allowsHotKey`. Stamping the entry rather than sniffing its
 id is what keeps "which pane owns this" out of the entry-ID namespace.
 
-Eleven panes own commands today — AI, Quick Actions, File Search, Notes, Snippets, Navigation,
-Window Management, Clipboard, Emoji, Calendar and Quicklinks. What is left in Settings › Commands is
-the set no feature switch governs: Calculator History, Open Camera, the three backup commands, Check
-for Updates, Onecast Settings, About, Support and Quit.
+Twelve panes own commands today — AI, Quick Actions, File Search, Notes, Snippets, Navigation,
+Window Management, Clipboard, Emoji, Calendar, Quicklinks and Commands itself, which owns Create and
+Search Custom Commands under `customCommandsEnabled` and draws them with `FeatureCommandRow` beside
+the custom commands. What is left in Settings › Commands is the set no feature switch governs:
+Calculator History, Open Camera, the three backup commands, Check for Updates, Onecast Settings,
+About, Support and Quit.
 
 A pane's list is also its display order, so `CommandID`'s declaration order is grouped by owner.
 Nothing keys on that order — `CommandCatalog.all` sorts by name and every preference keys on the raw

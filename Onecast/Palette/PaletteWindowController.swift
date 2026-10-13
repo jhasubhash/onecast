@@ -395,6 +395,11 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     // MARK: - Private
 
+    private static func isCommandReturn(_ event: NSEvent) -> Bool {
+        (Int(event.keyCode) == kVK_Return || Int(event.keyCode) == kVK_ANSI_KeypadEnter)
+            && event.modifierFlags.intersection([.command, .option, .control, .shift]) == .command
+    }
+
     private func ensurePanel() -> PalettePanel {
         if let panel { return panel }
         let root = RootPaletteView().paletteEnvironment(core)
@@ -463,13 +468,22 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         installPasteMonitor()
         // Handled at the panel: a focused preview answers Escape before the palette's own handler.
         panel.onEscape = { [weak self] in
-            guard let self, core.palette.fileSearchQuickLook else { return false }
+            guard let self else { return false }
+            if core.palette.mode.isEditor, !core.palette.isComposing, !core.palette.menuOpen {
+                return core.cancelOpenEditor()
+            }
+            guard core.palette.fileSearchQuickLook else { return false }
             core.palette.fileSearchQuickLook = false
             return true
         }
         // Handled at the panel: the field editor or a missing main menu eats these first.
         panel.onCommandShortcut = { [weak self] event in
             guard let self else { return false }
+            if Self.isCommandReturn(event), core.palette.mode.isEditor,
+                !core.palette.isComposing, !core.palette.menuOpen
+            {
+                return core.saveOpenEditor()
+            }
             if self.core.palette.mode == .emoji, let zoom = Self.emojiGridZoom(from: event) {
                 self.core.palette.noteEmojiGridZoom(zoom)
                 return true

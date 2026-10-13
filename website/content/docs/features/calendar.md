@@ -57,9 +57,12 @@ Declined, cancelled, all-day and finished events are skipped everywhere.
 | ----------------- | ----------------------------------------------------------- |
 | Join Next Meeting | Opens the card's meeting, the running one, or the next      |
 | My Schedule       | Opens your meetings as a list in the palette                |
-| Create Event      | Asks for a title, when it starts and how long, then adds it |
+| Create Event      | Opens a form: a title, a start and a duration, then adds it |
 | Copy Meeting Link | Copies the next meeting's link                              |
 | Open in Calendar  | Opens the next meeting in Calendar                          |
+
+Create Event opens as a form in the palette. **⌘↵**, or **↵** in the title, adds the event, and **Esc**
+discards it.
 
 Each command has a checkbox, a shortcut recorder and an alias field in **Settings → Calendar**.
 

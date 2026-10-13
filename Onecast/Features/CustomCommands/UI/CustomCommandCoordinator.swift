@@ -1,8 +1,12 @@
 import AppKit
 
-/// Owns custom commands: the library, the one run funnel with its gates, and a deletion's cleanup.
+/// Owns custom commands: the library and its editor, the one run funnel with its gates, and a
+/// deletion's cleanup.
 @MainActor
+@Observable
 final class CustomCommandCoordinator {
+    /// A hidden palette keeps the form mounted, so a later summon resumes the same session.
+    private(set) var editor: CustomCommandEditorSession?
     private let store: CustomCommandStore
     private let argumentSession: CustomCommandArgumentSession
     private let settings: AppSettings
@@ -17,16 +21,16 @@ final class CustomCommandCoordinator {
     /// Dialog and message-HUD presentation only — never for state this type owns.
     private unowned let core: AppCore
     /// Built on first use; the window inside it waits for a run that actually shows output.
-    private lazy var outputPresenter = CommandOutputPresenter(
+    @ObservationIgnored private lazy var outputPresenter = CommandOutputPresenter(
         activation: activationPolicy,
         rerun: { [unowned self] in self.rerunOutput(id: $0) },
         stop: { [unowned self] in self.stopOutputRun(id: $0) },
         openSettings: { [unowned self] in self.settingsCoordinator.showSettings(tab: .commands) })
     private let activationPolicy: ActivationPolicy
     /// Superseding never touches it — only the button ends a command.
-    private var liveRun: (id: UUID, stop: @Sendable () -> Void)?
+    @ObservationIgnored private var liveRun: (id: UUID, stop: @Sendable () -> Void)?
     /// The last fallback shell line, which has no library entry for the window's Rerun to find.
-    private var lastShellCommand: (id: UUID, text: String)?
+    @ObservationIgnored private var lastShellCommand: (id: UUID, text: String)?
 
     init(
         store: CustomCommandStore,
@@ -60,9 +64,90 @@ final class CustomCommandCoordinator {
 
     // MARK: - Feature presence
 
+    /// Either switch off means the feature reaches the launcher not at all — rows and commands.
     func applyCustomCommandsPresence() {
+        if !settings.customCommandsEnabled {
+            cancelCustomCommandEditing()
+            if core.palette.mode == .customCommands { core.palette.prepare(mode: .launcher) }
+        }
         let visible = settings.customCommandsEnabled && settings.customCommandsShowInLauncher
         appIndex.setCustomCommands(visible ? store.commands : [])
+        appIndex.setCommandsVisible(Set(SettingsTab.commands.ownedCommands), visible)
+    }
+
+    // MARK: - Browsing and editing
+
+    /// The switch gates the browser, the way Search Snippets re-checks its own before opening.
+    func showCustomCommands() {
+        guard settings.customCommandsEnabled else { return }
+        paletteCoordinator.togglePalette(mode: .customCommands)
+    }
+
+    /// Opens the in-palette editor on `command`; nil is a new one. Re-opening the draft the palette
+    /// already holds resumes it rather than discarding what was typed.
+    func editCustomCommand(_ command: CustomCommand?) {
+        guard settings.customCommandsEnabled else { return }
+        if core.palette.mode == .customCommandEditor, let editor,
+            editor.original?.id == command?.id
+        {
+            guard !paletteCoordinator.isShowing(.customCommandEditor) else { return }
+        } else {
+            editor = CustomCommandEditorSession(command: command)
+        }
+        paletteCoordinator.showPalette(mode: .customCommandEditor)
+    }
+
+    /// The form's primary action. A refused write keeps the form up with the reason.
+    func saveCustomCommand() {
+        guard settings.customCommandsEnabled, let editor, editor.canSave else { return }
+        do {
+            var draft = editor.draft()
+            let isNew = editor.original == nil
+            if isNew {
+                try addCustomCommand(draft)
+            } else {
+                guard let current = store.command(id: editor.id) else {
+                    editor.errorMessage =
+                        "This command was deleted. Copy your changes before closing."
+                    return
+                }
+                draft.isEnabled = current.isEnabled
+                try updateCustomCommand(draft)
+            }
+            cancelCustomCommandEditing()
+            core.showMessage(isNew ? "Custom command created" : "Custom command updated")
+        } catch {
+            editor.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Back to the screen that opened the form, or hide when it was the root.
+    func cancelCustomCommandEditing() {
+        guard core.palette.mode == .customCommandEditor else { return }
+        paletteCoordinator.closeScreen(preservingSelection: true)
+        editor = nil
+    }
+
+    func editorDidClose(_ editor: CustomCommandEditorSession) {
+        if self.editor === editor { self.editor = nil }
+    }
+
+    func chooseWorkingDirectory() {
+        guard let editor else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Choose"
+        panel.message = "Choose the folder this command runs in."
+        if !editor.workingDirectory.isEmpty {
+            panel.directoryURL = URL(
+                fileURLWithPath: (editor.workingDirectory as NSString).expandingTildeInPath)
+        }
+        // An accessory app must activate first, or the panel opens behind the frontmost app.
+        NSApp.activate()
+        guard panel.runModal() == .OK, let url = panel.url, self.editor === editor else { return }
+        editor.workingDirectory = (url.path as NSString).abbreviatingWithTildeInPath
     }
 
     // MARK: - Library
@@ -85,8 +170,15 @@ final class CustomCommandCoordinator {
         store.setShowsInRootSearch(shows, id: id)
     }
 
-    func deleteCustomCommand(id: UUID) {
+    /// Deletes and unwinds every reference once the user confirms.
+    func deleteCustomCommand(id: UUID) async {
         guard let command = store.command(id: id) else { return }
+        guard
+            await core.confirm(
+                title: "Delete “\(command.name)”?",
+                message: "Its shortcut, favorite slot and learned ranking go with it.",
+                symbol: command.symbol, confirmTitle: "Delete")
+        else { return }
         removeCustomCommandReferences(ids: [id], entryIDs: [command.entryID])
         store.remove(id: id)
     }

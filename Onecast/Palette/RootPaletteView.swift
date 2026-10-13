@@ -37,6 +37,8 @@ struct RootPaletteView: View {
     @State private var menuSelection = 0
     /// The argument field whose choices are up, so `menuContent` can rebuild the same menu.
     @State private var argumentOptionsField: String?
+    /// The rows of the form control whose menu is up, so `menuContent` can rebuild the same menu.
+    @State private var inputOptions: PopoverMenuContent?
     @State private var menuPanel = MenuPanelController()
     /// The palette's own window, reported by `WindowReader`; the menu hangs off its frame.
     @State private var hostWindow: NSWindow?
@@ -123,6 +125,16 @@ struct RootPaletteView: View {
             return QuicklinkEditorScreen(coordinator: core.quicklinkCoordinator, vm: vm)
         case .snippetEditor:
             return SnippetEditorScreen(coordinator: core.snippetCoordinator, vm: vm)
+        case .eventEditor:
+            return EventEditorScreen(
+                coordinator: core.calendarCoordinator, openMenuCorner: menuCorner,
+                openInputMenu: openInputOptions)
+        case .customCommandEditor:
+            return CustomCommandEditorScreen(coordinator: core.customCommandCoordinator)
+        case .customCommands:
+            return CustomCommandListScreen(
+                store: core.customCommands, coordinator: core.customCommandCoordinator,
+                vm: vm, metrics: metrics, openActions: openActions)
         case .extensionCommand:
             return ExtensionCommandScreen(
                 screen: extensionScreen, extensions: extensions, vm: vm, openActions: openActions)
@@ -257,6 +269,16 @@ struct RootPaletteView: View {
                 let popover = headerAccessory?.optionsMenu(field)
             else { return nil }
             return headerMenu(popover, width: metrics.size.menuWidth, query: query)
+        case .inputOptions(let corner):
+            guard let inputOptions else { return nil }
+            let width: CGFloat =
+                switch corner {
+                case .belowControl(let frame, _): max(metrics.size.formMenuMinimumWidth, frame.width)
+                default: metrics.size.formMenuMinimumWidth
+                }
+            return headerMenu(
+                inputOptions, width: width, query: query,
+                extraRowsHeight: metrics.size.formMenuExtraRowsHeight)
         case .extensionAccessory:
             return extensionCommandScreen?.searchAccessoryMenu(
                 menuSelection: $menuSelection, onActivate: activateMenuItem)
@@ -301,7 +323,8 @@ struct RootPaletteView: View {
                     if !isCollapsed, !pluginSurfaceActive, !composeAtBottom {
                         bottomBar(
                             pillLabel: screen.primaryActionTitle, showActionGroup: showActionGroup,
-                            formPrimaryShortcut: isExtensionForm,
+                            formPrimaryShortcut: isExtensionForm || vm.mode.isNativeEditor,
+                            primaryActionEnabled: screen.isPrimaryActionEnabled(at: sel),
                             showActions: screen.hasActions(at: sel))
                     }
                 }
@@ -364,7 +387,7 @@ struct RootPaletteView: View {
             .onChange(of: vm.query) {
                 // AI keeps its line breaks and re-measures its composer; every other mode is one line.
                 if vm.mode == .ai { updateAIComposer() } else if vm.collapseQueryLineBreaks() { return }
-                land()
+                land(restoringNavigation: true)
                 if vm.mode == .fileSearch { fileSearch.search(vm.query, filter: vm.fileSearchFilter) }
                 if vm.mode == .menuSearch { menuSearch.filter(vm.query) }
                 if vm.mode == .switchWindows { windowSwitch.filter(vm.query) }
@@ -393,7 +416,7 @@ struct RootPaletteView: View {
                 vm.emojiGridColumnsOverride = nil
                 vm.fileSearchQuickLook = false
                 if menuOpen { closeMenus() }
-                land()
+                land(restoringNavigation: true)
                 // `.ai` has its own field, so crossing in or out mounts one `searchFocused` won't seat.
                 if (old == .ai) != (vm.mode == .ai), !screen.hidesSearchField {
                     searchFocused = false
@@ -549,6 +572,7 @@ struct RootPaletteView: View {
                     activateMenuItem(menuSelection)
                     return .handled
                 }
+                if vm.mode.isNativeEditor { return .ignored }
                 if isExtensionForm { return handleFormReturn(press) }
                 // ⇧↵ drops a line break into the AI composer; every other Return sends or submits.
                 if vm.mode == .ai, press.modifiers.contains(.shift), !command, !option {
@@ -863,10 +887,15 @@ struct RootPaletteView: View {
                 Text("AI Chat")
                     .font(metrics.typography.bar)
                     .foregroundStyle(Theme.Colors.textSecondary)
-                KeyCapChip(text: "⇥", style: .outline)
+                SymbolImage(
+                    name: CommandID.aiChat.sfSymbol,
+                    size: metrics.scaled(Theme.Typography.menuSymbolSize)
+                )
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .accessibilityHidden(true)
             }
         }
-        .help("Ask AI Chat what you typed  ⇥")
+        .help("Ask AI Chat")
     }
 
     /// Resolved through `PaletteTabAction`, so the hint cannot promise the wrong destination.
@@ -1078,7 +1107,8 @@ struct RootPaletteView: View {
     }
 
     private func bottomBar(
-        pillLabel: String, showActionGroup: Bool, formPrimaryShortcut: Bool, showActions: Bool
+        pillLabel: String, showActionGroup: Bool, formPrimaryShortcut: Bool,
+        primaryActionEnabled: Bool, showActions: Bool
     ) -> some View {
         // The shared ActionBar — the same bar extensions and native plugins render — styled from
         // Theme so the launcher's footer keeps tracking Theme and the UI-size setting.
@@ -1090,7 +1120,8 @@ struct RootPaletteView: View {
                 primary: showActionGroup
                     ? ActionBarItem(
                         title: pillLabel, keys: formPrimaryShortcut ? ["⌘", "↵"] : ["↵"],
-                        tint: pillTint, action: activateSelection)
+                        tint: primaryActionEnabled ? pillTint : Theme.Colors.textTertiary,
+                        action: primaryActionEnabled ? activateSelection : {})
                     : nil,
                 actions: showActionGroup && showActions
                     ? ActionBarItem(
@@ -1219,11 +1250,11 @@ struct RootPaletteView: View {
 
     /// Every header menu states its own width, so resizing one never moves another.
     private func headerMenu(
-        _ popover: PopoverMenuContent, width: CGFloat, query: String
+        _ popover: PopoverMenuContent, width: CGFloat, query: String, extraRowsHeight: CGFloat = 0
     ) -> PaletteMenuContent {
         PaletteMenuContent(
             popover: popover, selection: $menuSelection, width: width, query: query,
-            onActivate: activateMenuItem)
+            extraRowsHeight: extraRowsHeight, onActivate: activateMenuItem)
     }
 
     /// Every open path lands here, so the highlight is always stated rather than left behind.
@@ -1238,10 +1269,18 @@ struct RootPaletteView: View {
         if menuOpen, argumentFocused == nil { searchFocused = !screen.hidesSearchField }
         openMenu = nil
         argumentOptionsField = nil
+        inputOptions = nil
         // A menu carrying an open editor takes it down with it, and stops any live recording.
         vm.aliasEditKey = nil
         vm.renameEditID = nil
         core.hotKeys.recordingAction = nil
+    }
+
+    private func openInputOptions(
+        _ content: PopoverMenuContent, corner: MenuPanelCorner, selection: Int
+    ) {
+        inputOptions = content
+        open(.inputOptions(corner), highlighting: selection)
     }
 
     /// Drives the menu's window from the two pieces of state that decide what it shows.
@@ -1289,6 +1328,7 @@ struct RootPaletteView: View {
         case .actions: .bottomTrailing
         case .aiModel, .aiReasoning, .aiAttachments:
             composeAtBottom ? .aboveHeaderTrailing : .belowHeaderTrailing
+        case .inputOptions(let corner): corner
         case .argumentOptions, .clipboardFilter, .fileSearchFilter, .emojiCategory,
             .extensionAccessory:
             .belowHeaderTrailing
@@ -1299,10 +1339,12 @@ struct RootPaletteView: View {
     // MARK: - Actions
 
     /// Every reset lands here, so handlers firing in one update agree in whatever order they run.
-    private func land() {
-        let landing = screen.landingSelection
+    private func land(restoringNavigation: Bool = false) {
+        let restored = restoringNavigation ? vm.restoredSelection : nil
+        let landing =
+            restored.map { min($0, max(screen.rows.count - 1, 0)) } ?? screen.landingSelection
         vm.selection = landing
-        scroll = ScrollIntent(kind: landing == 0 ? .top : .follow)
+        scroll = ScrollIntent(kind: restored != nil || landing != 0 ? .follow : .top)
     }
 
     private func move(_ delta: Int, in screen: any PaletteScreen) {
@@ -1377,7 +1419,7 @@ struct RootPaletteView: View {
         guard !content.keepsOpen(index) else { return }
         closeMenus()
         // A mouse click on a row takes the caret with it; menus close back into the field.
-        if argumentFocused == nil { searchFocused = true }
+        if argumentFocused == nil, !vm.mode.isNativeEditor { searchFocused = true }
     }
 
     /// For the chords the panel hands over as tokens, which work while a menu is open.
@@ -1404,6 +1446,7 @@ struct RootPaletteView: View {
     /// Tab walks a screen's own fields first, then the inline arguments, then rings the modes.
     private func advanceTabFocus(backwards: Bool) {
         let screen = screen
+        if screen.tab(at: selection(in: screen), backwards: backwards) { return }
         if let next = screen.tabTarget(from: selection(in: screen), backwards: backwards) {
             vm.selection = next
             scroll = ScrollIntent(kind: .follow)
@@ -1475,6 +1518,10 @@ struct RootPaletteView: View {
     }
 
     private func goBack() {
+        if vm.mode.isEditor {
+            _ = core.cancelOpenEditor()
+            return
+        }
         if vm.mode == .extensionCommand {
             core.extensionCoordinator.exitExtensionScreen()
             return
@@ -1505,11 +1552,13 @@ struct RootPaletteView: View {
 }
 
 /// The palette's in-window menus. One optional of these is the whole "only one is open" invariant.
-private enum OpenMenu {
+private enum OpenMenu: Equatable {
     case actions
     case extensionAccessory
     /// An `options=` argument field's choices, hung under the header where the chip sits.
     case argumentOptions
+    /// A form control's choices, hung off the control that opened them.
+    case inputOptions(MenuPanelCorner)
     case app
     case clipboardFilter
     case fileSearchFilter

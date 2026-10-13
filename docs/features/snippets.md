@@ -182,7 +182,7 @@ Accessibility because it begins from an explicit user action.
 `Search Snippets` and `Create Snippet` are launcher commands of their own, and either switch takes
 them out with the rows: "Show in launcher" off means the feature reaches launcher search not at all.
 The browser stays reachable by its global shortcut; the editor opens as an in-palette form from
-`Create Snippet` and the browser's ⌘K, and as a sheet from the pane.
+`Create Snippet`, the browser's ⌘K and a root-search row's ⌘E, and as a sheet from the pane.
 
 Automatic keyword expansion comes with the feature switch: enabling snippets in
 **Settings → Snippets** first shows an explanation, then stores the flag and requests Accessibility if
@@ -244,6 +244,35 @@ as on a launcher row).
 
 `Create Snippet` is a launcher command as well as a menu row because the palette swallows ⌘K when a
 screen has no rows: an empty library would otherwise open a browser with nothing to do.
+
+A snippet row in root search opens the same editor: ⌘E on it, or **Edit Snippet** in its ⌘K menu,
+which `LauncherScreen` and `AppActionsMenu` resolve to the stored record the way this browser does.
+
+## Launcher editor
+
+`Create Snippet`, ⌘E and **Edit Snippet** open the editor as an in-palette form
+(`PaletteMode.snippetEditor`, `SnippetEditorScreen`); the pane's sheet is the same `SnippetDraft` and
+`SnippetFormControls` in its own chrome. The footer carries the actions: **Save Snippet** on ↵ or ⌘↵
+and, when editing, **Delete** and **Show in Finder** under ⌘K. The draft keeps the loaded record, so
+nothing touches disk before Save.
+
+The **template** is a `FormTextArea`: monospaced (`isCode`), at least `Theme.Size.editorTextHeight`
+tall, and growing with its text — the launcher form scrolls as a whole, and the pane's sheet scrolls
+its fields past `Theme.Size.editorSheetFieldsMaxHeight`. ↵ inserts a line break, ⌘↵ still saves, and
+⌥⇥ types a tab, since ⇥ walks the fields. **Insert…** lands the placeholder at the caret or over the
+selection and appends only when there is none (`TextInsertion`, through `SnippetDraft.insert`).
+
+The text view is AppKit's, so `@FocusState` never names the template — SwiftUI drops a value no
+`.focused` view owns. Each host keeps a plain flag for it beside the `FocusState` for the other fields,
+and the text view's ⇥ moves the palette's own field selection (`SnippetFormField.advanced` in the
+sheet).
+
+The footer's primary action is disabled while the name is blank, and ↵ in a field cannot save such a
+draft. **⎋** cancels, **⌘↵** saves, and save, cancel and a confirmed delete all leave through
+`closeScreen(preservingSelection: true)`, so the browser or launcher the editor was opened from comes
+back with its query and selected row. A hidden palette keeps the editor mounted: a second **Create
+Snippet** brings back the same draft, while editing another snippet replaces it and the form remounts.
+Switching Snippets off closes an open editor.
 
 ## Shortcuts
 
@@ -407,10 +436,21 @@ main-actor watcher against temporary roots:
 The delivery contract's two judgements — `keywordState` and `confirmsReplacement` — are pure, so the
 harness drives renderer lag, a genuine mismatch, an empty editor snapshot, a false-success setter and
 a write that landed elsewhere without an editor in the room. The tiers themselves are not: which rule
-a given app takes is a manual check.
+a given app takes is a manual check. `SnippetDraft`'s caret insertion and its Save rule are pure and
+covered there too.
 
 ### Manual sweep
 
+- Create from the launcher and edit with ⌘E on a root-search snippet row: the same in-palette form
+  opens; ⌘K on that row offers **Edit Snippet**.
+- Enter a multi-line template and tab through the fields: ↵ stays in the template and ⌥⇥ types a tab,
+  while ⌘↵ saves — but only once a name is entered, and the footer's Save dims until then.
+- Put the caret mid-template and **Insert…** a placeholder: it lands at the caret; select text first
+  and it replaces the selection. A long template grows the box and the form scrolls.
+- Edit from a filtered Search Snippets list, then save or press ⎋: its query and selected row return.
+- Press ⌘Space with a half-typed new snippet, then **Create Snippet** again: the same draft is back.
+  Cancel a new draft: no file appears. Change an edited file externally: Save reports a conflict and
+  keeps the draft.
 - Type a keyword in the **ChatGPT composer inside a Chromium browser**: it expands. This is rule 1 and
   rule 4 together — the composer is skipped over Accessibility and typed into in four-unit keystrokes.
 - Type one in a **VSCodium editor pane**: it expands, where the Accessibility value stays empty.

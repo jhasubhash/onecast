@@ -156,6 +156,14 @@ final class CustomCommandStore {
         CustomCommand.id(fromEntryID: entryID).flatMap(command)
     }
 
+    /// The browsable library: enabled commands whose name holds the query, never their script.
+    func matching(_ query: String) -> [CustomCommand] {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return commands.filter {
+            $0.isEnabled && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query))
+        }
+    }
+
     // Takes a whole draft, so adding an option doesn't churn every call site.
     @discardableResult
     func add(_ draft: CustomCommand) throws -> CustomCommand {

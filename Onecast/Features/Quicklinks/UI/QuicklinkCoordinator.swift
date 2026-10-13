@@ -2,6 +2,7 @@ import AppKit
 
 /// Owns the quicklink flow: the open funnel, the argument prompt, the library and import/export.
 @MainActor
+@Observable
 final class QuicklinkCoordinator {
     private let store: QuicklinkStore
     private let settings: AppSettings
@@ -20,10 +21,9 @@ final class QuicklinkCoordinator {
     private unowned let core: AppCore
 
     /// The quicklink whose ⌘↵ override must survive the trip to the header's argument fields.
-    private var pendingDefaultAppOverride: UUID?
+    @ObservationIgnored private var pendingDefaultAppOverride: UUID?
 
-    /// The draft the in-palette editor form binds to, replaced on each open so re-editing shows the
-    /// right quicklink.
+    /// The draft the editor form binds to; another edit replaces it and the form remounts.
     private(set) var editorDraft = QuicklinkDraft(quicklink: nil)
 
     init(
@@ -60,6 +60,7 @@ final class QuicklinkCoordinator {
 
     /// Either switch off means the feature reaches the launcher not at all — rows and commands.
     func applyQuicklinksPresence() {
+        if !settings.quicklinksEnabled { cancelQuicklinkEditing() }
         let visible = settings.quicklinksEnabled && settings.quicklinksShowInLauncher
         appIndex.setQuicklinks(visible ? store.quicklinks : [])
         appIndex.setCommandsVisible(
@@ -332,8 +333,13 @@ final class QuicklinkCoordinator {
     /// Opens the in-palette editor form on `quicklink`; nil is a new one. Pushes over an open
     /// launcher so ⎋ returns to it; a bare entry opens the form as the root.
     func editQuicklink(_ quicklink: Quicklink?) {
-        editorDraft = QuicklinkDraft(quicklink: quicklink)
+        guard settings.quicklinksEnabled else { return }
+        // A hidden palette keeps its editor mounted, so a new quicklink resumes its draft.
+        let resuming =
+            quicklink == nil && core.palette.mode == .quicklinkEditor && !editorDraft.isEditing
+        if !resuming { editorDraft = QuicklinkDraft(quicklink: quicklink) }
         if paletteCoordinator.isVisible {
+            guard !resuming else { return }
             paletteCoordinator.navigate(to: .quicklinkEditor)
         } else {
             paletteCoordinator.showPalette(mode: .quicklinkEditor)
@@ -352,7 +358,7 @@ final class QuicklinkCoordinator {
             } else {
                 try addQuicklink(quicklink)
             }
-            finishEditing()
+            cancelQuicklinkEditing()
             core.showMessage(draft.isEditing ? "Quicklink updated" : "Quicklink created")
         } catch {
             draft.errorMessage = error.localizedDescription
@@ -362,12 +368,13 @@ final class QuicklinkCoordinator {
     /// The editor's ⌘K Delete: remove the quicklink it is open on, then leave once confirmed.
     func deleteEditing() {
         guard let id = editorDraft.editingID else { return }
-        Task { if await deleteQuicklink(id: id) { finishEditing() } }
+        Task { if await deleteQuicklink(id: id) { cancelQuicklinkEditing() } }
     }
 
-    /// Back to whatever screen opened the editor, or hide when it was the root.
-    func finishEditing() {
-        paletteCoordinator.closeScreen()
+    /// Every way out of the editor, keeping the row it left; a no-op once the palette has moved on.
+    func cancelQuicklinkEditing() {
+        guard core.palette.mode == .quicklinkEditor else { return }
+        paletteCoordinator.closeScreen(preservingSelection: true)
     }
 
     /// Revealing needs a real path, which a template lacks until it expands.

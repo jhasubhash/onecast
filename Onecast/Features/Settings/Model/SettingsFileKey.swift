@@ -34,6 +34,7 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case builtInCommands = "commands.builtIn"
     case customCommandsEnabled = "commands.enabled"
     case customCommandsShowInLauncher = "commands.showInLauncher"
+    case customCommandCommands = "commands.commands"
     case quicklinksEnabled = "quicklinks.enabled"
     case quicklinksShowInLauncher = "quicklinks.showInLauncher"
     case quicklinkOpensNewWindow = "quicklinks.opensNewWindow"

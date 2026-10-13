@@ -20,6 +20,9 @@ struct QuicklinkCoordinatorTests {
         try await plainLink()
         try copying()
         try revealing()
+        try editorResumesAHiddenNewDraft()
+        try editorLeavesOnlyWhileOpen()
+        try savingLeavesTheEditorKeepingPlace()
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
     }
@@ -266,6 +269,89 @@ struct QuicklinkCoordinatorTests {
         expect(AppLauncher.revealed.count == 1, "only the folder link reached Finder")
     }
 
+    static func editorResumesAHiddenNewDraft() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let coordinator = fixture.coordinator
+        coordinator.editQuicklink(nil)
+        let started = coordinator.editorDraft
+        started.name = "Half typed"
+        expect(fixture.core.palette.mode == .quicklinkEditor, "a new quicklink opens the editor")
+
+        fixture.window.isVisible = false
+        coordinator.editQuicklink(nil)
+        expect(coordinator.editorDraft === started, "a hidden palette brings back the same new draft")
+        expect(coordinator.editorDraft.name == "Half typed", "the half-typed name is still there")
+        expect(fixture.window.isVisible, "bringing it back shows the palette")
+
+        let shows = fixture.palette.shows
+        coordinator.editQuicklink(nil)
+        expect(
+            fixture.palette.shows == shows && fixture.palette.navigations == 0,
+            "a showing editor is left alone")
+
+        coordinator.editQuicklink(fixture.link)
+        expect(
+            coordinator.editorDraft !== started && coordinator.editorDraft.editingID == fixture.link.id,
+            "editing another quicklink replaces the draft")
+
+        fixture.window.isVisible = false
+        coordinator.editQuicklink(nil)
+        expect(!coordinator.editorDraft.isEditing, "a new quicklink never resumes the draft of an edit")
+
+        let abandoned = coordinator.editorDraft
+        fixture.core.palette.mode = .quicklinks
+        fixture.window.isVisible = false
+        coordinator.editQuicklink(nil)
+        expect(coordinator.editorDraft !== abandoned, "an editor the palette already left starts fresh")
+
+        fixture.settings.quicklinksEnabled = false
+        let before = fixture.palette.shows
+        coordinator.editQuicklink(nil)
+        expect(fixture.palette.shows == before, "a disabled feature opens no editor")
+    }
+
+    static func editorLeavesOnlyWhileOpen() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        fixture.core.palette.mode = .quicklinks
+        fixture.coordinator.cancelQuicklinkEditing()
+        expect(fixture.palette.closes == 0, "cancelling does nothing on another screen")
+
+        fixture.coordinator.editQuicklink(nil)
+        fixture.coordinator.cancelQuicklinkEditing()
+        expect(fixture.palette.closes == 1, "cancelling leaves the editor")
+        expect(fixture.palette.closedKeepingPlace == true, "it keeps the row the editor was opened from")
+
+        fixture.coordinator.editQuicklink(nil)
+        fixture.settings.quicklinksEnabled = false
+        fixture.coordinator.applyQuicklinksPresence()
+        expect(fixture.palette.closes == 2, "switching the feature off closes an open editor")
+        fixture.coordinator.applyQuicklinksPresence()
+        expect(fixture.palette.closes == 2, "and only an open one")
+    }
+
+    static func savingLeavesTheEditorKeepingPlace() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let count = fixture.store.quicklinks.count
+        fixture.coordinator.editQuicklink(nil)
+        fixture.coordinator.saveEditor()
+        expect(
+            fixture.store.quicklinks.count == count && fixture.palette.closes == 0,
+            "a blank draft is neither saved nor left")
+
+        let draft = fixture.coordinator.editorDraft
+        draft.name = "Docs"
+        draft.link = "https://docs.example.com"
+        fixture.coordinator.saveEditor()
+        expect(fixture.store.quicklinks.count == count + 1, "a valid draft is saved")
+        expect(
+            fixture.palette.closes == 1 && fixture.palette.closedKeepingPlace == true,
+            "saving leaves keeping place")
+        expect(fixture.core.messages.map(\.text) == ["Quicklink created"], "saving confirms with a HUD")
+    }
+
     static func waitForOpen() async {
         let deadline = ContinuousClock.now + .seconds(2)
         while QuicklinkLauncher.opened.isEmpty, ContinuousClock.now < deadline {
@@ -389,6 +475,7 @@ final class PaletteWindowController {
 enum PaletteMode { case quicklinks, quicklinkEditor }
 @MainActor
 final class PaletteState {
+    var mode = PaletteMode.quicklinks
     var selection = 0
     var commandArguments: [String: String] = [:]
     var pendingArgumentEntryID: String?
@@ -403,17 +490,28 @@ final class PaletteCoordinator {
     let window: PaletteWindowController
     let state: PaletteState
     var shows = 0
+    var navigations = 0
+    var closes = 0
+    var closedKeepingPlace: Bool?
     var isVisible: Bool { window.isVisible }
     init(window: PaletteWindowController, state: PaletteState) { self.window = window; self.state = state }
     func showPalette(mode: PaletteMode) {
         shows += 1
         window.isVisible = true
+        state.mode = mode
         state.selection = 0
         state.commandArguments = [:]
         state.pendingArgumentEntryID = nil
     }
-    func navigate(to mode: PaletteMode) {}
-    func closeScreen() {}
+    func navigate(to mode: PaletteMode) {
+        navigations += 1
+        state.mode = mode
+    }
+    func closeScreen(preservingSelection: Bool = false) {
+        closes += 1
+        closedKeepingPlace = preservingSelection
+        state.mode = .quicklinks
+    }
     func hidePalette(restoreFocus: Bool) { window.isVisible = false }
 }
 

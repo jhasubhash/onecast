@@ -57,6 +57,7 @@ targets:
           - Features/Clipboard/Service/ClipboardTextHelper.swift
           - Features/AI/Service/AIToolHelper.swift
           - Features/Dictation/Helper
+          - Features/FileSearch/Helper
           - Resources/EmojiKeywords
       # A folder reference keeps the packs in their own directory, which `EmojiIndex` lists.
       - path: Onecast/Resources/EmojiKeywords
@@ -84,6 +85,14 @@ targets:
           destination: wrapper
           subpath: Contents/Helpers
       - target: AIToolHelper
+        link: false
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
+      # The crawl runs out of process, so its memory is returned when the helper exits.
+      - target: FileIndexHelper
         link: false
         embed: true
         codeSign: true
@@ -151,6 +160,22 @@ targets:
     settings:
       base:
         SKIP_INSTALL: YES
+
+  FileIndexHelper:
+    type: tool
+    platform: macOS
+    sources:
+      - Onecast/Features/FileSearch/Helper/FileIndexHelper.swift
+      - Onecast/Features/FileSearch/Model/FileSearchIgnoreList.swift
+      - Onecast/Features/FileSearch/Model/FileSearchPolicy.swift
+      - Onecast/Features/FileSearch/Model/FileSearchQuery.swift
+      - Onecast/Features/FileSearch/Model/FileSearchScope.swift
+      - Onecast/Features/FileSearch/Service/FileIndexCrawler.swift
+      - Onecast/Features/FileSearch/Service/FileIndexSnapshot.swift
+    settings:
+      base:
+        SKIP_INSTALL: YES
+        SWIFT_OPTIMIZATION_LEVEL: -O
 
   # The public plugin contract. Embedded in the app so a loaded plugin dylib resolves the exact
   # same module identity it was compiled against; a plugin links this framework, never a copy.

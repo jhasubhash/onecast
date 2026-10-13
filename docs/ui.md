@@ -48,7 +48,9 @@ These are the things that quietly break the look if changed. Preserve them unles
 - **A dialog has three independent axes; never let one infer another.** The **icon** (`DialogRequest.symbol`, required) is always the *subject's* own glyph — a command being confirmed uses its `SystemAction.sfSymbol`, so the Restart dialog shows the same icon as the Restart row. Tone never picks an icon. The **tone** (`DialogTone`: `.neutral` / `.success` / `.danger`) tints only that glyph. The **button** takes its color from `DialogAction.Role` (`.standard` white / `.destructive` red / `.cancel` secondary), so a red-glyph security warning can still carry a plain white button — as "Import executable commands?" does.
 - **Resolve every glyph through `SymbolImage`, not `Image(systemName:)`.** Some catalog symbols are bundled assets in `Assets.xcassets` (`toggleBluetooth`), and `Image(systemName:)` silently renders nothing for those.
 - **↵ runs the primary action, Escape cancels, and Cancel always renders leading** (the left button), matching macOS convention. A button never prints its key cap; hovering it shows a `Tooltip` instead, styled like the palette's own keycap chips.
+  Launcher forms save with **⌘↵** from any field; a bare ↵ saves from a single-line field only, and a textarea keeps it for line breaks.
 - **In the palette, a hover label is Onecast's `tooltip`, never `.help()`**: an AppKit tooltip never appears while the app sits inactive behind the non-activating panel. A Settings window activates the app, so `.help()` shows there and stays the label to use. The tooltip hangs above its control by default; a control in the palette header passes `edge: .bottom`, since above it is off the window, and a label may run to several lines — the chat's attachment pill lists every staged name.
+  A form control passes `dismissOnPress: true` so its label clears on press instead of hanging over the menu it opened.
 - **A transient readout is a HUD, not a dialog.** `VolumeHUDController`'s box is volume and mute only, since that one needs an actual level and number; every other success or info confirmation goes through `MessageHUDController`'s pill, whose leading glyph *is* its `DialogTone`. A pill has no subject to name, so the icon rule above does not apply to it — and that mapping stays file-scoped so nothing can reach for it when building a `DialogRequest`. A new HUD means a new presenter, not a second shape bolted onto an existing controller.
 - **Glass is for controls; content takes the panel recipe.** `glassEffect` needs a backdrop to lens, so it only works *inside* a window that already has a `GlassEffectView` — the action capsule, the menu circle, `PopoverMenu`, a dialog's buttons. On a bare borderless panel it falls back to an opaque backing and shows as a dark edge. Both HUDs therefore use `panelScrim` → `GlassEffectView()` → `clipShape`, exactly like a dialog.
 
@@ -98,10 +100,13 @@ groups. See "Section headers" below.
 
 ### Radius (`Theme.Radius`)
 
-`panel 26` · `row 10` · `card 10` · `dialog 20` · `menuPanel 16` · `menu 6` · `menuRow 10` · `barControl 8` · `thumbnail 6` · `keyCap 6` · `recorderKeyCap 4`
+`panel 26` · `row 10` · `formField 12` · `card 10` · `dialog 20` · `menuPanel 16` · `menu 6` · `menuRow 10` · `barControl 8` · `thumbnail 6` · `keyCap 6` · `recorderKeyCap 4`
 
 `barControl` dresses the header pop-ups (type filter, AI model), which state a value and drop a menu
 the way a native pop-up button does — a rectangle, not a pill.
+
+`formField` dresses the native palette form fields ("Form fields" below); it does not change Settings
+controls, dialog text fields or extension forms.
 
 **The footer action group stays a `Capsule`, and so do the buttons inside it.** It is the primary
 action, and the pill is the affordance saying so; squaring it off reads as a toolbar. The capsule
@@ -149,7 +154,8 @@ panel, the shortcut-recorder callout and the Notes switcher, and `menuRow` is de
 ### Size (`Theme.Size`)
 
 `panelWidth 750` · `panelHeight 475` · `headerHeight 44` · `bottomBarHeight 52` · `barButtonHeight 28` ·
-`rowIcon 24` · `resultRowIcon 26` · `keyCap 18` · `recorderKeyCap 16` · `menuButton 36` ·
+`rowIcon 24` · `resultRowIcon 26` · `keyCap 18` · `recorderKeyCap 16` · `menuButton 36` · `formFieldHeight 34` ·
+`formFieldFocusStroke 2` ·
 `clipboardListWidth 290` ·
 `menuWidth 276` · `clipboardFilterMenuWidth 200` · `fileSearchFilterMenuWidth 200` ·
 `emojiCategoryMenuWidth 220` · `menuIcon 20` ·
@@ -540,21 +546,51 @@ it would couple two unrelated surfaces.
 ## Dialog accessories
 
 A dialog carries at most one control beyond its buttons, and `DialogAccessory` makes that structural
-rather than a convention — `.volume` for the Set Volume prompt, `.eventDraft` for New Event,
-`.snippetArguments` for a snippet's `{argument}` values. Text fields take `dialogTextField()` and
-choices are `DialogChip`s, never a menu `Picker`. Two things follow from the enum:
-
-- **Arrow keys belong to the accessory, not the panel.** `DialogPanel.handlesArrowKeys` is set from
-  `DialogAccessory.claimsArrowKeys`, so the slider still steps on ←/→ while the New Event title field
-  keeps its caret.
-- **An accessory can refuse its own primary action.** An invalid draft leaves the dialog up on ↵ and
-  on a click alike, which is what a greyed-out button would say if `DialogAction` could carry one.
+rather than a convention — `.volume` for the Set Volume prompt and `.snippetArguments` for a snippet's
+`{argument}` values. Text fields take `dialogTextField()` and choices are `DialogChip`s, never a menu
+`Picker`. `DialogPanel.handlesArrowKeys` is set from `DialogAccessory.claimsArrowKeys`, so the slider
+still steps on ←/→ while snippet argument text fields keep their caret. Create Event is a launcher form,
+not a dialog.
 
 The first text field takes focus from `DialogController.windowDidBecomeKey`, never from the view.
 When the panel turns key AppKit picks its own first responder — the Cancel button with Keyboard
 navigation on — and over another app that happens only after `show` returns, so focus a SwiftUI view
 asks for loses to it. The panel can also turn key inside `makeKeyAndOrderFront`, before SwiftUI has
 built the field, so `DialogPanel.focusFirstTextField` lays the content out first.
+
+## Form fields
+
+Source: `DesignSystem/FormFieldChrome.swift`, `FormRow.swift`, `FormTextInput.swift`, `FormTextArea.swift`.
+
+The palette's native forms (the Event and Custom Command editors) are built from these four primitives.
+Settings pages and dialogs keep SwiftUI `TextField`s with `dialogTextField()`, and **extension forms never
+use them**: `Features/Extensions` owns its own field styling, isolated from the design system.
+
+- **`.formFieldChrome(focused:)`** is the shared surface: a `radius.formField` continuous rounded rectangle
+  filled with `Theme.Colors.cardFill` and stroked with `Theme.Colors.border`. Focus keeps the same border ink
+  and thickens it from the hairline to `size.formFieldFocusStroke` (2pt); there is no accent ring.
+- **`FormRow(_:alignment:labelInset:content:)`** puts a trailing-aligned `sectionHeader` title in a label
+  column `panelWidth × 0.16` wide, the control after it, and an equal empty column at the far side so the
+  control stays centred. A `.top` row insets its label by `spacing.lg` (or `labelInset`) to sit on the first
+  line of text.
+- **`FormTextInput`** is an AppKit `NSTextField` at a fixed `size.formFieldHeight`: native placeholder,
+  clipping and undo, text centred by the font's cap height and AppKit's rounded baseline so the resting text,
+  the placeholder and the field editor share one origin. ⇥ and ⇧⇥ call `moveFocus(backwards)`. Passing
+  `onSubmit` makes ↵ call it and consumes the key; without it AppKit's default Return stays.
+- **`FormTextArea`** is a TextKit 2 `NSTextView` with no scroll view: it grows with its content from
+  `minimumHeight` through `sizeThatFits`, keeps its caret as a Unicode-safe `TextSelection`, and owns an
+  `UndoManager` that ⌘Z and ⇧⌘Z drive themselves, because a non-activating panel cannot lean on the frontmost
+  app's Edit menu. `isCode` swaps in the monospaced face at the shared body size and turns off smart quotes,
+  dashes, replacement and spelling correction. ⇥/⇧⇥ walk the form's fields, so ⌥⇥ types a literal tab.
+  `allowsLineBreaks: false` is for a value that wraps on screen but stays one line, such as a link: every
+  newline command is swallowed (or calls `onSubmit` when set, so ↵ saves a one-line value) and pasted line
+  breaks collapse to a single space (a paste of only line breaks is dropped).
+
+Both fonts come from `metrics.typography.nsFont(.body)`, so they scale with Interface Size beside SwiftUI text.
+
+**⌘↵ belongs to the window.** Neither view consumes it in `performKeyEquivalent`, so the palette's footer
+chord saves a form from any field, including a multi-line one where plain ↵ inserts a newline. `form-input-test`
+covers the metrics, the keys, the paste rules and the chord.
 
 ## Settings
 

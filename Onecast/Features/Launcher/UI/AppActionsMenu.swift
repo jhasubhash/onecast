@@ -145,12 +145,31 @@ enum AppActionsMenu {
         if app.kind == .meeting, let meeting = core.calendarCoordinator.meeting(entryID: app.id) {
             return MeetingActionsMenu.content(meeting: meeting, core: core).items
         }
-        var items = [
-            PopoverMenuItem(
-                title: app.kind.descriptor.openVerb, systemImage: "list.bullet.rectangle",
-                shortcut: "↵"
-            ) { core.launcherCoordinator.launch(app, searchQuery: searchQuery) }
-        ]
+        var items: [PopoverMenuItem]
+        if app.kind == .customCommand, let command = core.customCommands.command(entryID: app.id) {
+            items = CustomCommandActionsMenu.leadingItems(
+                command: command, coordinator: core.customCommandCoordinator
+            ) {
+                core.launcherCoordinator.launch(app, searchQuery: searchQuery)
+            }
+        } else {
+            items = [
+                PopoverMenuItem(
+                    title: app.kind.descriptor.openVerb, systemImage: "list.bullet.rectangle",
+                    shortcut: "↵"
+                ) { core.launcherCoordinator.launch(app, searchQuery: searchQuery) }
+            ]
+        }
+        if app.kind == .snippet, let id = StoredSnippet.id(fromEntryID: app.id),
+            let record = core.snippetsStore.record(id: id)
+        {
+            items.append(
+                PopoverMenuItem(
+                    title: "Edit Snippet", systemImage: "pencil", startsSection: true, shortcut: "⌘E"
+                ) {
+                    core.snippetCoordinator.editSnippet(record)
+                })
+        }
         if app.kind == .quicklink, let id = Quicklink.id(fromEntryID: app.id),
             let quicklink = core.quicklinks.quicklink(id: id)
         {

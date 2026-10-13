@@ -2,6 +2,7 @@ import AppKit
 
 /// Owns the snippet flow: listener, browser, editor handoff, delivery, presence.
 @MainActor
+@Observable
 final class SnippetCoordinator {
     private let store: SnippetsStore
     private let listener: SnippetKeywordListener
@@ -16,8 +17,7 @@ final class SnippetCoordinator {
     /// The consent dialog and the app's own dialogs.
     private unowned let core: AppCore
 
-    /// The draft the in-palette editor form binds to, replaced on each open so re-editing shows the
-    /// right snippet.
+    /// The draft the editor form binds to; another edit replaces it and the form remounts.
     private(set) var editorDraft = SnippetDraft(record: nil)
 
     init(
@@ -107,6 +107,7 @@ final class SnippetCoordinator {
             startSnippetKeywordListener()
             return
         }
+        cancelSnippetEditing()
         listener.stop()
         injector.cancelAutomaticExpansion()
         store.stop()
@@ -124,8 +125,12 @@ final class SnippetCoordinator {
     /// Opens the in-palette editor form on `record`; nil is a new snippet. Pushes over an open
     /// launcher so ⎋ returns to it; a bare entry opens the form as the root.
     func editSnippet(_ record: StoredSnippet?) {
-        editorDraft = SnippetDraft(record: record)
+        guard settings.snippetsEnabled else { return }
+        // A hidden palette keeps its editor mounted, so a new snippet resumes its draft.
+        let resuming = record == nil && core.palette.mode == .snippetEditor && !editorDraft.isEditing
+        if !resuming { editorDraft = SnippetDraft(record: record) }
         if paletteCoordinator.isVisible {
+            guard !resuming else { return }
             paletteCoordinator.navigate(to: .snippetEditor)
         } else {
             paletteCoordinator.showPalette(mode: .snippetEditor)
@@ -145,7 +150,7 @@ final class SnippetCoordinator {
                 } else {
                     try await store.create(draft.build())
                 }
-                finishEditing()
+                cancelSnippetEditing()
                 showMessage(draft.isEditing ? "Snippet updated" : "Snippet created", .success)
             } catch {
                 draft.errorMessage = error.localizedDescription
@@ -166,7 +171,7 @@ final class SnippetCoordinator {
             else { return }
             do {
                 try await store.delete(id: record.id)
-                finishEditing()
+                cancelSnippetEditing()
             } catch {
                 editorDraft.errorMessage = error.localizedDescription
             }
@@ -179,9 +184,10 @@ final class SnippetCoordinator {
         showSnippetInFinder(record)
     }
 
-    /// Back to whatever screen opened the editor, or hide when it was the root.
-    func finishEditing() {
-        paletteCoordinator.closeScreen()
+    /// Every way out of the editor, keeping the row it left; a no-op once the palette has moved on.
+    func cancelSnippetEditing() {
+        guard core.palette.mode == .snippetEditor else { return }
+        paletteCoordinator.closeScreen(preservingSelection: true)
     }
 
     func showSnippetInFinder(_ record: StoredSnippet) {

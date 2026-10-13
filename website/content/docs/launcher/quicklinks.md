@@ -32,7 +32,14 @@ While the feature is off there is no Quicklinks section, no quicklink commands, 
 | Pin to top          | Keeps it above your other quicklinks                 |
 | Show in root search | Lists it alongside apps and commands                 |
 
-The **Insert…** menu adds placeholders for you.
+The **Insert…** menu adds a placeholder at the caret, or over the text you have selected.
+
+A long link wraps onto more lines as you type, but it is still one line: <kbd>return</kbd> saves and
+a pasted line break becomes a space. <kbd>tab</kbd> and <kbd>⇧</kbd><kbd>tab</kbd> move between the
+fields, <kbd>⌘</kbd><kbd>return</kbd> saves from any of them, and <kbd>esc</kbd> discards the draft.
+**Save** stays dimmed until the quicklink has a name and a link. Saving or discarding takes you back
+to the list you came from, on the row you left. If you hide the launcher mid-draft, **Create
+Quicklink** again brings the same draft back, until the launcher resets to its root search.
 
 ## Destinations
 

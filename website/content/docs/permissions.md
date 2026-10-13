@@ -76,17 +76,18 @@ doing nothing.
 
 ## Full Disk Access
 
-Onecast **checks** for Full Disk Access but **never asks** for it.
+Onecast **never asks** for Full Disk Access; there is no prompt for it, so you turn it on yourself in
+System Settings → Privacy & Security → Full Disk Access.
 
-The [uninstaller](/docs/launcher/uninstall) checks quietly to work out which files it can move.
-Without the grant, protected places like `~/Library/Containers`, `~/Library/Group Containers` and
-`~/Library/Cookies` show as locked rows instead. The worst case is a row you clear by hand.
+- **[File Search](/docs/features/file-search)** needs it. It reads your disk directly to build its own
+  index, and indexes nothing until the grant exists. Settings → File Search shows whether it is on and
+  opens the pane for you.
+- The [uninstaller](/docs/launcher/uninstall) checks quietly to work out which files it can move.
+  Without the grant, protected places like `~/Library/Containers`, `~/Library/Group Containers` and
+  `~/Library/Cookies` show as locked rows instead. The worst case is a row you clear by hand.
 
 ## What Onecast never needs
 
-- **File access for File Search.** [File Search](/docs/features/file-search) reads the Spotlight
-  index macOS already keeps. If Spotlight has not indexed something, you get fewer results, not a
-  prompt.
 - **Screen Recording.** The window switcher reads window titles through Accessibility.
 - **Location.** The calculator picks your currency from your Mac's region setting.
 - **Input Monitoring.** Snippets listen under Accessibility, as described above.

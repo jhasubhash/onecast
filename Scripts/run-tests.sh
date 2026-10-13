@@ -117,21 +117,17 @@ L=Onecast/Features/Launcher/Model
 run slow -O fuzz-test      $L/SearchRelevance.swift $L/ScriptRomanization.swift \
                            $L/LauncherMatch.swift $L/EntryNaming.swift $L/LauncherOrder.swift \
                            $L/LauncherRankingStore.swift $L/LauncherSuggestions.swift
-run file-search-test       $L/SearchRelevance.swift \
-                           Onecast/Features/FileSearch/Model/*.swift
-run file-search-session-test Onecast/Platform/Signposts.swift \
-                             $L/SearchRelevance.swift \
-                             Onecast/Features/FileSearch/Model/*.swift \
-                             Onecast/Features/FileSearch/Service/*.swift
+FS=Onecast/Features/FileSearch
+FILE_INDEX="$FS/Service/FileIndex.swift $FS/Service/FileIndexSnapshot.swift $FS/Service/FileIndexCrawler.swift"
+run file-search-test       $FS/Model/*.swift
+run file-index-test        $FS/Model/*.swift $FILE_INDEX
+run file-search-session-test $FS/Model/*.swift $FS/Service/FileSearchSession.swift $FILE_INDEX
 run menu-search-test       $L/SearchRelevance.swift \
                            Onecast/Features/MenuSearch/Model/*.swift \
                            Onecast/Features/MenuSearch/Service/*.swift
 run window-switch-test     $L/SearchRelevance.swift \
                            Onecast/Features/WindowSwitcher/Model/*.swift
-run index file-search-performance Onecast/Platform/Signposts.swift \
-                           $L/SearchRelevance.swift \
-                           Onecast/Features/FileSearch/Model/*.swift \
-                           Onecast/Features/FileSearch/Service/FileSearchService.swift
+run index file-search-performance $FS/Model/*.swift $FILE_INDEX
 run ranking-test           $L/SearchRelevance.swift $L/ScriptRomanization.swift \
                            $L/LauncherMatch.swift $L/LauncherRankingStore.swift
 run scopes-test            $L/SearchScopes.swift \
@@ -168,7 +164,8 @@ run launcher-settings-file-test \
 run apple-shortcut-test    Onecast/Features/AppleShortcuts/Model/*.swift
 run calc-test              Onecast/Features/Calculator/Model/*.swift
 run index calc-performance Onecast/Features/Calculator/Model/*.swift
-run calendar-test          Onecast/Features/Calendar/Model/*.swift
+run calendar-test          Onecast/Features/Calendar/Model/*.swift \
+                           Onecast/Features/Calendar/UI/EventEditorSession.swift
 run clipboard-test         Onecast/Features/Clipboard/Model/ClipboardStore.swift \
                            Onecast/Features/Clipboard/Model/ClipboardFilter.swift \
                            Onecast/Features/Clipboard/Model/ClipboardFileKind.swift \
@@ -240,6 +237,13 @@ run palette-menu-click-test Onecast/Platform/Appearance.swift \
                            Onecast/Platform/NSWindow+AccessibilityName.swift \
                            Onecast/DesignSystem/Interaction/KeyboardFocus.swift \
                            Onecast/Palette/PalettePanel.swift
+run form-input-test        Onecast/Platform/Appearance.swift \
+                           Onecast/DesignSystem/Theme.swift \
+                           Onecast/DesignSystem/InterfaceMetrics.swift \
+                           Onecast/DesignSystem/FormFieldChrome.swift \
+                           Onecast/DesignSystem/FormRow.swift \
+                           Onecast/DesignSystem/FormTextInput.swift \
+                           Onecast/DesignSystem/FormTextArea.swift
 run scroll-reveal-test     Onecast/DesignSystem/Scrolling/SelectionReveal.swift
 run redaction-test         Onecast/DesignSystem/RedactedPlaceholder.swift
 run keyboard-focus-test    Onecast/DesignSystem/Interaction/KeyboardFocus.swift
@@ -436,7 +440,10 @@ run custom-command-test    Onecast/Platform/PseudoTerminal.swift \
                            Onecast/Features/CustomCommands/Model/CustomCommand.swift \
                            Onecast/Features/CustomCommands/Model/RaycastScriptImport.swift \
                            Onecast/Features/CustomCommands/Service/ShellCommandRunner.swift \
-                           Onecast/Features/CustomCommands/Service/CustomCommandArgumentSession.swift
+                           Onecast/Features/CustomCommands/Service/CustomCommandArgumentSession.swift \
+                           Onecast/Features/CustomCommands/UI/CustomCommandEditorSession.swift
+run custom-command-list-test Onecast/Features/CustomCommands/Model/CustomCommand.swift \
+                             Onecast/Features/CustomCommands/UI/CustomCommandListScreen.swift
 run uninstall-test         Onecast/Features/Uninstall/Model/UninstallTarget.swift \
                            Onecast/Features/Uninstall/Model/UninstallSearchRoot.swift \
                            Onecast/Features/Uninstall/Model/UninstallRules.swift \
@@ -447,7 +454,8 @@ run quicklink-test         Onecast/Features/Quicklinks/Model/Quicklink.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkStore.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkArchive.swift \
                            Onecast/Features/Quicklinks/Model/RaycastQuicklinkImport.swift \
-                           Onecast/Features/Quicklinks/UI/QuicklinkDraft.swift
+                           Onecast/Features/Quicklinks/UI/QuicklinkDraft.swift \
+                           Onecast/Platform/TextInsertion.swift
 run quicklink-coordinator-test Onecast/Features/Quicklinks/Model/Quicklink.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkStore.swift \
@@ -455,6 +463,7 @@ run quicklink-coordinator-test Onecast/Features/Quicklinks/Model/Quicklink.swift
                            Onecast/Features/Quicklinks/UI/QuicklinkCoordinator.swift \
                            Onecast/Features/Quicklinks/UI/QuicklinkArgumentsAccessory.swift \
                            Onecast/Features/Quicklinks/UI/QuicklinkDraft.swift \
+                           Onecast/Platform/TextInsertion.swift \
                            Onecast/Features/Snippets/Model/Snippet.swift \
                            Onecast/Features/Snippets/Model/SnippetTemplateEngine.swift
 run slow snippets-test     Onecast/Platform/NotificationToken.swift \
@@ -462,7 +471,9 @@ run slow snippets-test     Onecast/Platform/NotificationToken.swift \
                            Onecast/Platform/AccessibilityText.swift \
                            Onecast/Features/Snippets/Model/*.swift \
                            Onecast/Features/Snippets/Service/*.swift \
-                           Onecast/Features/TextInjection/Service/*.swift
+                           Onecast/Features/TextInjection/Service/*.swift \
+                           Onecast/Platform/TextInsertion.swift \
+                           Onecast/Features/Snippets/UI/SnippetDraft.swift
 run notes-test             Onecast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
                            Onecast/Features/Notes/Model/*.swift \

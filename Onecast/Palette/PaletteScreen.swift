@@ -68,7 +68,7 @@ typealias MenuPanelClipPath =
 
     init(
         popover: PopoverMenuContent, selection: Binding<Int>, width: CGFloat? = nil,
-        query: String = "", onActivate: @escaping (Int) -> Void
+        query: String = "", extraRowsHeight: CGFloat = 0, onActivate: @escaping (Int) -> Void
     ) {
         // Filter here so row count, activation and rendering all address the same visible subset.
         let matches: [Int] =
@@ -83,7 +83,8 @@ typealias MenuPanelClipPath =
                     PopoverMenu(
                         header: popover.header, items: items, selection: selection,
                         width: width, onActivate: onActivate,
-                        attachment: corner.popoverAttachment, query: query))
+                        attachment: corner.popoverAttachment, query: query,
+                        extraRowsHeight: extraRowsHeight))
             },
             activate: { popover.items[matches[$0]].action() },
             isSelectable: { popover.items[matches[$0]].isSelectable },
@@ -103,7 +104,7 @@ private extension MenuPanelCorner {
         switch self {
         case .bottomLeading: .bottomLeading
         case .bottomTrailing: .bottomTrailing
-        case .belowHeaderTrailing, .aboveHeaderTrailing: .none
+        case .belowHeaderTrailing, .aboveHeaderTrailing, .belowControl: .none
         }
     }
 }
@@ -123,12 +124,16 @@ private extension MenuPanelCorner {
 
     /// False when the selection can't be acted on, which hides the footer pill and swallows ⌘K.
     func hasPrimaryAction(at selection: Int) -> Bool
+    /// False dims the footer pill and keeps ↵ from acting, as a form's Save does while invalid.
+    func isPrimaryActionEnabled(at selection: Int) -> Bool
     /// False when ⌘K would open on nothing, which hides the Actions half of the footer group.
     func hasActions(at selection: Int) -> Bool
     /// True while the selected row edits with ↑/↓ itself, which leaves those keys to it.
     func ownsVerticalKeys(at selection: Int) -> Bool
     /// Where ⇥ goes inside the screen, or nil to leave the key to the palette's own ring.
     func tabTarget(from selection: Int, backwards: Bool) -> Int?
+    /// True when the screen moved its own focus for ⇥, as a form with no rows does.
+    func tab(at selection: Int, backwards: Bool) -> Bool
     /// The ⌘K rows as the palette's own menu; nil when there are none.
     func actions(at selection: Int) -> PopoverMenuContent?
     /// Defaults to wrapping `actions(at:)`, so a screen implements one or the other.
@@ -157,12 +162,14 @@ private extension MenuPanelCorner {
 
 extension PaletteScreen {
     func hasPrimaryAction(at selection: Int) -> Bool { true }
+    func isPrimaryActionEnabled(at selection: Int) -> Bool { true }
     func hasActions(at selection: Int) -> Bool { true }
     var hidesSearchField: Bool { false }
     var actsWithoutRows: Bool { false }
     var landingSelection: Int { 0 }
     func ownsVerticalKeys(at selection: Int) -> Bool { false }
     func tabTarget(from selection: Int, backwards: Bool) -> Int? { nil }
+    func tab(at selection: Int, backwards: Bool) -> Bool { false }
     func actions(at selection: Int) -> PopoverMenuContent? { nil }
     func menuContent(
         at selection: Int, menuSelection: Binding<Int>, query: String,

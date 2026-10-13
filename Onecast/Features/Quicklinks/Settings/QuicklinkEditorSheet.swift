@@ -16,6 +16,7 @@ struct QuicklinkEditorSheet: View {
     @Environment(AppCore.self) private var core
     @State private var draft: QuicklinkDraft
     @FocusState private var focus: QuicklinkFormField?
+    @State private var linkFocused = false
 
     init(quicklink: Quicklink?, dismiss: @escaping () -> Void) {
         self.dismiss = dismiss
@@ -28,7 +29,8 @@ struct QuicklinkEditorSheet: View {
                 .font(.title2.weight(.bold))
 
             QuicklinkNameField(draft: draft, focus: $focus)
-            QuicklinkLinkField(draft: draft, focus: $focus)
+            QuicklinkLinkField(
+                draft: draft, isFocused: $linkFocused, onSubmit: save, moveFocus: advanceFocus)
 
             HStack(alignment: .bottom, spacing: Theme.Spacing.xl) {
                 QuicklinkIconField(draft: draft, focus: $focus)
@@ -75,9 +77,11 @@ struct QuicklinkEditorSheet: View {
     }
 
     private func advanceFocus(backwards: Bool) {
-        let all = QuicklinkFormField.allCases
-        let index = focus.flatMap { all.firstIndex(of: $0) } ?? 0
-        focus = all[(index + (backwards ? -1 : 1) + all.count) % all.count]
+        let current: QuicklinkFormField = linkFocused ? .link : (focus ?? .name)
+        let next = current.advanced(backwards: backwards)
+        linkFocused = next == .link
+        // The link is AppKit's text view, which no `FocusState` value can name.
+        if next != .link { focus = next }
     }
 
     private func save() {

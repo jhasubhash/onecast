@@ -4,11 +4,12 @@ import Foundation
 /// (`.schedulerEditor`), never a window or the Scheduler pane; delete confirms through the app's
 /// own dialog, not an alert.
 @MainActor
+@Observable
 final class SchedulerEditorCoordinator {
     let store: ScheduledTaskStore
     /// Environment injection only — never for state this type owns.
     private unowned let core: AppCore
-    /// The draft the editor form binds to, replaced on each open so re-editing shows the right task.
+    /// The draft the editor form binds to; another edit replaces it and the form remounts.
     private(set) var draft = ScheduledTaskDraft(task: nil)
 
     init(store: ScheduledTaskStore, core: AppCore) {
@@ -17,12 +18,16 @@ final class SchedulerEditorCoordinator {
     }
 
     func createTask() {
-        draft = ScheduledTaskDraft(task: nil)
-        present()
+        guard core.settings.schedulerEnabled else { return }
+        // A hidden palette keeps its editor mounted, so a new task resumes its draft.
+        let resuming = core.palette.mode == .schedulerEditor && !draft.isEditing
+        if !resuming { draft = ScheduledTaskDraft(task: nil) }
+        present(resuming: resuming)
     }
 
     func editTask(entryID: String) {
-        guard let id = ScheduledTask.id(fromEntryID: entryID), let task = store.task(id: id)
+        guard core.settings.schedulerEnabled, let id = ScheduledTask.id(fromEntryID: entryID),
+            let task = store.task(id: id)
         else { return }
         draft = ScheduledTaskDraft(task: task)
         present()
@@ -129,7 +134,7 @@ final class SchedulerEditorCoordinator {
         let task = draft.build()
         let editing = draft.isEditing
         if editing { store.update(task) } else { store.add(task) }
-        finish()
+        cancelSchedulerEditing()
         core.showMessage(editing ? "Scheduled task updated" : "Scheduled task created")
     }
 
@@ -142,12 +147,13 @@ final class SchedulerEditorCoordinator {
     /// Delete the task the editor is open on, from its ⌘K menu; leaves the editor once confirmed.
     func deleteEditing() {
         guard let id = draft.editingID, let task = store.task(id: id) else { return }
-        confirmDelete(task) { [weak self] in self?.finish() }
+        confirmDelete(task) { [weak self] in self?.cancelSchedulerEditing() }
     }
 
-    /// Save or cancel from the form: back to whatever screen opened it, or hide when it was the root.
-    func finish() {
-        core.paletteCoordinator.closeScreen()
+    /// Every way out of the editor, keeping the row it left; a no-op once the palette has moved on.
+    func cancelSchedulerEditing() {
+        guard core.palette.mode == .schedulerEditor else { return }
+        core.paletteCoordinator.closeScreen(preservingSelection: true)
     }
 
     private func confirmDelete(_ task: ScheduledTask, then onDeleted: (() -> Void)? = nil) {
@@ -163,8 +169,9 @@ final class SchedulerEditorCoordinator {
     }
 
     /// Push over an open launcher so ⎋ returns to it; a bare shortcut opens the form as the root.
-    private func present() {
+    private func present(resuming: Bool = false) {
         if core.paletteCoordinator.isVisible {
+            guard !resuming else { return }
             core.paletteCoordinator.navigate(to: .schedulerEditor)
         } else {
             core.paletteCoordinator.showPalette(mode: .schedulerEditor)

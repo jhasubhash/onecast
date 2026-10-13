@@ -16,6 +16,7 @@ struct SchedulerEditorScreen: PaletteScreen {
     var primaryActionTitle: String { coordinator.draft.isEditing ? "Save Task" : "Create Task" }
 
     func hasPrimaryAction(at selection: Int) -> Bool { true }
+    func isPrimaryActionEnabled(at selection: Int) -> Bool { coordinator.draft.isValid }
     func hasActions(at selection: Int) -> Bool { coordinator.draft.isEditing }
 
     func activate(at selection: Int) {
@@ -37,8 +38,10 @@ struct SchedulerEditorScreen: PaletteScreen {
     func body(selection: Int, scroll: ScrollIntent) -> AnyView {
         // Standard TextFields swallow ↵, so the panel's return handler never sees it; onSubmit
         // lets a focused single-line field save, while the Command editor keeps its newlines.
-        AnyView(
-            SchedulerEditorForm(draft: coordinator.draft, vm: vm)
+        let draft = coordinator.draft
+        return AnyView(
+            SchedulerEditorForm(draft: draft, vm: vm)
+                .id(ObjectIdentifier(draft))
                 .onSubmit { activate(at: selection) })
     }
 }

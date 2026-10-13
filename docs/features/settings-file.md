@@ -150,8 +150,9 @@ where it was. A chord another action still holds is reported, and the old bindin
 Each pane that lists items writes the ones with something set, as records keyed by ID:
 `applications.apps` and `systemSettings.panes` by bundle ID, `systemActions.actions` by action ID, and
 built-in commands under the pane that lists them — `clipboard.commands`, `presentation.commands`,
-`docks.commands`, `scheduler.commands` and the rest of those panes, with every other command in
-`commands.builtIn` — by their ID after `command:`. Which pane lists a command is
+`docks.commands`, `scheduler.commands` and the rest of those panes — `commands.commands` holds Create
+and Search Custom Commands — with every other command in `commands.builtIn` — by their ID after
+`command:`. Which pane lists a command is
 `SettingsTab.ownedCommands`, so a command moved there moves in the file, and a pane that gains its
 first command needs a `<pane>.commands` key, which `launcher-settings-file-test` enforces. Three
 fixed actions have no row to carry a shortcut, so each has a key of its own: `general.launcherShortcut`

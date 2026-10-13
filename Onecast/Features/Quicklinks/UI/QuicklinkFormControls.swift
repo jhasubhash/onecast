@@ -8,6 +8,12 @@ import SwiftUI
 /// each draws its own focused edge rather than AppKit's blue ring.
 enum QuicklinkFormField: Int, CaseIterable, Hashable {
     case name, link, icon, openWith, showInRootSearch, pinned
+
+    /// ⇥ / ⇧⇥ wrap at either end, the way Raycast's form does.
+    func advanced(backwards: Bool) -> QuicklinkFormField {
+        let all = Self.allCases
+        return all[(rawValue + (backwards ? -1 : 1) + all.count) % all.count]
+    }
 }
 
 /// A titled control group, the form's repeated unit.
@@ -42,21 +48,51 @@ struct QuicklinkNameField: View {
 
 struct QuicklinkLinkField: View {
     @Bindable var draft: QuicklinkDraft
-    var focus: FocusState<QuicklinkFormField?>.Binding
+    /// The text view is AppKit's, so it reports focus here rather than through a `FocusState`.
+    @Binding var isFocused: Bool
+    let onSubmit: () -> Void
+    let moveFocus: (Bool) -> Void
+    @State private var selection: TextSelection?
     @Environment(\.metrics) private var metrics
 
     var body: some View {
         QuicklinkField(title: "Link") {
             VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-                HStack(spacing: Theme.Spacing.sm) {
-                    TextField("https://github.com/search?q={argument}", text: $draft.link)
-                        .dialogTextField()
-                        .focused(focus, equals: .link)
-                        .formFocusRing(focus.wrappedValue == .link, radius: metrics.radius.menu)
+                HStack(alignment: .top, spacing: Theme.Spacing.sm) {
+                    linkArea
                     insertMenu
+                        .padding(.top, metrics.spacing.md)
                 }
                 destinationPreview
             }
+        }
+    }
+
+    /// A link wraps rather than scrolls, and stays one line: ↵ saves and a pasted break flattens.
+    private var linkArea: some View {
+        FormTextArea(
+            text: $draft.link, selection: $selection, focused: $isFocused, minimumHeight: 0,
+            label: "Link", isCode: true, allowsLineBreaks: false, onSubmit: onSubmit,
+            moveFocus: moveFocus
+        )
+        .background(
+            RoundedRectangle(cornerRadius: metrics.radius.menu, style: .continuous)
+                .fill(Theme.Colors.controlSurface)
+        )
+        .overlay(alignment: .topLeading) { placeholder }
+        .formFocusRing(isFocused, radius: metrics.radius.menu)
+    }
+
+    @ViewBuilder
+    private var placeholder: some View {
+        if draft.link.isEmpty {
+            Text("https://github.com/search?q={argument}")
+                .font(.system(size: metrics.typography.nsFont(.body).pointSize, design: .monospaced))
+                .lineLimit(1)
+                .foregroundStyle(Theme.Colors.textTertiary)
+                .padding(.horizontal, metrics.spacing.xl)
+                .padding(.vertical, metrics.spacing.md)
+                .allowsHitTesting(false)
         }
     }
 
@@ -87,22 +123,32 @@ struct QuicklinkLinkField: View {
     /// stop: it seeds the field beside it, which is where the focus is.
     private var insertMenu: some View {
         Menu("Insert…") {
-            Button("Argument") { draft.insert("{argument}") }
-            Button("Named Argument") { draft.insert("{argument name=\"Query\"}") }
+            insertItem("Argument", "{argument}")
+            insertItem("Named Argument", "{argument name=\"Query\"}")
             Divider()
-            Button("Clipboard") { draft.insert("{clipboard}") }
-            Button("Selected Text") { draft.insert("{selection}") }
+            insertItem("Clipboard", "{clipboard}")
+            insertItem("Selected Text", "{selection}")
             Divider()
-            Button("Date") { draft.insert("{date}") }
-            Button("Time") { draft.insert("{time}") }
-            Button("Date & Time") { draft.insert("{datetime}") }
-            Button("Custom Date Format") { draft.insert("{date format=\"yyyy-MM-dd\"}") }
+            insertItem("Date", "{date}")
+            insertItem("Time", "{time}")
+            insertItem("Date & Time", "{datetime}")
+            insertItem("Custom Date Format", "{date format=\"yyyy-MM-dd\"}")
             Divider()
-            Button("UUID") { draft.insert("{uuid}") }
+            insertItem("UUID", "{uuid}")
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
         .focusEffectDisabled()
+    }
+
+    private func insertItem(_ title: String, _ token: String) -> some View {
+        Button(title) { insert(token) }
+    }
+
+    private func insert(_ token: String) {
+        let caret = draft.insert(token, replacing: selection?.singleRange)
+        selection = TextSelection(insertionPoint: caret)
+        isFocused = true
     }
 }
 

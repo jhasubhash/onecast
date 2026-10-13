@@ -177,11 +177,21 @@ it leaves your new copy alone. None of this ends up in your
 Enabled snippets show up in launcher search while **Show in launcher** is on. **Both the name and the
 keyword are searchable**, ranked like an app name.
 
-<kbd>return</kbd> pastes the snippet.
+<kbd>return</kbd> pastes the snippet, and <kbd>⌘</kbd><kbd>E</kbd> (or **Edit Snippet** in
+<kbd>⌘</kbd><kbd>K</kbd>) opens it in the editor.
 
 ## The editor
 
 Changes live in memory until you press **Save**. **New** creates no file until the first save.
+
+The template box grows as you type, in a monospaced font. <kbd>return</kbd> starts a new line and
+<kbd>⌥</kbd><kbd>tab</kbd> types a tab, because <kbd>tab</kbd> moves to the next field.
+<kbd>⌘</kbd><kbd>return</kbd> saves from any field, and <kbd>esc</kbd> discards the draft. **Insert…**
+puts a placeholder at the caret, or over the text you have selected.
+
+**Save** stays dimmed until the snippet has a name. Saving or discarding takes you back to the list
+you came from, on the row you left. If you hide the launcher mid-draft, **Create Snippet** again
+brings the same draft back, until the launcher resets to its root search.
 
 If the file changed on disk while you were editing, saving is **refused as a conflict** instead of
 overwriting. Open the snippet again to see what is on disk now.

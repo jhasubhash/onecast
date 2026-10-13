@@ -97,6 +97,119 @@ struct PaletteNavigationTests {
             replaced.pop() && replaced.mode == .launcher,
             "so one back step still lands on the launcher")
 
+        let editing = searchingLauncher()
+        editing.push(mode: .snippets)
+        editing.query = "sign-off"
+        editing.selection = 2
+        editing.push(mode: .snippetEditor)
+        expect(editing.query.isEmpty, "the snippet editor does not inherit the browser query")
+        editing.noteEditingField(true)
+        expect(
+            editing.pop(preservingSelection: true) && editing.mode == .snippets
+                && editing.query == "sign-off" && editing.selection == 2
+                && editing.restoredSelection == 2 && !editing.isEditingField,
+            "leaving a snippet editor restores its browser and releases the form keyboard")
+        editing.query = "new search"
+        expect(editing.restoredSelection == nil, "typing a new query releases the restored selection")
+        expect(
+            editing.pop() && editing.mode == .launcher && editing.query == "clipboard",
+            "the snippet browser still returns to the launcher search")
+        editing.prepare(mode: .snippets)
+        expect(editing.restoredSelection == nil, "a fresh summon releases the restored selection")
+        expect(vm.restoredSelection == nil, "other screens keep their existing navigation behaviour")
+
+        let quicklink = searchingLauncher()
+        quicklink.push(mode: .quicklinks)
+        quicklink.query = "GitHub"
+        quicklink.selection = 1
+        quicklink.push(mode: .quicklinkEditor)
+        expect(
+            quicklink.mode.isEditor && !quicklink.mode.isNativeEditor && quicklink.query.isEmpty,
+            "the quicklink editor is an editor without being a native form")
+        expect(
+            quicklink.pop(preservingSelection: true) && quicklink.mode == .quicklinks
+                && quicklink.query == "GitHub" && quicklink.restoredSelection == 1,
+            "leaving a quicklink editor restores its browser query and row")
+        quicklink.pushCarryingQuery(mode: .launcher)
+        expect(quicklink.restoredSelection == nil, "a ring hop does not carry the restored row along")
+        expect(
+            !PaletteMode.extensionCommand.isEditor && !PaletteMode.quicklinks.isEditor
+                && !PaletteMode.customCommands.isEditor && !PaletteMode.schedule.isEditor,
+            "editor routing excludes extensions and browsers")
+
+        let event = searchingLauncher()
+        event.query = "Create Event"
+        event.push(mode: .eventEditor)
+        event.noteEditingField(true)
+        expect(
+            event.mode.isNativeEditor && event.query.isEmpty,
+            "the event editor owns its keyboard without inheriting the launcher query")
+        expect(
+            event.pop(preservingSelection: true) && event.mode == .launcher
+                && event.query == "Create Event" && event.restoredSelection == 3
+                && !event.isEditingField,
+            "leaving an event editor restores the launcher query and selected row")
+        event.prepare(mode: .eventEditor)
+        expect(!event.canGoBack, "an event editor summoned by a hotkey starts without a previous screen")
+
+        let command = searchingLauncher()
+        command.query = "Create Custom Command"
+        command.push(mode: .customCommandEditor)
+        command.noteEditingField(true)
+        expect(
+            command.mode.isNativeEditor && command.query.isEmpty,
+            "the command editor owns its keyboard without inheriting the launcher query")
+        expect(
+            command.pop(preservingSelection: true) && command.mode == .launcher
+                && command.query == "Create Custom Command" && command.restoredSelection == 3
+                && !command.isEditingField,
+            "leaving a command editor restores the launcher query and selected row")
+        command.prepare(mode: .customCommandEditor)
+        expect(!command.canGoBack, "a command editor summoned directly starts without a previous screen")
+
+        let commands = searchingLauncher()
+        commands.push(mode: .customCommands)
+        commands.query = "Screens"
+        commands.selection = 2
+        commands.push(mode: .customCommandEditor)
+        commands.noteEditingField(true)
+        expect(
+            commands.pop(preservingSelection: true) && commands.mode == .customCommands
+                && commands.query == "Screens" && commands.restoredSelection == 2
+                && !commands.isEditingField,
+            "closing a command editor restores its browser query and selection")
+        expect(commands.pop() && commands.mode == .launcher, "the command browser returns to root search")
+
+        let scheduler = searchingLauncher()
+        scheduler.push(mode: .schedulerEditor)
+        expect(
+            scheduler.mode.isEditor && !scheduler.mode.isNativeEditor,
+            "the scheduler editor is an editor without being a native form")
+        expect(
+            scheduler.pop(preservingSelection: true) && scheduler.mode == .launcher
+                && scheduler.restoredSelection == 3,
+            "leaving the scheduler editor restores the row it was opened from")
+
+        for mode: PaletteMode in [
+            .snippetEditor, .quicklinkEditor, .schedulerEditor, .eventEditor, .customCommandEditor
+        ] {
+            let switched = searchingLauncher()
+            switched.push(mode: mode)
+            switched.push(mode: .clipboard)
+            expect(
+                switched.pop() && switched.mode == .launcher && switched.query == "clipboard"
+                    && !switched.canGoBack,
+                "switching away from \(mode) never restores an editor without its session")
+            switched.push(mode: mode)
+            switched.push(mode: .quicklinkEditor)
+            expect(
+                switched.pop() && switched.mode == .launcher && !switched.canGoBack,
+                "switching between editors preserves only the original browser")
+            switched.prepare(mode: mode)
+            switched.push(mode: .clipboard)
+            expect(!switched.canGoBack, "a directly summoned editor leaves no dead back frame")
+        }
+
         let summoned = searchingLauncher()
         summoned.push(mode: .clipboard)
         summoned.prepare(mode: .emoji)

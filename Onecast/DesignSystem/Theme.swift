@@ -29,6 +29,7 @@ enum Theme {
     enum Radius {
         static let panel: CGFloat = 26
         static let row: CGFloat = 10
+        static let formField: CGFloat = 12
         /// Emoji tiles are roomier than list rows, so their corners take one larger step.
         static let emojiCell: CGFloat = 12
         static let menu: CGFloat = 6
@@ -151,6 +152,11 @@ enum Theme {
         static let emojiGridInset: CGFloat = 16
         static let emojiCell: CGFloat = 56
         static let menuWidth: CGFloat = 276
+        static let formFieldHeight: CGFloat = menuButton - 2
+        static let formFieldFocusStroke: CGFloat = 2
+        static let formMenuMinimumWidth: CGFloat = 200
+        /// A form menu's capped list may run this far past the last whole row, so it reads as scrollable.
+        static let formMenuExtraRowsHeight: CGFloat = 20
         /// The clipboard type filter's menu; `menuWidth` is far too wide for six short rows.
         static let clipboardFilterMenuWidth: CGFloat = 200
         static let fileSearchFilterMenuWidth: CGFloat = 200
@@ -229,8 +235,10 @@ enum Theme {
         static let aiUsageBar: CGFloat = 110
         /// Settings editor modals (Custom Commands, Snippets): fixed width, intrinsic height.
         static let editorSheetWidth: CGFloat = 480
-        /// The multi-line box inside those modals; it scrolls rather than grows the sheet.
+        /// The multi-line box inside those modals: its height, or the least a growing one keeps.
         static let editorTextHeight: CGFloat = 120
+        /// Past this a modal's fields scroll, so a growing text box never outgrows the screen.
+        static let editorSheetFieldsMaxHeight: CGFloat = 480
         /// The confirmation HUD's width ceiling, and its distance above the screen bottom.
         static let hudMaxWidth: CGFloat = 420
         static let hudEdgeOffset: CGFloat = 48

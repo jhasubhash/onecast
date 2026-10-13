@@ -106,6 +106,14 @@ own — Save/Add rides the launcher's shared footer `ActionBar` on ↵, and Dele
 editing — whereas the sheet keeps its own Cancel/Save. Neither reads `@Environment(\.dismiss)`;
 dismissal is injected.
 
+The footer's Save is disabled while the draft is invalid (`isPrimaryActionEnabled`), and ↵ in the name
+cannot save one either. **⌘↵** saves and **⎋** cancels, both caught at the panel and routed to
+`SchedulerEditorCoordinator.save` / `cancelSchedulerEditing`; save, cancel and a confirmed delete all
+leave through `closeScreen(preservingSelection: true)`, so the screen the form was opened from returns
+with its query and selected row. A hidden palette keeps the form mounted, so a second **Create
+Scheduled Task** brings back the same draft; editing another task replaces it and the form remounts
+(`.id(ObjectIdentifier(draft))`). Turning the Scheduler off closes an open form.
+
 ## AI tool
 
 Whenever the feature is on, `AIChatCoordinator` offers `SchedulerAITool` to the model alongside the

@@ -224,6 +224,7 @@ private struct SnippetEditorSheet: View {
     @State private var draft: SnippetDraft
     @State private var isSaving = false
     @FocusState private var focus: SnippetFormField?
+    @State private var templateFocused = false
 
     init(record: StoredSnippet?, dismiss: @escaping () -> Void) {
         self.dismiss = dismiss
@@ -235,27 +236,10 @@ private struct SnippetEditorSheet: View {
             Text(draft.title)
                 .font(.title2.weight(.bold))
 
-            SnippetNameField(draft: draft, focus: $focus)
-            SnippetKeywordField(draft: draft, focus: $focus)
-            SnippetTemplateField(draft: draft, focus: $focus)
-
-            VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
-                SnippetOptionToggle(
-                    title: "Enabled", isOn: $draft.isEnabled,
-                    detail: "Disabled snippets cannot be expanded.",
-                    field: .enabled, focus: $focus)
-                SnippetOptionToggle(
-                    title: "Show confirmation", isOn: $draft.showsConfirmation,
-                    detail: "Confirm on screen after this snippet is inserted.",
-                    field: .showsConfirmation, focus: $focus)
+            ScrollView {
+                fields
             }
-
-            if let errorMessage = draft.errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            .frame(maxHeight: Theme.Size.editorSheetFieldsMaxHeight)
 
             HStack {
                 Spacer()
@@ -278,10 +262,39 @@ private struct SnippetEditorSheet: View {
         }
     }
 
+    private var fields: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+            SnippetNameField(draft: draft, focus: $focus)
+            SnippetKeywordField(draft: draft, focus: $focus)
+            SnippetTemplateField(
+                draft: draft, isFocused: $templateFocused, moveFocus: advanceFocus)
+
+            VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
+                SnippetOptionToggle(
+                    title: "Enabled", isOn: $draft.isEnabled,
+                    detail: "Disabled snippets cannot be expanded.",
+                    field: .enabled, focus: $focus)
+                SnippetOptionToggle(
+                    title: "Show confirmation", isOn: $draft.showsConfirmation,
+                    detail: "Confirm on screen after this snippet is inserted.",
+                    field: .showsConfirmation, focus: $focus)
+            }
+
+            if let errorMessage = draft.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     private func advanceFocus(backwards: Bool) {
-        let all = SnippetFormField.allCases
-        let index = focus.flatMap { all.firstIndex(of: $0) } ?? 0
-        focus = all[(index + (backwards ? -1 : 1) + all.count) % all.count]
+        let current: SnippetFormField = templateFocused ? .template : (focus ?? .name)
+        let next = current.advanced(backwards: backwards)
+        templateFocused = next == .template
+        // The template is AppKit's text view, which no `FocusState` value can name.
+        if next != .template { focus = next }
     }
 
     private func save() {

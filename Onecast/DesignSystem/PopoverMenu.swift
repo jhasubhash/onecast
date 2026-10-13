@@ -116,6 +116,8 @@ struct PopoverMenu: View {
     var attachment = Attachment.none
     /// What the user has typed to filter the rows; the field appears only while it is non-empty.
     var query: String = ""
+    /// How far past the usual cap a long list may run, so a form's menu shows more of its rows.
+    var extraRowsHeight: CGFloat = 0
 
     /// The palette arms this only once the pointer has moved of its own accord.
     @Environment(PaletteState.self) private var palette
@@ -247,7 +249,9 @@ struct PopoverMenu: View {
         min(contentHeight, viewportCapacity)
     }
 
-    private var viewportCapacity: CGFloat { metrics.size.menuRowsMaxHeight + headerExtent }
+    private var viewportCapacity: CGFloat {
+        metrics.size.menuRowsMaxHeight + headerExtent + extraRowsHeight
+    }
 
     private var contentHeight: CGFloat {
         let rows = CGFloat(items.count)
@@ -335,7 +339,7 @@ private struct PopoverMenuRow: View {
                             .frame(width: metrics.size.menuBrandIcon, height: metrics.size.menuBrandIcon)
                             .frame(width: metrics.size.menuIcon, height: metrics.size.menuIcon)
                     case .file(let path):
-                        MenuFileIcon(path: path)
+                        MenuFileIcon(path: path).id(path)
                     case .thumbnail(let id, let data):
                         MenuThumbnail(id: id, data: data)
                     }

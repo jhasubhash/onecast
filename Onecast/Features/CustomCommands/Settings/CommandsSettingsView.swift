@@ -5,8 +5,6 @@ struct CommandsSettingsView: View {
     @Environment(CustomCommandStore.self) private var store
     @Environment(AppCore.self) private var core
     @Environment(AppSettings.self) private var settings
-    @State private var editor: EditorTarget?
-    @State private var pendingDeletion: CustomCommand?
 
     var body: some View {
         @Bindable var settings = settings
@@ -27,6 +25,9 @@ struct CommandsSettingsView: View {
                 showsInLauncher: $settings.customCommandsShowInLauncher)
 
             Section {
+                ForEach(CommandCatalog.entries(ownedBy: .commands)) { entry in
+                    FeatureCommandRow(entry: entry)
+                }
                 if store.commands.isEmpty {
                     Text("Add one to make it searchable from the launcher.")
                         .foregroundStyle(.secondary)
@@ -41,12 +42,17 @@ struct CommandsSettingsView: View {
                                     core.customCommandCoordinator.setCustomCommandEnabled(
                                         $0, id: command.id)
                                 }),
-                            onEdit: { editor = EditorTarget(command: command) },
-                            onDelete: { pendingDeletion = command })
+                            onEdit: { core.customCommandCoordinator.editCustomCommand(command) },
+                            onDelete: {
+                                Task {
+                                    await core.customCommandCoordinator.deleteCustomCommand(
+                                        id: command.id)
+                                }
+                            })
                     }
                 }
                 Button {
-                    editor = EditorTarget(command: nil)
+                    core.customCommandCoordinator.editCustomCommand(nil)
                 } label: {
                     SettingsRowTitle(.commandsCustomCommands, "Add Custom Command")
                 }
@@ -68,18 +74,6 @@ struct CommandsSettingsView: View {
         .formStyle(.grouped)
         .settingsScrollTarget(.commands)
         .releasesFocusOnOutsideClick()
-        .sheet(item: $editor) { target in
-            CustomCommandEditorSheet(command: target.command)
-        }
-        .alert(item: $pendingDeletion) { command in
-            Alert(
-                title: Text("Delete “\(command.name)”?"),
-                message: Text("Its global shortcut and launcher references will also be removed."),
-                primaryButton: .destructive(Text("Delete")) {
-                    core.customCommandCoordinator.deleteCustomCommand(id: command.id)
-                },
-                secondaryButton: .cancel())
-        }
     }
 
     private var sortedCommands: [CustomCommand] {
@@ -87,11 +81,6 @@ struct CommandsSettingsView: View {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
-}
-
-private struct EditorTarget: Identifiable {
-    let id = UUID()
-    let command: CustomCommand?
 }
 
 private struct CustomCommandSettingsRow: View {
@@ -123,7 +112,7 @@ private struct CustomCommandSettingsRow: View {
                 Image(systemName: "pencil")
             }
             .buttonStyle(.plain)
-            .help("Edit Command")
+            .help("Edit Custom Command")
             .accessibilityLabel("Edit \(command.name)")
 
             Button(action: onDelete) {
@@ -131,7 +120,7 @@ private struct CustomCommandSettingsRow: View {
                     .foregroundStyle(.red)
             }
             .buttonStyle(.plain)
-            .help("Delete Command")
+            .help("Delete Custom Command")
             .accessibilityLabel("Delete \(command.name)")
 
             Toggle("", isOn: $isEnabled)

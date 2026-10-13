@@ -71,3 +71,11 @@ struct FormCheckbox<Field: Hashable>: View {
         isOn.toggle()
     }
 }
+
+extension TextSelection {
+    /// The caret or selected range; nil when the selection spans several ranges.
+    var singleRange: Range<String.Index>? {
+        guard case .selection(let range) = indices else { return nil }
+        return range
+    }
+}

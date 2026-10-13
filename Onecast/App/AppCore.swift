@@ -55,7 +55,8 @@ final class AppCore {
     let pinnedEmoji = PinnedEmojiStore()
     let runningApps = RunningAppsMonitor()
     let palette = PaletteState()
-    let fileSearch = FileSearchSession()
+    let fileIndexer = FileIndexer()
+    @ObservationIgnored private(set) lazy var fileSearch = FileSearchSession(index: fileIndexer.index)
     let menuSearch = MenuSearchSession()
     let windowSwitch = WindowSwitchSession()
     let activationPolicy = ActivationPolicy()
@@ -201,8 +202,9 @@ final class AppCore {
         store: calendarStore, clock: meetingClock, appIndex: appIndex, settings: settings,
         paletteCoordinator: paletteCoordinator, core: self)
     @ObservationIgnored private(set) lazy var fileSearchCoordinator = FileSearchCoordinator(
-        settings: settings, appIndex: appIndex, session: fileSearch, palette: palette,
-        paletteCoordinator: paletteCoordinator, windowController: windowController, core: self)
+        settings: settings, appIndex: appIndex, session: fileSearch, indexer: fileIndexer,
+        palette: palette, paletteCoordinator: paletteCoordinator,
+        windowController: windowController, core: self)
     @ObservationIgnored private(set) lazy var menuSearchCoordinator = MenuSearchCoordinator(
         settings: settings, appIndex: appIndex, session: menuSearch, palette: palette,
         paletteCoordinator: paletteCoordinator, core: self)
@@ -801,7 +803,11 @@ final class AppCore {
             {
                 _ = $0.schedulerEnabled
                 _ = $0.schedulerShowInLauncher
-            }, reproject: { $0.schedulerCoordinator.applySchedulerEnabled() })
+            },
+            reproject: {
+                $0.schedulerCoordinator.applySchedulerEnabled()
+                if !$0.settings.schedulerEnabled { $0.schedulerEditorCoordinator.cancelSchedulerEditing() }
+            })
         track(
             {
                 _ = $0.presentationEnabled
@@ -1013,11 +1019,6 @@ final class AppCore {
     /// The volume slider, so `dialogs` stays the single owner of every prompt in the app.
     func pickVolume(current: Float32) async -> Float32? {
         await dialogs.pickVolume(current: current)
-    }
-
-    /// The new-event prompt, for the same reason.
-    func createEvent() async -> EventDraft? {
-        await dialogs.createEvent()
     }
 
     /// The snippet argument prompt, for the same reason.

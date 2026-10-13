@@ -15,6 +15,7 @@ extension EnvironmentValues {
 private struct TooltipModifier: ViewModifier {
     let text: String?
     let edge: VerticalEdge
+    var dismissOnPress = false
     @State private var hovered = false
     @State private var owner = UUID()
     @State private var frame = CGRect.zero
@@ -22,11 +23,16 @@ private struct TooltipModifier: ViewModifier {
     @Environment(\.tooltipPresenter) private var presenter
 
     func body(content: Content) -> some View {
-        if let presenter {
-            hosted(content, by: presenter)
-        } else {
-            inline(content)
+        Group {
+            if let presenter {
+                hosted(content, by: presenter)
+            } else {
+                inline(content)
+            }
         }
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0).onEnded { _ in hovered = false },
+            isEnabled: dismissOnPress)
     }
 
     private func inline(_ content: Content) -> some View {
@@ -62,8 +68,10 @@ private struct TooltipModifier: ViewModifier {
 
 extension View {
     /// Hover label styled like the palette's keycap chips; hang it `.bottom` at a window's top.
-    func tooltip(_ text: String?, edge: VerticalEdge = .top) -> some View {
-        modifier(TooltipModifier(text: text, edge: edge))
+    func tooltip(
+        _ text: String?, edge: VerticalEdge = .top, dismissOnPress: Bool = false
+    ) -> some View {
+        modifier(TooltipModifier(text: text, edge: edge, dismissOnPress: dismissOnPress))
     }
 }
 

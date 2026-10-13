@@ -27,6 +27,7 @@ struct SnippetsTests {
         testKeywordLifecycle()
         await testKeywordListenerLifecycle()
         testOwnEditorInjection()
+        testDraftInsertsAtTheCaret()
 
         print(failures == 0 ? "\nALL PASSED" : "\n\(failures) FAILED")
         exit(failures == 0 ? 0 : 1)
@@ -710,6 +711,29 @@ struct SnippetsTests {
         check(
             "the caret offset counts UTF-16 units, not characters",
             InjectedText("\u{1F1F3}\u{1F1F1} done", cursorOffsetFromEnd: 5).caretPrefixLength == 4)
+    }
+
+    /// The editor's Insert menu seeds the template where the caret is, never only at its end.
+    private static func testDraftInsertsAtTheCaret() {
+        let draft = SnippetDraft(record: record("/tmp/sig.md", Snippet(name: "Sig", text: "Hi ,\nBye")))
+        let text = draft.text
+        let caret = text.index(text.startIndex, offsetBy: 3)
+        let after = draft.insert("{clipboard}", replacing: caret..<caret)
+        check("a placeholder lands at the caret", draft.text == "Hi {clipboard},\nBye")
+        check("the caret follows the placeholder", draft.text[..<after] == "Hi {clipboard}")
+
+        let selected = draft.text.range(of: "{clipboard}")!
+        _ = draft.insert("{date}", replacing: selected)
+        check("a selection is replaced by the placeholder", draft.text == "Hi {date},\nBye")
+
+        _ = draft.insert("\n{cursor}", replacing: nil)
+        check("with no selection the placeholder is appended", draft.text == "Hi {date},\nBye\n{cursor}")
+
+        let blank = SnippetDraft(record: nil)
+        blank.name = "  "
+        check("a blank name cannot be saved", !blank.isValid)
+        blank.name = " Sig "
+        check("a named snippet can be saved with an empty template", blank.isValid)
     }
 
     private static func testDeliveryQueueAndPasteboard() async throws {

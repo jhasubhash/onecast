@@ -222,10 +222,37 @@ shared `QuicklinkFormControls`, so a field and its validation exist once. Choosi
 with" app belongs here, through the picker the flat ⌘K menu cannot offer.
 
 Every control is a Tab stop, in both hosts: `⇥` / `⇧⇥` walk name → link → icon → open-with → the two
-toggles and wrap, and `↑`/`↓` step the same ring. Focus is driven by the palette's own field
-selection (the same mechanism an extension form uses), so a field, a picker button and a checkbox all
-take the keyboard the same way — each drawing its own focused edge through `formFocusRing`, with
-AppKit's blue focus ring suppressed rather than shown.
+toggles and wrap. Focus is driven by the palette's own field selection (the same mechanism an
+extension form uses), so a field, a picker button and a checkbox all take the keyboard the same way —
+each drawing its own focused edge through `formFocusRing`, with AppKit's blue focus ring suppressed
+rather than shown. `↑`/`↓` step the same ring from every field but the link, which keeps them for its
+caret.
+
+The **link** is a `FormTextArea` with `allowsLineBreaks: false`, shared by both hosts: a long link
+wraps and the field grows with it, but it stays one line — ↵ saves rather than breaking it, and a
+pasted break flattens to a space. It is monospaced (`isCode`), which also stops AppKit turning the
+quotes in `{argument name="Query"}` into curly ones. **Insert…** lands the placeholder **at the caret**,
+or over the selection, and appends only when there is no usable selection (`TextInsertion`, through
+`QuicklinkDraft.insert`), leaving the caret after the token.
+
+That text view is AppKit's, so `@FocusState` never names the link: SwiftUI drops a value no
+`.focused` view owns, which would leave the field unfocused. Each host keeps a plain flag for it beside
+the `FocusState` for everything else, and the text view's ⇥ moves the field ring through the same
+selection — the palette's flat selection in the launcher, `QuicklinkFormField.advanced` in the sheet.
+The launcher form scrolls as a whole once a long link grows past the panel.
+
+### Leaving and resuming
+
+**↵** in the name or link saves; **⌘↵** saves from anywhere and **⎋** cancels, both caught at the panel
+and routed to `QuicklinkCoordinator.saveEditor` / `cancelQuicklinkEditing`. The footer's primary action
+is disabled while the draft lacks a name or a link (`isPrimaryActionEnabled`), and ↵ in a field cannot
+save such a draft either. Save, cancel and a confirmed delete all leave through
+`closeScreen(preservingSelection: true)`, so the screen the editor was opened from comes back with its
+query and the row it was on; an editor opened as the root hides instead.
+
+A hidden palette keeps its editor mounted, so a second **Create Quicklink** brings back the same
+half-typed draft; editing a *different* quicklink replaces the draft and the form remounts on it
+(`.id(ObjectIdentifier(draft))`). Switching Quicklinks off closes an open editor.
 
 ## Storage
 

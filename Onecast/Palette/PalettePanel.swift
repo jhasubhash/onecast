@@ -152,16 +152,33 @@ final class PalettePanel: NSPanel {
 
     /// Clip view and field editor both claim a cursor, so the panel settles it after `super`.
     private func applyCursorPolicy(for event: NSEvent) {
-        guard Self.cursorEvents.contains(event.type) else { return }
-        // A hidden-field screen owns nowhere: leave its I-beams to SwiftUI's own pointerStyle.
-        let field = searchFieldRect
-        guard !field.isEmpty else { return }
-        // Outset: the field editor AppKit installs is a point taller than the field it serves.
-        let text = field.insetBy(dx: -Self.fieldEditorSlack, dy: -Self.fieldEditorSlack)
-        let cursor: NSCursor =
-            text.contains(convertPoint(fromScreen: NSEvent.mouseLocation)) ? .iBeam : .arrow
+        guard Self.cursorEvents.contains(event.type),
+            let cursor = cursor(at: convertPoint(fromScreen: NSEvent.mouseLocation))
+        else { return }
         guard NSCursor.current !== cursor else { return }
         cursor.set()
+    }
+
+    /// Nil leaves a screen with no search field to SwiftUI's own pointer styles.
+    func cursor(at point: NSPoint) -> NSCursor? {
+        if let contentView, isEditableText(in: contentView, at: point) { return .iBeam }
+        if paletteState?.mode.isNativeEditor == true { return .arrow }
+        let field = searchFieldRect
+        guard !field.isEmpty else { return nil }
+        // Outset: the field editor AppKit installs is a point taller than the field it serves.
+        let text = field.insetBy(dx: -Self.fieldEditorSlack, dy: -Self.fieldEditorSlack)
+        return text.contains(point) ? .iBeam : .arrow
+    }
+
+    /// Only the part of a field the scroll view shows counts, so a clipped field cannot claim the cursor.
+    private func isEditableText(in view: NSView, at point: NSPoint) -> Bool {
+        let local = view.convert(point, from: nil)
+        guard !view.isHidden, view.alphaValue > 0,
+            view.bounds.intersection(view.visibleRect).contains(local)
+        else { return false }
+        if let field = view as? NSTextField { return field.isEditable }
+        if let text = view as? NSTextView { return text.isEditable }
+        return view.subviews.contains { isEditableText(in: $0, at: point) }
     }
 
     /// docs/features/palette.md: a 24pt editor in a 23pt field, so its I-beam overhangs.
@@ -178,6 +195,10 @@ final class PalettePanel: NSPanel {
 
     override func sendEvent(_ event: NSEvent) {
         if consumeMenuDismissal(event) { return }
+        // A form's menu hangs off a control, so it must go before scrolling carries the anchor away.
+        if event.type == .scrollWheel, paletteState?.mode.isNativeEditor == true {
+            onDismissMenu?()
+        }
         switch event.type {
         case .mouseMoved: paletteState?.notePointerMoved(to: NSEvent.mouseLocation)
         // Keys and scrolling both slide rows under the pointer without it choosing any of them.

@@ -51,7 +51,7 @@ build() {
 
     # A bundled helper is shipped code too: every binary carries exactly the slices asked for.
     for bin in "$app/Contents/MacOS/Onecast" "$app/Contents/Helpers/ClipboardTextHelper" \
-        "$app/Contents/Helpers/AIToolHelper" \
+        "$app/Contents/Helpers/AIToolHelper" "$app/Contents/Helpers/FileIndexHelper" \
         "$app/Contents/Helpers/Onecast Dictation.app/Contents/MacOS/Onecast Dictation"; do
         local slices
         slices="$(lipo -archs "$bin" | tr ' ' '\n' | sort | xargs)"

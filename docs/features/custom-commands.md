@@ -1,16 +1,19 @@
 # Custom commands
 
-Custom commands let users add a searchable name and a shell command in **Settings → Custom
-Commands**. They appear in the launcher's Custom Commands section, share the normal fuzzy ranking,
-and run from Return, a favorite slot, or an optional global shortcut. A command may declare
+Custom commands let users add a searchable name and a shell command with **Create Custom Command** in
+the launcher, or **Add Custom Command** in **Settings → Commands**, and browse them with **Search
+Custom Commands**. They appear in the launcher's Custom Commands section, share the normal fuzzy
+ranking, and run from Return, a favorite slot, or an optional global shortcut. A command may declare
 [arguments](#arguments) it is asked for first, and may [show what it printed](#show-output) when it
 finishes.
 
 The pane carries the feature switch — off out of the box — and its launcher-visibility companion,
-both in `AppSettings` and in settings backups. Switching the feature off empties the launcher section and makes
+both in `AppSettings` and in settings backups. Switching the feature off empties the launcher section,
+closes an open editor or browser, and makes
 `CustomCommandCoordinator.runCustomCommand` — the single funnel for palette activation and global shortcuts — refuse to
 run anything; Carbon registrations and their bindings stay put, so re-enabling restores every shortcut
-without re-registering. "Show in launcher" only hides the section; shortcuts keep working.
+without re-registering. "Show in launcher" hides the section and the Create and Search Custom Commands
+rows, whose own shortcuts go with them; every custom command's shortcut keeps working.
 
 ## Invariants
 
@@ -18,6 +21,10 @@ without re-registering. "Show in launcher" only hides the section; shortcuts kee
   `Service/CustomCommandArgumentSession.swift` stay free of AppKit and SwiftUI** (Foundation plus Darwin
   for `mkstemp`) so `custom-command-test` can compile them standalone. That is why the confirmation gate
   lives in `CustomCommandCoordinator` and not in the runner.
+- **`UI/CustomCommandEditorSession.swift` imports SwiftUI and nothing from AppKit, and
+  `UI/CustomCommandListScreen.swift` reaches the palette only through types the harness can stub**, so
+  `custom-command-test` and `custom-command-list-test` compile them. What a form saves and where focus
+  goes is decided in the session, never in the view.
 - A command that runs arbitrary shell is a security surface: the confirmation step cannot be bypassed, and
   an import of executable commands warns before it applies.
 - **A disabled command is inert, not gone.** `isEnabled == false` takes it out of the launcher slice
@@ -36,11 +43,12 @@ bundle-scoped `UserDefaults`. Each command has a stable UUID. Its launcher entry
 `hotkey.customCommand.<uuid>` plus the `boundCustomCommandIDs` index.
 
 Editing preserves the UUID and therefore its alias, favorite, visibility, and hotkey references. The row's
-**Enabled** checkbox is the only writer of `isEnabled`, so the editor sheet carries the flag through a
-save rather than offering a second control for it. Deleting
-goes through `AppCore`, which unregisters the hotkey and clears those references before removing the
-command. Native settings backups include both commands and bindings; import warns before accepting
-executable content.
+**Enabled** checkbox is the only writer of `isEnabled`, so the editor carries its current value through a
+save rather than offering a second control for it. Deleting goes through
+`CustomCommandCoordinator.deleteCustomCommand`, which confirms through Onecast's dialog — from
+Settings, Search Custom Commands and ⌘⌫ alike — then unregisters the hotkey and clears those
+references before removing the command. Native settings backups include both commands and bindings;
+import warns before accepting executable content.
 
 ## Launcher integration
 
@@ -54,6 +62,41 @@ The command text is deliberately not searchable. Only the user-facing name enter
 `showsInRootSearch == false` keeps a command out of that slice — and with it its alias — while its
 shortcut still runs it. The editor's **Show in root search** toggle writes it, and so does the
 launcher row's **Hide from Root Search** (⇧⌘H); the row marks a hidden command with `eye.slash`.
+
+**Search Custom Commands** (`PaletteMode.customCommands`, `CustomCommandListScreen`) lists the
+enabled commands on the left and previews the selected one's literal script on the right, including
+commands hidden from root search. Below the script, Information shows Run In, the output mode, the
+declared arguments by position (`$1 · Name`), required confirmation and an assigned shortcut. The
+list filters names, never script content (`CustomCommandStore.matching`), and a disabled command is
+not listed: **Settings → Commands** is where it comes back. ↵ runs through `runCustomCommand(id:)`,
+so the argument screen and the confirmation gate apply exactly as from root search. ⌘E edits, ⌘N
+creates and ⌘⌫ deletes after a confirmation; an empty library or an empty filter still offers
+Create. The screen takes one snapshot of the matching rows when it is built, so the preview, ⌘K and
+every chord address the row that is drawn. Esc returns to the previous search, and closing the form
+puts back the browser's query and row. Alias and shortcut assignment remain in Settings.
+
+### Launcher editor
+
+**Create Custom Command**, a command row's **Edit Custom Command** (⌘E) and the Settings **Add Custom
+Command** and edit buttons all call `CustomCommandCoordinator.editCustomCommand`, which opens
+`PaletteMode.customCommandEditor`. There is no second editor in Settings; its rows still manage
+aliases, shortcuts, enabling and deletion.
+
+`CustomCommandEditorSession` holds a draft of every option: name, icon, shell command, working
+directory, root-search visibility, any number of arguments and the four execution checkboxes. The
+script is a monospaced native text area without smart substitutions. ⇥ and ⇧⇥ walk the form through
+`focusOrder`, so ⌥⇥ types a tab character, and the icon opens the shared `SymbolPicker` popover.
+Argument rows keep their identities when one is removed.
+
+↵ in a single-line field and ⌘↵ anywhere save; ↵ in the script adds a line. Esc discards the draft
+and returns to the previous screen. Save is dimmed until the name and script are filled in
+(`canSave`), and a refused save — a duplicate name — keeps the form up with the reason. A saved
+command shows a "Custom command created" or "Custom command updated" pill. Opening or saving is gated
+by the feature switch, just like running a command. If the command is deleted from Settings while it
+is being edited, Save reports that and keeps the draft.
+
+A hidden palette keeps the form mounted, so invoking Create Custom Command again brings back the same
+draft; opening a different command replaces it.
 
 ## Execution contract
 
@@ -288,6 +331,16 @@ Foundation-only harness. Verify by hand:
 14. Re-importing the same folder says nothing was left to import, rather than reporting zero.
 15. An imported command with arguments asks for them and the script receives them — the `"$@"`
     forwarding has no harness coverage of the palette form that fills it.
+16. Create and Edit — from the launcher, Search Custom Commands or Settings — open the same form
+    with every option. Esc discards changes and returns to the previous screen; saving keeps the
+    alias, shortcut and enabled flag.
+17. Add three arguments, remove the middle one, then ⇥ and ⇧⇥ through the remaining controls. The
+    names and Optional flags stay on their original rows; the folder chooser's Cancel keeps the draft.
+18. Search Custom Commands shows root-hidden commands but not disabled ones. Filtering selects the
+    same command as the script preview and ⌘K; Run asks for arguments and respects confirmation.
+19. From the browser, ⌘E opens the form and Esc puts back the query and row. ⌘N works with no
+    matches; ⌘⌫ opens the delete confirmation, and Cancel leaves the command intact.
+20. Turning **Enable custom commands** off while the form or the browser is open leaves it.
 
 ## Importing Raycast scripts
 

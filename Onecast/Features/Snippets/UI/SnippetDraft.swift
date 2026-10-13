@@ -34,6 +34,13 @@ final class SnippetDraft {
     var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
     var isValid: Bool { !trimmedName.isEmpty }
 
+    /// Lands `token` at the caret or over `selection`; returns the caret that follows it.
+    func insert(_ token: String, replacing selection: Range<String.Index>?) -> String.Index {
+        let inserted = TextInsertion.inserting(token, into: text, replacing: selection)
+        text = inserted.text
+        return inserted.caret
+    }
+
     func build() -> Snippet {
         Snippet(
             name: trimmedName,

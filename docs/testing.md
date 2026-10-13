@@ -94,14 +94,15 @@ If a change touches anything in the right column, the harness on the left is man
 | Harness | Guards |
 | --- | --- |
 | `fuzz-test` | `Launcher/Model/LauncherMatch.swift`, `LauncherOrder.swift`, `LauncherSuggestions.swift`, `EntryNaming.swift`, `ScriptRomanization.swift`, `SearchRelevance.swift`, `LauncherRankingStore.swift` — **a new ranking complaint is a new case in its `denseIndex`** |
-| `file-search-test` | `FileSearch/Model/`, plus the shared `FuzzyMatch` scorer |
-| `file-search-session-test` | serialized query execution, debounce coalescing and cancellation |
+| `file-search-test` | `FileSearch/Model/`: folding, masks, scoring, ignore rules, priors, scopes |
+| `file-index-test` | `FileIndexCrawler`, `FileIndexSnapshot`, `FileIndex`: a real fixture crawled, written, mapped, searched and live-updated |
+| `file-search-session-test` | serialized query execution, coalescing, cancellation and refresh |
 | `menu-search-test` | `MenuSearch/Model/` decisions, `MenuSearch/Service/` session filtering, the shared `FuzzyMatch` scorer |
 | `ranking-test` | `Launcher/Model/LauncherRankingStore.swift` |
 | `scopes-test` | `Launcher/Model/SearchScopes.swift`, `Launcher/Service/AppBundleScanner.swift` — scope paths, the walk's order, and directory symlinks (kept logical paths, retargeting, cycles) |
 | `app-name-test` | `Platform/AppDisplayName.swift` — every path that names a scanned bundle |
 | `calc-test` | all of `Calculator/Model/` |
-| `calendar-test` | all of `Calendar/Model/` — link detection, the join window, the day buckets |
+| `calendar-test` | all of `Calendar/Model/` plus `EventEditorSession` — link detection, the join window, the day buckets, the draft and form focus |
 | `clipboard-search-test` | Ordinary and OCR result ordering, opt-in lifecycle, cancellation, pins and type filters |
 | `clipboard-text-test` | Apple Vision/PDF extraction, scheduling, retry backoff and recovery |
 | `paste-sequence-test` | `Clipboard/Model/PasteSequence.swift` — the walk's order, its end, and what starts it over |
@@ -109,11 +110,12 @@ If a change touches anything in the right column, the harness on the left is man
 | `pasteboard-test` | `Clipboard/Service/ClipboardManager.swift` capture and `Paster.write` — what a Finder copy reads as, and what a file entry writes back |
 | `emoji-test` | `Emoji/Model/EmojiCatalog.swift`, `EmojiGridGeometry.swift`, the generated data and keyword packs |
 | `emoji-search-test` | `Emoji/Service/EmojiIndex.swift`, `FrequentEmojiStore.swift`, `Scripts/gen-emoji.js`'s keyword format, multilingual search |
-| `palette-navigation-test` | `Palette/PaletteState.swift`'s screen motions — `prepare`, `replace`, `push`, `pop` |
+| `palette-navigation-test` | `Palette/PaletteState.swift`'s screen motions — `prepare`, `replace`, `push`, `pop` — editors replaced rather than stacked and the row a closed editor restores |
 | `palette-selection-test` | `Features/PaletteRowIndex.swift` |
 | `interface-size-test` | `DesignSystem/InterfaceMetrics.swift`, `Features/Settings/InterfaceSize.swift`, `Extensions/Model/ExtensionFormMetrics.swift` |
-| `palette-placement-test` | `DesignSystem/Theme.swift`, `Palette/PalettePlacement.swift` |
-| `palette-menu-click-test` | `Palette/PalettePanel.swift` — complete click-away presses and subsequent control activation |
+| `form-input-test` | `DesignSystem/Form{FieldChrome,Row,TextInput,TextArea}.swift` — native field and textarea sizing, cap alignment, placeholders, Tab, ↵ submit, ⌘↵ left to the window, one-line pastes, ⌥⇥, Unicode selection, undo and code fonts |
+| `palette-placement-test` | `DesignSystem/Theme.swift`, `Palette/PalettePlacement.swift` — window snapping, and every `MenuPanelCorner` including a form control's menu flipping above it and clamping to the display |
+| `palette-menu-click-test` | `Palette/PalettePanel.swift` — complete click-away presses and subsequent control activation, a native form's menu dismissed by scrolling, and the cursor policy over editable text |
 | `hotkey-test` | `HotKeys/Model/DoubleTapModifier.swift`, `DoubleTapDetector.swift`, `ModifierKey.swift`, `ModifierKeyDetector.swift`, `HotKeyBinding.swift`, `HotKeySpelling.swift`, `HyperKey.swift`, `HIDKeyMapping.swift`, `HotKeyAction.swift`, `Service/KeyShortcut.swift` (including the 🎤 keycap), and the command→action mapping in `Launcher/Model/CommandID.swift` |
 | `hyper-key-test` | `HotKeys/Model/HIDKeyMapping.swift`, `HyperKeyConflictPolicy.swift`, `Service/KeyboardRemapper.swift` — mapping ownership, refused writes, crash recovery, device reconnection, Caps Lock and 🎤 remaps sharing a keyboard, conflict severities, Modifier Keys and Karabiner parsing |
 | `hotkey-dispatch-test` | `HotKeys/Service/HotKeyManager.swift` — Secure Input side isolation, shared Control registrations, press/release routing, recording and cancellation; isolated preferences and simulated Carbon registration |
@@ -129,10 +131,11 @@ If a change touches anything in the right column, the harness on the left is man
 | `volume-test` | `SystemActions/Model/VolumeLevel.swift` |
 | `window-command-test` | `WindowManagement/WindowCommand.swift`, `WindowPlacementEngine.swift`, `WindowActionMemory.swift`, `DockInsets.swift` |
 | `window-layout-test` | `WindowManagement/Model/WindowLayout*.swift` and `CustomWindowSize*.swift` — the layout record, its geometry and its inverse, the plan and the store; custom sizes' units, frames and store |
-| `custom-command-test` | `CustomCommands/Model/CustomCommand.swift`, `Service/ShellCommandRunner.swift` |
+| `custom-command-test` | `CustomCommands/Model/CustomCommand.swift`, `Service/ShellCommandRunner.swift`, `UI/CustomCommandEditorSession.swift` — the store, the editor's draft, focus ring and argument rows, and the browser's `matching` filter |
+| `custom-command-list-test` | `UI/CustomCommandListScreen.swift` — Search Custom Commands' row snapshot, the actions and chords addressing the drawn row, and its empty states |
 | `uninstall-test` | all five pure files in `Uninstall/Model/` |
-| `quicklink-test` | all of `Quicklinks/Model/` |
-| `quicklink-coordinator-test` | Quicklink opening and requested argument field — missing and ⌘C-read selection, arguments asked before the selection is judged, "Pass selected text as argument" from a shortcut, and default-app overrides — Copy Link (the saved template, feedback, palette dismissal) and Show in Finder; no platform effects or on-screen focus checks |
+| `quicklink-test` | all of `Quicklinks/Model/`, plus `QuicklinkDraft` (Save's validity rule, triggers surviving an edit, Insert at the caret) and `Platform/TextInsertion.swift` |
+| `quicklink-coordinator-test` | Quicklink opening and requested argument field — missing and ⌘C-read selection, arguments asked before the selection is judged, "Pass selected text as argument" from a shortcut, and default-app overrides — Copy Link (the saved template, feedback, palette dismissal) and Show in Finder; the editor's lifecycle — a hidden new draft resumed, another edit replacing it, cancel and the feature switch closing only an open editor, save keeping the row's place; no platform effects or on-screen focus checks |
 | `dock-badges-test` | `Docks/Model/DockBadges.swift` — mapping the macOS Dock's tiles to bundle ID → badge label |
 | `apple-shortcut-test` | all of `AppleShortcuts/Model/` — the `shortcuts list` parser and entry ids |
 | `docks-test` | `Docks/Model/{DockModels,DockGeometry,DockSlots,DockURL}.swift` — sanitizing a configuration, slot order, frames and the lens, layout stepping, `onecast://dock` links |
@@ -140,7 +143,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `dock-strip-layout-test` | `Docks/Model/{DockStripLayout,DockPopupPlacement}.swift` — tile positions under the lens and where a popup hangs |
 | `dockwidget-catalog-test` | `Docks/Model/DockWidgetManifest.swift`, `Docks/Service/DockWidgetCatalog.swift` — manifest decoding and the folder scan |
 | `dock-widgets-time-test` / `-productivity-` / `-system-` / `-personal-` | `Docks/Model/Widgets/` — each built-in widget group's pure maths, parsing and formatting |
-| `snippets-test` | all of `Snippets/Model/` and `Snippets/Service/`, plus `Platform/HealthTicker.swift` |
+| `snippets-test` | all of `Snippets/Model/` and `Snippets/Service/`, plus `Platform/HealthTicker.swift`, `SnippetDraft` (Insert at the caret, Save's validity rule) and `Platform/TextInsertion.swift` |
 | `notes-test` | all of `Notes/Model/` and `Notes/Service/`, plus the real fuzzy matcher and signposts |
 | `notes-editor-test` | the literal Notes editor with real TextKit 2 and AppKit editing objects |
 | `raycast-test` | `Backup/Service/RaycastDecoder.swift`, `Scrypt.swift`, `Platform/Compression/Zlib.swift` |
@@ -239,28 +242,29 @@ search result that navigates and then sits there.
 
 ## Performance measurement
 
-`Platform/Signposts.swift` emits eight intervals on the `com.onecast.perf` subsystem: `AppCore.start`,
+`Platform/Signposts.swift` emits seven intervals on the `com.onecast.perf` subsystem: `AppCore.start`,
 `AppIndex.scan`, `AppIndex.rank`, `PaletteWindowController.show`, `UninstallScanner.discover` and
-`UninstallScanner.measure`, `FileSearchService.search`, and `Notes.search`. Open the Time Profiler or
+`UninstallScanner.measure`, and `Notes.search`. Open the Time Profiler or
 `os_signpost` instrument in Instruments and filter to that subsystem; nothing needs recompiling.
 
 None of the benchmarks below join the suite, so each is registered in `run-tests.sh` as `run index`
 instead: `--index` hands it editor flags without queueing it, and without that entry nothing in the
 file resolves. Keep the entry's source list matching the command beside it.
 
-Run the real Spotlight-backed file-search benchmark separately from the deterministic harnesses:
+Run the file-index benchmark separately from the deterministic harnesses. With no arguments it crawls
+`/System /Applications /Library /usr`, which never raise a privacy prompt; pass other roots to measure
+them:
 
 ```sh
-swiftc -O -swift-version 6 Onecast/Platform/Signposts.swift \
-    Onecast/Features/Launcher/Model/SearchRelevance.swift \
-    Onecast/Features/FileSearch/Model/*.swift \
-    Onecast/Features/FileSearch/Service/FileSearchService.swift \
+swiftc -O -wmo -swift-version 6 Onecast/Features/FileSearch/Model/*.swift \
+    Onecast/Features/FileSearch/Service/FileIndex.swift \
+    Onecast/Features/FileSearch/Service/FileIndexSnapshot.swift \
+    Onecast/Features/FileSearch/Service/FileIndexCrawler.swift \
     Tests/file-search-performance.swift -o /tmp/file-search-performance
 /tmp/file-search-performance
 ```
 
-Every query runs twice: once on the shipped rules and once with five extra user patterns, so the output
-says what the ignore list itself costs rather than only what Spotlight does.
+It prints the crawl and write times, the index size, and first and median latency per query.
 
 The calculator benchmark is deterministic — an injected clock, calendar and rate table — so it is a
 timing harness rather than an assertion one, and stays out of `run-tests.sh` for that reason:
@@ -488,23 +492,30 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 
 ### File Search
 
-- With File Search **off**: Search Files is absent, its shortcut no-ops, and no permission appears
+- With File Search **off**: Search Files is absent, its shortcut no-ops, and no index folder exists
+- Without Full Disk Access the pane shows **Required** with the hint, the palette says so, and ↵ and the
+  button both open Privacy & Security › Full Disk Access; granting it starts a build with no relaunch
+- The first build shows a rising item count in Settings and the palette, then a final count and date;
+  Activity Monitor shows the helper's memory, and Onecast's own footprint is back at its baseline after
 - Enabling in Settings exposes Search Files immediately; it persists across relaunch and backup import
-- Disabling during a query cancels it and returns the open screen to the launcher
+- Disabling during a query cancels it, returns the open screen to the launcher and deletes the index
 - File Search and Quicklinks remain independently visible in all four enabled/disabled combinations
-- An empty query performs no search; a filename query returns only files and folders beneath the scopes
-- Library internals, generated trees, application bundles and hidden paths do not appear
-- Visible custom top-level home folders and cloud-drive files remain searchable
+- An empty query lists recent files under home; a filename query returns only entries beneath the scopes
+- Files under home rank above system, hidden and bundle files with the same name
+- Creating, renaming and deleting a file in `~/Desktop` shows in results within a second
+- **Rebuild Index** rebuilds while the old index keeps answering
 - Return opens, Command-Return reveals in Finder, and Copy Path keeps the palette open with a HUD
 - A file and a folder drag into Finder as copies and into a browser's upload field; a cancelled drag
   flies back and leaves the palette up, a landed one hides it
 - Replacing a query quickly never lets an older result list overwrite the current query
 - A broad `.` search can be scrolled end to end; leaving it releases its fitted icons, and repeating the
   cycle does not raise the post-close memory floor
-- Removing home and adding one folder narrows results to it; restoring the default brings them back
-- A cleared scope list returns nothing rather than falling back to home, and never hangs
-- A missing scope shows the warning triangle without failing the rest of the search
-- Adding `*.log` takes effect on the next query with no relaunch; removing it restores those results
+- Replacing the whole disk with one folder narrows results to it after the rebuild; restoring the default
+  brings them back
+- A cleared scope list returns nothing and never hangs
+- A missing scope shows the warning triangle without failing the rest of the index
+- The pattern field takes a click; **Add** and Return add `*.log`, which takes effect after the rebuild
+- **Add Folder…** adds a `~/…` pattern, and that folder's files leave the results after the rebuild
 - Built-in ignore rows carry no remove button; user rows do, and a duplicate or blank is refused
 - Recording a shortcut opens the palette straight into File Search, hidden from the launcher or not
 - Search Files is absent from Settings ▸ Commands, and `Enable Commands` off leaves its shortcut live
@@ -634,9 +645,14 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   card still offers both
 - Sleeping over a meeting's start and waking past it reloads the events; one still inside the window
   joins, one long past does not
+- Create Event opens the launcher form with only Title, Start and Duration, defaulting to Now and
+  30 min. Blank and whitespace-only titles disable the action, including ⌘↵. ⇥/⇧⇥ cycle the fields;
+  Return/Space/Down open a focused choice, and Escape closes that menu before the form.
+- Back or Escape restores the search and selection that opened Create Event; a hotkey-opened form
+  closes instead. Disabling Calendar closes the editor, and revoked permission cannot write an event.
 - Create Event writes to the default calendar and shows up on the card, the schedule and the launcher
-  without a relaunch; a blank title leaves the dialog up on ↵ and on a click
-- Arrow keys move the caret in the New Event title field, and still step the Set Volume slider
+  without a relaunch; start offsets are measured at save, not when the editor opens.
+- Arrow keys move the caret in the event title field, and still step the Set Volume slider.
 - Every command row of Settings ▸ Calendar has Add Alias, Record Hotkey and a checkbox, and none of
   the five appears in Settings ▸ Commands
 - Export with auto join and camera preview on, import onto a clean profile: both come back **off**,

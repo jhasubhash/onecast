@@ -70,8 +70,9 @@ team `KX3L7SJ2KL` or a missing notary profile. It then builds two flavors at tha
 `build/release/<version>/`: `Onecast-<version>` with `ARCHS=arm64` for Apple silicon, and
 `Onecast-Universal-<version>` with `arm64 x86_64` for Intel, since macOS 26 is the last release
 that boots on Intel. For each it asserts the slices of every shipping binary (the app,
-`ClipboardTextHelper`, `AIToolHelper` and `Onecast Dictation`), runs `verify-signature.sh`, then
-notarizes and staples the app before packing the DMG and zip, then signs, notarizes and staples
+`ClipboardTextHelper`, `AIToolHelper`, `FileIndexHelper` and `Onecast Dictation`), runs
+`verify-signature.sh`, then notarizes and staples the app before packing the DMG and zip, then
+signs, notarizes and staples
 the DMG: Gatekeeper rejects an unsigned image even when its app and ticket are good.
 Finally it publishes the GitHub Release tagged `v<version>` with the thin pair first, and bumps both
 casks in the tap.

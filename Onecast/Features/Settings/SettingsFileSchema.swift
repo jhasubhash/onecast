@@ -64,6 +64,7 @@ enum SettingsFileSchema {
         case .builtInCommands: return launcher.commandsBinding(for: key, owner: nil)
         case .customCommandsEnabled: return bind(settings, \.customCommandsEnabled)
         case .customCommandsShowInLauncher: return bind(settings, \.customCommandsShowInLauncher)
+        case .customCommandCommands: return launcher.commandsBinding(for: key, owner: .commands)
         case .quicklinksEnabled: return bind(settings, \.quicklinksEnabled)
         case .quicklinksShowInLauncher: return bind(settings, \.quicklinksShowInLauncher)
         case .quicklinkOpensNewWindow: return bind(settings, \.quicklinkOpensNewWindow)

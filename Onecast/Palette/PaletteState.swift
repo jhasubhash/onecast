@@ -11,10 +11,12 @@ struct PaletteFrame: Equatable {
 @MainActor
 @Observable
 final class PaletteState {
-    var mode: PaletteMode = .launcher
+    var mode: PaletteMode = .launcher { didSet { restoredSelection = nil } }
     /// The screens below `mode`, innermost last: a summon starts a new one, navigating pushes on.
     private(set) var backStack: [PaletteFrame] = []
-    var query: String = ""
+    var query: String = "" { didSet { restoredSelection = nil } }
+    /// The row a closed editor's screen re-selects; any later mode or query change releases it.
+    @ObservationIgnored private(set) var restoredSelection: Int?
     var selection: Int = 0
     /// True while an IME holds marked text, which leaves `query` empty. The panel publishes it.
     var isComposing = false
@@ -124,18 +126,22 @@ final class PaletteState {
         resetToken = UUID()
     }
 
-    /// Open `mode` over the current screen, which a back step returns to.
+    /// Open `mode` over the current screen, which a back step returns to. An editor under it is
+    /// transient, so it is replaced rather than remembered.
     func push(mode: PaletteMode) {
-        backStack.append(PaletteFrame(mode: self.mode, query: query, selection: selection))
+        if !self.mode.isEditor {
+            backStack.append(PaletteFrame(mode: self.mode, query: query, selection: selection))
+        }
         replace(mode: mode)
     }
 
     /// Restore the screen underneath, false when this one is the root.
-    func pop() -> Bool {
+    func pop(preservingSelection: Bool = false) -> Bool {
         guard let frame = backStack.popLast() else { return false }
         openScreen(frame.mode)
         query = frame.query
         selection = frame.selection
+        restoredSelection = preservingSelection ? frame.selection : nil
         // Not `resetToken`: snapping to the top would throw away the selection restored here.
         followToken = UUID()
         return true

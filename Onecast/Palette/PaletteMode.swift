@@ -13,6 +13,8 @@ enum PaletteMode: String, CaseIterable, Identifiable {
     case schedule
     /// The scheduled-task editor form, morphing the launcher panel; its field is hidden.
     case schedulerEditor
+    /// The Create Event form, morphing the launcher panel; its field is hidden.
+    case eventEditor
     /// One meeting's read-only page, pushed from that meeting's own actions.
     case meetingDetails
     case uninstall
@@ -22,6 +24,10 @@ enum PaletteMode: String, CaseIterable, Identifiable {
     case quicklinkEditor
     /// The snippet editor form, morphing the launcher panel; its field is hidden.
     case snippetEditor
+    /// The custom command editor form, morphing the launcher panel; its field is hidden.
+    case customCommandEditor
+    /// Searching the user's own shell commands, with the selected one's script alongside.
+    case customCommands
     /// Collects a custom command's positional arguments, held on its own session.
     case customCommandArguments
     /// A Raycast extension command rendering into the palette.
@@ -33,6 +39,19 @@ enum PaletteMode: String, CaseIterable, Identifiable {
 
     /// One value at a time into the search field, so ↵ still acts with no rows to select.
     var isArgumentForm: Bool { self == .customCommandArguments }
+
+    /// A form that replaces the whole screen: no search field, and it is replaced, never stacked.
+    var isEditor: Bool {
+        switch self {
+        case .quicklinkEditor, .snippetEditor, .schedulerEditor, .eventEditor, .customCommandEditor:
+            true
+        default: false
+        }
+    }
+
+    /// An editor made of `Form*` controls, whose AppKit text views own the keys and the I-beam.
+    var isNativeEditor: Bool { self == .eventEditor || self == .customCommandEditor }
+
     var systemImage: String {
         switch self {
         case .launcher: return "magnifyingglass"
@@ -46,10 +65,12 @@ enum PaletteMode: String, CaseIterable, Identifiable {
         case .switchWindows: return "macwindow.on.rectangle"
         case .schedule: return "calendar"
         case .schedulerEditor: return "calendar.badge.plus"
+        case .eventEditor: return "calendar.badge.plus"
         case .meetingDetails: return "calendar"
         case .uninstall: return "trash"
         case .quicklinks: return Quicklink.sfSymbol
-        case .customCommandArguments: return CustomCommand.sfSymbol
+        case .customCommandEditor, .customCommands, .customCommandArguments:
+            return CustomCommand.sfSymbol
         case .snippets: return "curlybraces"
         case .quicklinkEditor: return "link.badge.plus"
         case .snippetEditor: return "plus.rectangle.on.rectangle"
@@ -70,12 +91,15 @@ enum PaletteMode: String, CaseIterable, Identifiable {
         case .switchWindows: return "Search open windows…"
         case .schedule: return "Search your schedule…"
         case .schedulerEditor: return "Add a scheduled task…"
+        case .eventEditor: return "Create an event…"
         case .meetingDetails: return "Meeting details"
         case .uninstall: return "Filter files and folders by name…"
         case .quicklinks: return "Search quicklinks…"
         case .snippets: return "Search snippets…"
         case .quicklinkEditor: return "Add a quicklink…"
         case .snippetEditor: return "Add a snippet…"
+        case .customCommandEditor: return "Add a custom command…"
+        case .customCommands: return "Search custom commands…"
         // Replaced by the pending argument's name; only reached if the session vanished mid-render.
         case .customCommandArguments: return "Enter a value…"
         // Replaced by the command's own `searchBarPlaceholder` whenever it declares one.

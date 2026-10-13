@@ -73,8 +73,9 @@ on, and `node`, `ray` and shell commands are separate processes it never reaches
 hardened-runtime entitlement.
 
 `./Scripts/verify-signature.sh <path-to-.app>` asserts all of this — the runtime flag on the app *and*
-on `Contents/Helpers/ClipboardTextHelper` and the Dictation helper bundle, whose identifier must be
-the app's plus `.dictation`, an intact nested seal, no `get-task-allow`, and an
+on `Contents/Helpers/ClipboardTextHelper`, `AIToolHelper` and `FileIndexHelper`, and the Dictation
+helper bundle, whose identifier must be the app's plus `.dictation`, an intact nested seal, no
+`get-task-allow`, and an
 entitlement for every usage string `Info.plist` declares. Both release jobs run it before packaging:
 a nested binary missing the runtime flag is the most common notarization rejection, and a usage string
 missing its entitlement ships a permission that can never be granted. The Dictation helper itself

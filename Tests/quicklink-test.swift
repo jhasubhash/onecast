@@ -18,6 +18,9 @@ struct QuicklinkTests {
         displayOrder()
         storeCRUD()
         editorPreservesTriggers()
+        linkInsertsAtTheCaret()
+        textInsertionIsExactAcrossUnicode()
+        draftNeedsANameAndALink()
         storeValidation()
         pinning()
         persistence()
@@ -240,6 +243,66 @@ struct QuicklinkTests {
                 store.quicklink(id: saved.id)?.triggers == ["deploy"],
                 "a rename preserves the stored triggers through SQLite")
         }
+    }
+
+    // The Insert menu used to append, so a token meant for the middle of a link landed at its end.
+    static func linkInsertsAtTheCaret() {
+        let draft = QuicklinkDraft(quicklink: link("Search", "https://example.com/?q=&lang=en"))
+        let text = draft.link
+        let caret = text.index(text.startIndex, offsetBy: "https://example.com/?q=".count)
+        let after = draft.insert("{argument}", replacing: caret..<caret)
+        expect(draft.link == "https://example.com/?q={argument}&lang=en", "a token lands at the caret")
+        expect(
+            draft.link[..<after] == "https://example.com/?q={argument}",
+            "the caret is returned just past the inserted token")
+
+        let current = draft.link
+        let start = current.index(current.startIndex, offsetBy: "https://example.com/?q=".count)
+        let end = current.index(start, offsetBy: "{argument}".count)
+        _ = draft.insert("{clipboard}", replacing: start..<end)
+        expect(
+            draft.link == "https://example.com/?q={clipboard}&lang=en",
+            "a selection is replaced by the token")
+
+        _ = draft.insert("{uuid}", replacing: nil)
+        expect(draft.link.hasSuffix("&lang=en{uuid}"), "with no selection the token is appended")
+
+        let longer = "https://example.com/" + String(repeating: "x", count: 80)
+        let stale = longer.index(longer.endIndex, offsetBy: -5)..<longer.endIndex
+        let short = QuicklinkDraft(quicklink: link("Short", "a.co"))
+        _ = short.insert("{date}", replacing: stale)
+        expect(short.link == "a.co{date}", "a selection from some other string is appended, not trapped")
+
+        let flat = QuicklinkDraft(quicklink: link("Flat", "a.co/"))
+        _ = flat.insert("x\n\ny", replacing: nil)
+        expect(flat.link == "a.co/x y", "a link stays one line, so a token's line breaks collapse")
+    }
+
+    static func textInsertionIsExactAcrossUnicode() {
+        let text = "日本語 🇯🇵 end"
+        let marker = text.range(of: "🇯🇵")!
+        let result = TextInsertion.inserting("{x}", into: text, replacing: marker)
+        expect(result.text == "日本語 {x} end", "an emoji selection is replaced whole")
+        expect(
+            result.text[..<result.caret] == "日本語 {x}",
+            "the caret follows the token across multibyte text")
+        expect(
+            TextInsertion.collapsingLineBreaks("\na\r\n\nb\n") == "a b",
+            "line breaks collapse to one space and none survives at either end")
+    }
+
+    // The footer's Save follows `isValid`, so it is the one rule keeping a blank draft from saving.
+    static func draftNeedsANameAndALink() {
+        let draft = QuicklinkDraft(quicklink: nil)
+        expect(!draft.isValid, "a blank draft cannot be saved")
+        draft.name = "Docs"
+        expect(!draft.isValid, "a name alone cannot be saved")
+        draft.link = "   "
+        expect(!draft.isValid, "a blank link cannot be saved")
+        draft.link = "https://example.com"
+        expect(draft.isValid, "a name and a link can be saved")
+        draft.name = "  "
+        expect(!draft.isValid, "a blank name cannot be saved even with a link")
     }
 
     static func pinning() {

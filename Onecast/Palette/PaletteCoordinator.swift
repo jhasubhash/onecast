@@ -123,9 +123,13 @@ final class PaletteCoordinator {
         windowController.popToRootNow()
     }
 
-    /// Leave a pushed screen for the one under it, or hide the palette when it was the root.
-    func closeScreen() {
-        if !palette.pop() { hidePalette() }
+    /// Leave a pushed screen for the one under it, or hide the palette when it was the root. An
+    /// editor opened as the root leaves the launcher behind, so a later summon never restores it.
+    func closeScreen(preservingSelection: Bool = false) {
+        let wasEditor = palette.mode.isEditor
+        guard !palette.pop(preservingSelection: preservingSelection) else { return }
+        hidePalette()
+        if wasEditor { palette.prepare(mode: .launcher) }
     }
 
     /// True for the slim compact bar: compact on, launcher root, empty, not overflowed.

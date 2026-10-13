@@ -6,6 +6,12 @@ import SwiftUI
 /// → the two toggles in order, and each draws its own focused edge rather than AppKit's blue ring.
 enum SnippetFormField: Int, CaseIterable, Hashable {
     case name, keyword, template, enabled, showsConfirmation
+
+    /// ⇥ / ⇧⇥ wrap at either end, the way Raycast's form does.
+    func advanced(backwards: Bool) -> SnippetFormField {
+        let all = Self.allCases
+        return all[(rawValue + (backwards ? -1 : 1) + all.count) % all.count]
+    }
 }
 
 /// A titled control group, the form's repeated unit.
@@ -57,8 +63,11 @@ struct SnippetKeywordField: View {
 
 struct SnippetTemplateField: View {
     @Bindable var draft: SnippetDraft
-    var focus: FocusState<SnippetFormField?>.Binding
+    /// The text view is AppKit's, so it reports focus here rather than through a `FocusState`.
+    @Binding var isFocused: Bool
+    let moveFocus: (Bool) -> Void
     @State private var selection: TextSelection?
+    @Environment(\.metrics) private var metrics
 
     var body: some View {
         SnippetField(title: "Template") {
@@ -67,23 +76,21 @@ struct SnippetTemplateField: View {
                     Spacer()
                     placeholderMenu
                 }
-                TextEditor(text: $draft.text, selection: $selection)
-                    .font(.body.monospaced())
-                    .scrollContentBackground(.hidden)
-                    .padding(Theme.Spacing.sm)
-                    .frame(height: Theme.Size.editorTextHeight)
-                    .background(
-                        RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
-                            .fill(Theme.Colors.cardFill))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
-                            .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1))
-                    .contentShape(Rectangle())
-                    .pointerStyle(.horizontalText)
-                    .focused(focus, equals: .template)
-                    .formFocusRing(focus.wrappedValue == .template, radius: Theme.Radius.row)
-                    .accessibilityLabel("Snippet template")
-                    .accessibilityHint("Enter the text Onecast expands.")
+                FormTextArea(
+                    text: $draft.text, selection: $selection, focused: $isFocused,
+                    minimumHeight: metrics.scaled(Theme.Size.editorTextHeight),
+                    label: "Snippet template", isCode: true, moveFocus: moveFocus
+                )
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+                        .fill(Theme.Colors.cardFill)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+                        .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1)
+                )
+                .formFocusRing(isFocused, radius: Theme.Radius.row)
+                .accessibilityHint("Enter the text Onecast expands. ⌥⇥ types a tab.")
             }
         }
     }
@@ -121,18 +128,10 @@ struct SnippetTemplateField: View {
         Button(token) { insert(token) }
     }
 
-    /// Replaces the selection or lands at the caret; appends when there is no usable one.
     private func insert(_ token: String) {
-        if let selection, case .selection(let range) = selection.indices,
-            range.lowerBound >= draft.text.startIndex, range.upperBound <= draft.text.endIndex
-        {
-            draft.text.replaceSubrange(range, with: token)
-        } else {
-            draft.text += token
-        }
-        // Those indices belong to the replaced string, so they must not survive the next insert.
-        selection = nil
-        focus.wrappedValue = .template
+        let caret = draft.insert(token, replacing: selection?.singleRange)
+        selection = TextSelection(insertionPoint: caret)
+        isFocused = true
     }
 }
 

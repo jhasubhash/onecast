@@ -44,8 +44,12 @@ final class QuicklinkDraft {
 
     var resolvedSymbol: String { iconSymbol ?? automaticSymbol }
 
-    func insert(_ token: String) {
-        link += token
+    /// Lands `token` at the caret or over `selection`; returns the caret that follows it.
+    func insert(_ token: String, replacing selection: Range<String.Index>?) -> String.Index {
+        let inserted = TextInsertion.inserting(
+            token, into: link, replacing: selection, singleLine: true)
+        link = inserted.text
+        return inserted.caret
     }
 
     /// Editing keeps the UUID, and with it the quicklink's shortcut, favorite and visibility.

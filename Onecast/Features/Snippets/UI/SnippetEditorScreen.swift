@@ -19,6 +19,7 @@ struct SnippetEditorScreen: PaletteScreen {
     }
 
     func hasPrimaryAction(at selection: Int) -> Bool { true }
+    func isPrimaryActionEnabled(at selection: Int) -> Bool { coordinator.editorDraft.isValid }
     func hasActions(at selection: Int) -> Bool { coordinator.editorDraft.isEditing }
 
     /// The multi-line template edits with ↑/↓, so only ⇥ leaves it; every other field steps the ring.
@@ -53,25 +54,62 @@ struct SnippetEditorScreen: PaletteScreen {
     }
 
     func body(selection: Int, scroll: ScrollIntent) -> AnyView {
-        AnyView(
-            SnippetEditorForm(
-                coordinator: coordinator, draft: coordinator.editorDraft, vm: vm,
-                selection: selection))
+        let draft = coordinator.editorDraft
+        return AnyView(
+            SnippetEditorForm(coordinator: coordinator, draft: draft, vm: vm, selection: selection)
+                .id(ObjectIdentifier(draft)))
     }
 }
 
-/// Lays the shared controls out to fit the fixed palette panel, and mirrors the palette's flat
-/// selection onto its own `@FocusState`, so ⇥ and ↑/↓ move the caret between fields.
+/// Lays the shared controls out in the panel and mirrors its flat selection onto its own focus.
 private struct SnippetEditorForm: View {
     let coordinator: SnippetCoordinator
     @Bindable var draft: SnippetDraft
     let vm: PaletteState
     let selection: Int
     @FocusState private var focus: SnippetFormField?
+    @State private var templateFocused = false
 
     private let fields = SnippetFormField.allCases
 
     var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                content
+                    .padding(.horizontal, Theme.Spacing.xxl)
+                    .padding(.vertical, Theme.Spacing.lg)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .hideNativeScrollers()
+            }
+            .edgeDissolve()
+            .thinScrollbar()
+            .onChange(of: selection) { _, sel in
+                guard let field = fields[safe: sel] else { return }
+                moveFocus(to: field)
+                // SwiftUI keeps a newly focused field where it is, so a long template could hide it.
+                proxy.scrollTo(field)
+            }
+        }
+        // A focused single-line field's ↵ saves; the template keeps ↵ for newlines, and a focusable
+        // toggle consumes its own ↵ first.
+        .onSubmit { coordinator.saveEditor() }
+        .onAppear {
+            vm.noteEditingField(true)
+            Task { @MainActor in moveFocus(to: fields[safe: selection] ?? .name) }
+        }
+        .onDisappear { vm.noteEditingField(false) }
+        .onChange(of: focus) { _, field in
+            vm.noteEditingField(field != nil || templateFocused)
+            if let field, let index = fields.firstIndex(of: field), index != selection {
+                vm.selection = index
+            }
+        }
+        .onChange(of: templateFocused) { _, focused in
+            vm.noteEditingField(focused || focus != nil)
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
             HStack(spacing: Theme.Spacing.sm) {
                 Image(systemName: "curlybraces")
@@ -82,21 +120,29 @@ private struct SnippetEditorForm: View {
             }
 
             HStack(alignment: .top, spacing: Theme.Spacing.xxl) {
-                SnippetNameField(draft: draft, focus: $focus)
-                SnippetKeywordField(draft: draft, focus: $focus)
+                SnippetNameField(draft: draft, focus: $focus).id(SnippetFormField.name)
+                SnippetKeywordField(draft: draft, focus: $focus).id(SnippetFormField.keyword)
             }
 
-            SnippetTemplateField(draft: draft, focus: $focus)
+            SnippetTemplateField(
+                draft: draft, isFocused: templateFocus,
+                moveFocus: { backwards in vm.selection = nextIndex(backwards: backwards) }
+            )
+            .id(SnippetFormField.template)
 
             HStack(alignment: .top, spacing: Theme.Spacing.xxl) {
                 SnippetOptionToggle(
                     title: "Enabled", isOn: $draft.isEnabled,
                     detail: "Disabled snippets cannot be expanded.",
-                    field: .enabled, focus: $focus)
+                    field: .enabled, focus: $focus
+                )
+                .id(SnippetFormField.enabled)
                 SnippetOptionToggle(
                     title: "Show confirmation", isOn: $draft.showsConfirmation,
                     detail: "Confirm on screen after this snippet is inserted.",
-                    field: .showsConfirmation, focus: $focus)
+                    field: .showsConfirmation, focus: $focus
+                )
+                .id(SnippetFormField.showsConfirmation)
             }
 
             if let errorMessage = draft.errorMessage {
@@ -106,25 +152,24 @@ private struct SnippetEditorForm: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.horizontal, Theme.Spacing.xxl)
-        .padding(.vertical, Theme.Spacing.lg)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        // A focused single-line field's ↵ saves; the template keeps ↵ for newlines, and a focusable
-        // toggle consumes its own ↵ first.
-        .onSubmit { coordinator.saveEditor() }
-        .onAppear {
-            vm.noteEditingField(true)
-            Task { @MainActor in focus = fields[safe: selection] ?? .name }
-        }
-        .onDisappear { vm.noteEditingField(false) }
-        .onChange(of: selection) { _, sel in
-            if let field = fields[safe: sel] { focus = field }
-        }
-        .onChange(of: focus) { _, field in
-            vm.noteEditingField(field != nil)
-            if let field, let index = fields.firstIndex(of: field), index != selection {
-                vm.selection = index
-            }
-        }
+    }
+
+    /// `focus` never names the template, an AppKit text view: SwiftUI drops a value no view owns.
+    private func moveFocus(to field: SnippetFormField) {
+        templateFocused = field == .template
+        if field != .template { focus = field }
+    }
+
+    private var templateFocus: Binding<Bool> {
+        Binding(
+            get: { templateFocused },
+            set: { focused in
+                templateFocused = focused
+                if focused { vm.selection = SnippetFormField.template.rawValue }
+            })
+    }
+
+    private func nextIndex(backwards: Bool) -> Int {
+        SnippetFormField.template.advanced(backwards: backwards).rawValue
     }
 }

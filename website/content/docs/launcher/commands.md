@@ -24,6 +24,7 @@ feature's own pane, and only appear while the feature is on. The rest live in **
 | [Window Management](/docs/features/window-layouts) | Create Window Layout · Create Layout from Current Windows                                                                                                                                          |
 | [Quicklinks](/docs/launcher/quicklinks)            | Create Quicklink · Search Quicklinks · Import Quicklinks · Export Quicklinks                                                                                                                       |
 | [Snippets](/docs/features/snippets)                | Search Snippets · Create Snippet                                                                                                                                                                   |
+| [Custom Commands](#custom-commands)                | Create Custom Command · Search Custom Commands                                                                                                                                                     |
 | Commands                                           | Calculator History · [Open Camera](/docs/features/camera) · Export Backup · Import Backup · Import from Raycast · Check for Updates · Settings · About Onecast · Support Onecast · Quit Onecast |
 
 Two more appear only for what you type: **Open in Browser** and **Run Shell Command**. See
@@ -36,8 +37,8 @@ which need text to work on, and Quit Onecast, so no stray key press can quit the
 
 A command that opens a screen works like a toggle: press its shortcut again to close it.
 
-**Enable Commands** at the top of Settings → Commands switches off every command listed in that pane,
-along with their shortcuts. Unticking one row only hides it from search; its shortcut keeps working.
+**Enable Commands** at the top of Settings → Commands switches off every built-in command listed under
+it, along with their shortcuts. Unticking one row only hides it from search; its shortcut keeps working.
 
 ## Custom commands
 
@@ -50,7 +51,8 @@ Give a shell command a name, and run it from search or its own global shortcut.
 | Enable custom commands | Off     |
 | Show in launcher       | On      |
 
-**Show in launcher** off hides the section but keeps every shortcut working.
+**Show in launcher** off hides the section but keeps every shortcut working. It also takes Create
+Custom Command and Search Custom Commands out of search, and their own shortcuts with them.
 
 Only the **name** is searchable. The command itself is not, so you cannot run something by
 half-remembering its flags.
@@ -62,7 +64,25 @@ To take a command out of the main search but keep its shortcut, select it in the
 <kbd>⇧</kbd><kbd>⌘</kbd><kbd>H</kbd> (**Hide from Root Search**). Tick **Show in root search** again
 in its editor to bring it back.
 
+### Creating and browsing
+
+**Create Custom Command** opens the editor in the palette. **Add Custom Command** and the pencil on a
+row in Settings open the same editor, so there is one wherever you start.
+
+**Search Custom Commands** lists your enabled commands, with the selected one's script and settings
+beside it.
+
+- <kbd>return</kbd> runs it, asking for its arguments and confirmation first.
+- <kbd>⌘</kbd><kbd>E</kbd> edits it, <kbd>⌘</kbd><kbd>N</kbd> creates one, and
+  <kbd>⌘</kbd><kbd>⌫</kbd> deletes it after a confirmation.
+- Typing filters by name, never by what the script says.
+- It shows commands hidden from root search, but not disabled ones.
+
 ### The editor
+
+It opens in the palette. <kbd>⌘</kbd><kbd>return</kbd> saves from anywhere, and so does <kbd>return</kbd>
+in a one-line field. <kbd>tab</kbd> and <kbd>⇧</kbd><kbd>tab</kbd> move between fields, and
+<kbd>esc</kbd> discards what you typed.
 
 | Field                  | What it does                                                                 |
 | ---------------------- | ---------------------------------------------------------------------------- |

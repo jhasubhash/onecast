@@ -1,29 +1,29 @@
 ---
 title: File search
-description: Find files and folders through the Spotlight index, with a preview and no file permission.
+description: Find files and folders from Onecast's own disk index, with a preview.
 ---
 
-Search file and folder names in the folders you choose, using the index macOS already keeps.
+Search file and folder names across your disk, from Onecast's own index.
 
 **Settings → File Search** holds the switch. It ships **off**. While it is off there is no command
-and no Spotlight work at all.
+and no index on disk.
 
 Open it with the **Search Files** command, its own global shortcut, or the **Search Files** row under
 "Use … with" at the bottom of any launcher search. That last one opens with your text already typed.
 
-## It asks for nothing
+## Full Disk Access
 
-Onecast requests **no file permission** for this. Hidden files and the insides of app bundles are
-always left out, and no setting can bring them back. That is exactly what keeps the feature
-permission-free.
+File Search reads your disk directly to build a private index on this Mac, so it needs **Full Disk
+Access**. Onecast cannot prompt for it: turn it on in **System Settings → Privacy & Security → Full
+Disk Access**, or press <kbd>return</kbd> on the Search Files screen, which opens that pane. The
+**Full Disk Access** row in **Settings → File Search** shows whether it is granted. Granting it starts
+the build with no relaunch.
 
-If Spotlight has not indexed something, you get fewer results rather than a Full Disk Access prompt.
+Hidden files and the insides of app bundles are indexed too, but rank last.
 
 ## The screen
 
-With nothing typed, the list shows **Recently Used**: files you opened in the last 30 days or changed
-in the last 3 days, inside your search scopes. This comes from macOS's own records. Onecast keeps no
-history of its own.
+With nothing typed, the list shows **Recent**: the newest files in your home folder and cloud drives.
 
 Type and it becomes **Results**. Each row shows the file's icon and name. A folder also shows its
 parent folder's name, dimmed, because half the folders on a developer's Mac are called `src`.
@@ -37,8 +37,8 @@ dates. Videos and audio can be played there. Nothing plays until you press play.
 
 **All Types** · **Folders** · **Documents** · **Images** · **Audio** · **Videos** · **Archives**
 
-The filter changes what Spotlight is asked for, so narrowing never hides matches that were already
-cut off. It resets each time you open the palette.
+The filter applies to the index's matches, so narrowing never hides a match. It resets each time you
+open the palette.
 
 ## Actions
 
@@ -62,21 +62,27 @@ cut off. It resets each time you open the palette.
 
 Copies from here land in your [clipboard history](/docs/features/clipboard) like any other copy.
 
+## The index
+
+**Settings → File Search → Index** shows how many items are indexed and when the index was built, and
+**Rebuild Index** crawls everything again. The first build runs in the background, with a running
+item count in Settings and in the palette, and results appear when it finishes. It runs in a helper
+process that exits when it is done, so Onecast's own memory stays small. Afterwards the index follows
+changes on disk within a moment. Turning File Search off deletes the index.
+
 ## Search scopes
 
-**Settings → File Search → Search Scopes**, set to your home folder by default.
+**Settings → File Search → Search Scopes**, set to the whole disk by default.
 
-Your home folder means its **visible** folders, plus `Library/CloudStorage` and your iCloud Drive.
-**Onecast never adds `~/Library` on its own.** If you add a folder inside it yourself, you get what
-you asked for.
-
-**An empty scope list searches nothing**, rather than quietly falling back to home.
+Only what lies under a scope is indexed and searched. A folder inside another scope is folded into it,
+and **an empty scope list searches nothing**. Changing the list rebuilds the index.
 
 Scopes are saved with `~` shortened, so a backup still points somewhere sensible on another Mac.
 
 ## Ignore patterns
 
-**Settings → File Search → Ignore Patterns**. Three kinds:
+**Settings → File Search → Ignore Patterns**. A matching folder is skipped while indexing, with
+everything in it. Three kinds:
 
 | Pattern          | Checked against    | Example          |
 | ---------------- | ------------------ | ---------------- |
@@ -84,23 +90,28 @@ Scopes are saved with `~` shortened, so a backup still points somewhere sensible
 | With `*` `?` `[` | Any folder or name | `*.tmp`          |
 | Containing `/`   | The whole path     | `**/[Cc]ache/**` |
 
-Matching ignores case, and `*` also matches `/`, so a `**/…/**` pattern works as written.
+Matching ignores case, and `*` also matches `/`, so a `**/…/**` pattern works as written. A path
+starting with `~/` is taken from your home folder, and **Add Folder…** adds one for you.
 
-The list only holds what you add. Six sensible rules are built in and always apply.
+The list only holds what you add. Six sensible rules are built in and always apply. Changing the list
+rebuilds the index.
 
 ## How search works
 
 All the words you type must be in the file name, in any order. `annual report` finds
 "Report – annual 2025.pdf".
 
-Spotlight returns at most **1,000** candidates, and at most **200** rows are shown after filtering.
-Typing waits 120 ms before searching, so a fast typist does not start a search per letter.
+Results come from Onecast's own index, so a search takes a few milliseconds and is shown as you type.
+Files in your home folder rank above system, hidden and app-bundle files with the same name. At most
+**200** rows are shown.
 
 ## Messages you might see
 
-| You see                          | It means                            |
-| -------------------------------- | ----------------------------------- |
-| Type to search files and folders | Nothing recent in your scopes       |
-| No files found                   | The search finished with no match   |
-| No images found                  | The same, with the Images filter on |
-| File search is unavailable       | Spotlight could not be asked        |
+| You see                          | It means                                        |
+| -------------------------------- | ----------------------------------------------- |
+| Full Disk Access required        | Press <kbd>return</kbd> to open the Privacy pane |
+| Indexing your disk…              | The first build is running; results follow it   |
+| Couldn’t build the file index    | Try **Rebuild Index** in Settings               |
+| Type to search files and folders | Nothing recent in your scopes                   |
+| No files found                   | The search finished with no match               |
+| No images found                  | The same, with the Images filter on             |

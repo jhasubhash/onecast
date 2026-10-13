@@ -235,6 +235,10 @@ final class LauncherCoordinator {
             notesCoordinator.searchNotes()
         case .searchQuicklinks:
             paletteCoordinator.togglePalette(mode: .quicklinks)
+        case .searchCustomCommands:
+            customCommandCoordinator.showCustomCommands()
+        case .createCustomCommand:
+            customCommandCoordinator.editCustomCommand(nil)
         case .searchSnippets:
             snippetCoordinator.showSnippets()
         case .createSnippet:
