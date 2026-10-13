@@ -27,6 +27,7 @@ compilation of its 2-bit weights; Ultra's encoder and both variants' decoder/joi
   binding; hold-to-talk accepts a Carbon chord or a single physical modifier, including Globe.
   Modifier holds begin after 250 ms alone and reserve their key across single and double taps.
   Another modifier, key or click cancels the hold without inserting text. Double taps require toggle.
+  The 🎤 key records as F20 (`DictationKeyManager`), a Carbon chord, so it works for either mode.
 - Carbon or the shared modifier monitor reports release to stop a held recording. Return finishes,
   Escape cancels. Opening a shortcut recorder cancels a held recording before pausing its shortcuts.
   A session token

@@ -37,10 +37,14 @@ appear around it:
 ### Listing a whole category
 
 Type a section's exact name, like `Snippets`, `Snippet` or `Window Management`, and you get that
-whole category under its own heading.
+whole category under its own heading. An app whose name is exactly your text still shows too, which
+is why typing `System Settings` lists both the app and its panes.
 
-It has to be the exact name. An app whose name is exactly your text still shows too, which is why
-typing `System Settings` lists both the app and its panes.
+Starting a name works from three letters. `win` or `window` also lists Window Management and Window
+Layouts, `dock` lists Docks and Dock Setups, and `window man` narrows to Window Management alone.
+Your best matches stay on top under **Results**, so Return still opens the best one, and the rest of
+the category follows under its own headings. Short queries and letters from the middle of a name
+never list a category.
 
 ## How matching works
 
@@ -141,6 +145,8 @@ results. The palette stays open on the same search.
 
 It works for apps, System Settings panes, commands, Quick Actions, system actions, window commands
 and window layouts. To bring one back, tick its checkbox again in that Settings pane.
+On a quicklink or custom command it's **Hide from Root Search**, and you tick **Show in root search**
+again in its editor to bring it back.
 
 Hiding only changes what search shows. The app stays installed, and its favorite, alias, learned
 ranking and shortcut all keep working.

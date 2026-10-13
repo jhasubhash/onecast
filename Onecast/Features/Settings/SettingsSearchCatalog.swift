@@ -246,8 +246,8 @@ enum SettingsSearchCatalog {
             .quicklinksBehaviour, "Open in a new window",
             keywords: ["browser", "tab"]),
         .init(
-            .quicklinksBehaviour, "When there's no selected text",
-            keywords: ["selection", "fallback", "placeholder"]),
+            .quicklinksBehaviour, "Pass selected text as argument",
+            keywords: ["selection", "hotkey", "shortcut", "argument"]),
         .init(
             .quicklinksBehaviour, "Confirm before deleting",
             keywords: ["ask", "delete", "prompt"]),
@@ -441,7 +441,7 @@ enum SettingsSearchCatalog {
             keywords: ["rectangle", "magnet", "spectacle", "defaults", "import", "shortcuts"]),
         .init(
             group: .windowManagementOptions, "Window commands",
-            keywords: ["shortcut", "left half", "maximize", "center"]),
+            keywords: ["shortcut", "alias", "left half", "maximize", "center"]),
         .init(
             group: .windowManagementLayoutCommands, "Layout commands",
             keywords: ["shortcut", "launcher", "create layout", "capture"]),
@@ -449,7 +449,7 @@ enum SettingsSearchCatalog {
             group: .windowManagementLayouts, "Window Layouts",
             keywords: [
                 "layout", "arrangement", "workspace", "preset", "restore windows",
-                "multi display", "monitor"
+                "multi display", "monitor", "alias"
             ]),
         .init(
             .windowManagementLayouts, "Show layouts in launcher",
@@ -462,7 +462,9 @@ enum SettingsSearchCatalog {
             keywords: ["capture", "snapshot", "current", "save arrangement"]),
         .init(
             group: .windowManagementCustomSizes, "Custom Sizes",
-            keywords: ["custom", "size", "resize", "dimensions", "pixels", "points", "percent"]),
+            keywords: [
+                "custom", "size", "resize", "dimensions", "pixels", "points", "percent", "alias"
+            ]),
         .init(
             .windowManagementCustomSizes, "New Custom Size",
             keywords: ["add", "create", "resize", "window size"])

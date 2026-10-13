@@ -363,6 +363,8 @@ final class ClipboardManager {
     static let internalType = NSPasteboard.PasteboardType("com.onecast.internal")
     func prepareForOnecastPasteboardMutation() {}
     func synchronizeAfterOnecastPasteboardMutation(changeCount: Int) {}
+    func pauseCapture() {}
+    func resumeCapture() {}
 }
 
 enum Permissions {

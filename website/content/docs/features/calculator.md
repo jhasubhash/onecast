@@ -20,7 +20,8 @@ A plain word never gets a card. `tomorrow`, `july` or `pi` on its own is a searc
 ## Arithmetic
 
 `4(2+3)` is 20. `2pi`, `2sqrt(9)` and `(2+3)(2+3)` all work, and `6/2(1+2)` agrees with
-`6/2*(1+2)`. A lone `x` between numbers multiplies too, so `3x3` and `$5 x 2` work. Two bare numbers
+`6/2*(1+2)`. A lone `x` between numbers multiplies too, so `3x3` and `$5 x 2` work, while currency
+names that start with one, like `400K xof in €` or `100 xrp to usd`, stay currencies. Two bare numbers
 side by side never multiply, so `5 3` stays a search.
 
 `mod` is spelled out rather than `%`, because `%` already means percent. It sits with multiply and

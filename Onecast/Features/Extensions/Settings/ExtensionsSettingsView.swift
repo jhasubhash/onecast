@@ -8,6 +8,7 @@ struct ExtensionsSettingsView: View {
     @State private var filter = ""
     @State private var importCandidates: ImportCandidates?
     @State private var browsingStore = false
+    @State private var storeInstall: ExtensionDeepLink.StoreInstall?
     @State private var installingFromGitHub = false
     @State private var error: String?
     @State private var updateError: String?
@@ -64,6 +65,9 @@ struct ExtensionsSettingsView: View {
         .sheet(isPresented: $browsingStore) {
             ExtensionStoreSheet(onClose: { browsingStore = false })
         }
+        .sheet(item: $storeInstall) { install in
+            ExtensionStoreSheet(storeInstall: install, onClose: { storeInstall = nil })
+        }
         .sheet(isPresented: $installingFromGitHub) {
             ExtensionGitHubSheet(onClose: { installingFromGitHub = false })
         }
@@ -71,6 +75,11 @@ struct ExtensionsSettingsView: View {
             if case .row(.extensionsInstalled, let name)? = navigation.scrollRequest?.target {
                 (expanded, filter) = (name, "")
             }
+        }
+        .onChange(of: core.pendingExtensionStoreInstall, initial: true) { _, request in
+            guard let request else { return }
+            storeInstall = request
+            core.pendingExtensionStoreInstall = nil
         }
         .onChange(of: core.extensions.installed.count) { Task { await measureReclaimable() } }
         .task {

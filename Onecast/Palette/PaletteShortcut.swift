@@ -34,6 +34,14 @@ enum PaletteShortcut: Equatable {
     case forceQuit
     /// ⌘R.
     case restart
+    /// ⌘N, a new one of whatever the screen holds.
+    case newItem
+    /// ⌘E, the row opened in its editor.
+    case edit
+    /// ⌘D.
+    case duplicate
+    /// ⌘F, for a screen whose ⌘↵ already does something else.
+    case showInFinder
     /// ⌘., which AppKit binds to `cancelOperation:`, so it arrives as a token instead of a key.
     case pin
     /// ⌘1…⌘0, matched by key code in the panel and handed over as a slot.
@@ -55,10 +63,13 @@ enum PaletteShortcut: Equatable {
         if command, !shift, matches("o") { return .openInApp }
         if command, !shift, matches("i") { return .showDetails }
         if control, matches("x") { return shift ? .deleteAll : .delete }
-        if command, shift, matches("f") { return .toggleFavorite }
+        if command, matches("f") { return shift ? .toggleFavorite : .showInFinder }
         if command, shift, matches("h") { return .hideFromSearch }
         if control, shift, matches("q") { return option ? .forceQuit : .quit }
         if command, matches("r") { return .restart }
+        if command, !shift, matches("n") { return .newItem }
+        if command, !shift, matches("e") { return .edit }
+        if command, !shift, matches("d") { return .duplicate }
         return nil
     }
 
@@ -66,9 +77,10 @@ enum PaletteShortcut: Equatable {
     var requiresExpanded: Bool {
         switch self {
         case .copyFile, .copyName, .copyPath, .pasteFile, .quickLook, .openInApp, .showDetails,
-            .toggleFavorite, .hideFromSearch, .quit, .forceQuit, .restart:
+            .toggleFavorite, .hideFromSearch, .quit, .forceQuit, .restart, .edit, .duplicate,
+            .showInFinder:
             true
-        case .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot, .copyCalculation:
+        case .commandDelete, .delete, .deleteAll, .pin, .favoriteSlot, .copyCalculation, .newItem:
             false
         }
     }
@@ -76,7 +88,8 @@ enum PaletteShortcut: Equatable {
     var closesMenu: Bool {
         switch self {
         case .delete, .deleteAll, .copyFile, .copyName, .copyPath, .copyCalculation, .quickLook,
-            .openInApp, .showDetails, .toggleFavorite, .hideFromSearch:
+            .openInApp, .showDetails, .toggleFavorite, .hideFromSearch, .newItem, .edit, .duplicate,
+            .showInFinder:
             true
         case .commandDelete, .pasteFile, .quit, .forceQuit, .restart, .pin, .favoriteSlot:
             false

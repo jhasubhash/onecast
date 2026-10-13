@@ -8,13 +8,13 @@ give it a shortcut, and have it ask for a value, like a search term.
 
 **Settings → Quicklinks** holds the switch. It ships **off**.
 
-| Setting                       | Default    |
-| ----------------------------- | ---------- |
-| Enable quicklinks             | Off        |
-| Show in launcher              | On         |
-| Open in a new window          | Off        |
-| When there's no selected text | Ask for it |
-| Confirm before deleting       | On         |
+| Setting                        | Default |
+| ------------------------------ | ------- |
+| Enable quicklinks              | Off     |
+| Show in launcher               | On      |
+| Open in a new window           | Off     |
+| Pass selected text as argument | Off     |
+| Confirm before deleting        | On      |
 
 While the feature is off there is no Quicklinks section, no quicklink commands, and nothing opens.
 **Your shortcuts stay recorded**, so turning it back on brings every one of them back.
@@ -95,11 +95,16 @@ with its first empty field ready to type in.
 
 ### When there is no selection
 
-If a link uses `{selection}`, **When there's no selected text** decides what happens:
+If a link uses `{selection}` and no text is selected, **the quicklink doesn't open**. Onecast shows
+"Couldn’t get the selected text" instead. If Onecast doesn't have Accessibility permission, the
+message asks you to allow it in System Settings.
 
-- **Ask for it** (default): a **Selected Text** field appears. Leave it empty and a real selection is
-  still used; type something and it replaces it.
-- **Use the clipboard**: the clipboard stands in for the selection.
+### Selected text from a shortcut
+
+Turn on **Pass selected text as argument** to fill a quicklink's first argument with the text you
+selected, when you open it with **its own shortcut**. Select a word, press the shortcut, and the
+search opens. This works only when the first argument is one you type, not a list of options. If
+nothing is selected, or the quicklink needs more values, the usual fields appear.
 
 ## As a fallback
 
@@ -124,20 +129,22 @@ Quicklinks get their own launcher section. **Only the name is searchable**, plus
 Pinned quicklinks come first, in the order you pinned them, then the rest by name. Pinned means the
 top of the Quicklinks section, not above your apps.
 
+To change a quicklink from the launcher, select it and press <kbd>⌘</kbd><kbd>E</kbd>
+(**Edit Quicklink**).
+
 The **Search Quicklinks** command opens a screen with the list on the left and details on the right:
 the link, the app it opens with, its shortcut and when you made it.
 
-| Action                          | Shortcut                             |
-| ------------------------------- | ------------------------------------ |
-| Open Quicklink                  | <kbd>return</kbd>                    |
-| Open With Default App           | <kbd>⌘</kbd><kbd>return</kbd>        |
-| Copy Link                       | <kbd>⌃</kbd><kbd>⌘</kbd><kbd>C</kbd> |
-| Edit Quicklink                  |                                      |
-| Duplicate Quicklink             |                                      |
-| Pin / Unpin Quicklink           | <kbd>⌘</kbd><kbd>.</kbd>             |
-| Hide from / Show in Root Search |                                      |
-| Show in Finder                  | <kbd>⌘</kbd><kbd>F</kbd>             |
-| Delete Quicklink                | <kbd>⌘</kbd><kbd>delete</kbd>        |
+| Action                | Shortcut                             |
+| --------------------- | ------------------------------------ |
+| Open Quicklink        | <kbd>return</kbd>                    |
+| Open With Default App | <kbd>⌘</kbd><kbd>return</kbd>        |
+| Copy Link             | <kbd>⌃</kbd><kbd>⌘</kbd><kbd>C</kbd> |
+| Edit Quicklink        | <kbd>⌘</kbd><kbd>E</kbd>             |
+| Duplicate Quicklink   | <kbd>⌘</kbd><kbd>D</kbd>             |
+| Pin / Unpin Quicklink | <kbd>⌘</kbd><kbd>.</kbd>             |
+| Show in Finder        | <kbd>⌘</kbd><kbd>F</kbd>             |
+| Delete Quicklink      | <kbd>⌘</kbd><kbd>delete</kbd>        |
 
 **Open With Default App** only appears when the quicklink has its own app, and **Show in Finder** only
 for files and folders.
@@ -155,7 +162,9 @@ From widest to narrowest:
 2. The **Enabled** checkbox on a quicklink's row in Settings makes that one quicklink do nothing,
    while keeping its shortcut and settings.
 3. **Show in root search** off keeps a quicklink out of the main search, but you can still open it
-   from Search Quicklinks or its shortcut.
+   from Search Quicklinks or its shortcut. In the launcher,
+   <kbd>⇧</kbd><kbd>⌘</kbd><kbd>H</kbd> (**Hide from Root Search**) turns it off for the selected
+   quicklink.
 
 Editing a quicklink keeps its shortcut, favorite, visibility and learned ranking. **Duplicating makes
 a new quicklink**, so the copy does not take the original's shortcut.

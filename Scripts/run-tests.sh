@@ -574,6 +574,7 @@ run slow ext-test          -parse-as-library \
                            $E/Model/ExtensionLaunchType.swift \
                            $E/Model/ExtensionFormField.swift \
                            $E/Model/ExtensionGridLayout.swift \
+                           $E/Model/ExtensionSearchState.swift \
                            $E/Model/ExtensionManifest.swift \
                            Onecast/Platform/AppDisplayName.swift \
                            $E/Model/ExtensionRefreshPolicy.swift \

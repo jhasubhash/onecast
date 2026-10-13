@@ -159,6 +159,11 @@ Arguments are unique and requested in first-appearance order, including argument
 snippets. Inserted clipboard, selection, and argument values are literal: token-shaped text inside a
 value is not expanded again.
 
+`{selection}` is read through Accessibility. When that reads nothing, a snippet you insert yourself —
+from the launcher, Search Snippets or its shortcut — falls back to a ⌘C, as described in
+[quick-actions.md](quick-actions.md#reading-the-selection). Keyword expansion never sends one: a typed
+keyword leaves nothing selected.
+
 Snippet references are case-insensitive. Duplicate names or keywords resolve deterministically by
 file-path identity. Nested references support five levels, detect cycles by file identity, and leave
 the original reference token visible when a target is missing, cyclic, or beyond the depth limit.
@@ -233,8 +238,9 @@ shortcut, file name and character count.
 which reads `previousApp` before hiding the panel and then calls the same `expandSnippet` funnel a
 launcher row does — so template expansion, cursor placement, the Accessibility prompt, the
 confirmation HUD and the pasteboard lease are the ones described below, not a second copy of them.
-The rest of the menu is **Edit Snippet** and **Create Snippet**, which open the in-palette editor form
-(pushed over the browser, so ⎋ returns to it), and **Show in Finder**.
+The rest of the menu is **Edit Snippet** (`⌘E`) and **Create Snippet** (`⌘N`), which open the
+in-palette editor form (pushed over the browser, so ⎋ returns to it), and **Show in Finder** (`⌘↵`,
+as on a launcher row).
 
 `Create Snippet` is a launcher command as well as a menu row because the palette swallows ⌘K when a
 screen has no rows: an empty library would otherwise open a browser with nothing to do.

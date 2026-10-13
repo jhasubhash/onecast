@@ -80,6 +80,11 @@ A chord aimed at the selected row — ⌃X, ⇧⌘F, ⌘Y and the rest — follo
 `PaletteShortcut` recognises the key and carries its compact-bar and open-menu guards, and the screen
 answers through `perform(_:at:)`, so a new chord never adds a cast to the shell.
 
+Where a reset leaves the highlight is the screen's to say too. Every reset — a show, a new query, a
+new filter — goes through `RootPaletteView.land()`, which reads `landingSelection`, so handlers that
+fire in one update agree whatever order they run. The landing is row 0 on every screen but Search
+Quicklinks, which lands on the row a prompt names ([quicklinks.md](quicklinks.md#arguments)).
+
 | Mode | Screen | Inner list |
 | --- | --- | --- |
 | `.launcher` | `LauncherScreen` | `LauncherList` |
@@ -217,8 +222,8 @@ The typed values live on `PaletteState.commandArguments`, keyed by
 `PaletteState.pendingArgumentEntryID` is how a *shortcut* reaches them: a quicklink opened with values
 still missing shows its own screen and names the row, and the header focuses that row's first empty
 field instead of the search field. On first mount the view handles the pending request itself; later
-requests wait a turn for the show's search refocus to settle. It is set **after** `showPalette`,
-since `prepare` clears it.
+requests wait a turn, so every `land()` the show fired has already settled on that row and no search
+refocus can take it back. It is set **after** `showPalette`, since `prepare` clears it.
 
 The flat `selection` index is the single source of truth for highlight / activation and **must always
 match the visible row order**, including the card at index 0 when present — the calculator's (see

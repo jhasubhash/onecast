@@ -12,6 +12,7 @@
 - `ModifierKey` / `ModifierKeyDetector` — reported sides, lone presses, taps and holds.
 - `ModifierTapMonitor` — the shared modifier-only tap, including Dictation's hold/release callbacks.
 - `HyperKeyManager` / `HyperKeyTap` / `KeyboardRemapper` — the Hyper Key; see [below](#the-hyper-key).
+- `DictationKeyManager` — lends the 🎤 key to Onecast as F20; see [below](#the-dictation-key).
 
 `HotKeyManager` owns them all: persistence, conflict lookup, and dispatch. Every action reads and
 writes one `HotKeyBinding`, so all cases share persistence, conflict detection, the recorder and
@@ -354,6 +355,16 @@ place that prompts for it. A one-second watchdog runs while a key is live: it re
 until the grant lands, notices revocation, revives a tap the system disabled on timeout or user input,
 and polls Secure Input. The HID remap outlives the process, so `applicationWillTerminate` takes it off
 every keyboard before exiting.
+
+## The Dictation key
+
+Apple's 🎤 key (Consumer `0xC000000CF`) can't be recorded. While a recorder is open or a binding uses
+F20, `DictationKeyManager` remaps it to **F20**, a bare F-key Carbon fires on press and release, even
+in Secure Input, with no tap or permission — so the Dictation action's push-to-talk release works on it
+like on any other combo. Otherwise, and in other users' sessions, macOS Dictation keeps it. F20 keycaps
+draw as `mic` (`KeyCapChip`), and a shortcut printed as text goes through `KeyCapChip.inlineText`. The
+remap has its own recovery journal (`dictationKeyKeyboardMappings`) beside the Hyper Key's, so the two
+share a keyboard and each removal leaves the other's mapping in place.
 
 ## Recorder
 

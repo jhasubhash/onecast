@@ -9,7 +9,7 @@ struct LauncherList: View {
     let favoriteCount: Int
     let meetingCount: Int
     let suggestionCount: Int
-    let showSections: Bool
+    let matchCount: Int
     /// Changes only when the list should scroll, so mouse selection never yanks it.
     let scroll: ScrollIntent
     /// The card at flat index 0, when one leads. At most one ever does.
@@ -94,18 +94,14 @@ struct LauncherList: View {
         AppEntry.Kind.allCases.sorted { $0.launcherSectionRank < $1.launcherSectionRank }
 
     private var rows: [Row] {
-        var cardRows: [Row] = []
-        if let card { cardRows = [.header(card.sectionTitle), .card(card)] }
-        guard showSections else {
-            guard !results.isEmpty else { return cardRows + fallbackRows }
-            return cardRows + [.header("Results")] + results.map { .app($0, slot: nil) }
-                + fallbackRows
-        }
-        var rows: [Row] = cardRows
+        var rows: [Row] = []
+        if let card { rows = [.header(card.sectionTitle), .card(card)] }
         let favorites = results.prefix(favoriteCount)
         let meetings = results.dropFirst(favoriteCount).prefix(meetingCount)
         let suggestions = results.dropFirst(favoriteCount + meetingCount).prefix(suggestionCount)
-        let rest = results.dropFirst(favoriteCount + meetingCount + suggestionCount)
+        let pinnedCount = favoriteCount + meetingCount + suggestionCount
+        let matches = results.dropFirst(pinnedCount).prefix(matchCount)
+        let rest = results.dropFirst(pinnedCount + matchCount)
         var grouped: [AppEntry.Kind: [AppEntry]] = [:]
         for app in rest { grouped[app.kind, default: []].append(app) }
         if !favorites.isEmpty {
@@ -122,6 +118,10 @@ struct LauncherList: View {
         if !suggestions.isEmpty {
             rows.append(.header("Suggestions"))
             rows.append(contentsOf: suggestions.map { .app($0, slot: nil) })
+        }
+        if !matches.isEmpty {
+            rows.append(.header("Results"))
+            rows.append(contentsOf: matches.map { .app($0, slot: nil) })
         }
         // Every kind that has entries, in section order; see `sectionOrder`.
         for kind in Self.sectionOrder {

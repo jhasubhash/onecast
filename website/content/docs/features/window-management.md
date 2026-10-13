@@ -66,14 +66,15 @@ already leaves out the menu bar, the Dock and the notch.
 
 ## Cycling and Restore
 
-**Cycling** only applies to the four halves, and it is off by default. With it off, pressing Left Half
-again just puts the window in the same place. The two modes change that:
+**Cycling** only applies to the four halves and Center Half, and it is off by default. With it off,
+pressing Left Half again just puts the window in the same place. The two modes change that:
 
 - **Cycle ½, ⅓ and ⅔** changes the width in place with each press. Top Half and Bottom Half step
-  through heights instead.
+  through heights instead. Center Half stays centered as its width changes.
 - **Cycle displays** moves the half along every half-slot across your displays, so one shortcut
   sweeps the whole desk. With two displays, Left Half goes Display 1 left → Display 2 right →
-  Display 2 left → Display 1 right, then round again. With one display it does nothing.
+  Display 2 left → Display 1 right, then round again. With one display it does nothing. Center Half
+  stays where it is in this mode.
 
 The cycle starts over when you move the window yourself (by more than 2 points), use a different
 command, move to a different display, or wait a while.

@@ -135,6 +135,12 @@ Control** plus a shortcut's key runs that Hyper shortcut. Left Control never tri
 existing Onecast Control shortcuts still work with Left Control. The Control combinations used by
 Hyper are reserved while Secure Input lasts. Other apps' Hyper shortcuts still do not work there.
 
+## Dictation key (🎤)
+
+Press 🎤 (F5) while recording any shortcut to use it in Onecast, push-to-talk included. While a
+shortcut uses it, macOS Dictation does not; remove the shortcut to give it back. With standard function
+keys on, press fn+🎤. Onecast sends it as F20, so other apps' F20 shortcuts fire too.
+
 ## Hidden, switched off, and turned off
 
 **Hiding a row does not turn off its shortcut.** Unticking a row's checkbox, or

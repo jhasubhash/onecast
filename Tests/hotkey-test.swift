@@ -66,6 +66,7 @@ struct DoubleTapDetectorTests {
         globeTap()
         sidedModifiers()
         globeChord()
+        dictationKey()
         firing()
         timing()
         chords()
@@ -206,6 +207,17 @@ struct DoubleTapDetectorTests {
             KeyShortcut(carbonKeyCode: kVK_ANSI_J, carbonModifiers: Int.max).carbonModifiers
                 == KeyShortcut.carbonModifiers(from: [.function, .control, .option, .shift, .command]),
             "decoding keeps fn but still discards unrelated modifier bits")
+    }
+
+    static func dictationKey() {
+        let bare = KeyShortcut(carbonKeyCode: kVK_F20, carbonModifiers: 0)
+        expect(bare.isDictationKey, "F20 is the Dictation key once DictationKeyManager remaps it")
+        expect(bare.keycaps == ["🎤"], "the Dictation key draws as 🎤, not F20")
+        expect(
+            KeyShortcut(carbonKeyCode: kVK_F19, carbonModifiers: 0).keycaps == ["F19"],
+            "other F-keys keep their names")
+        let chord = KeyShortcut(carbonKeyCode: kVK_F20, carbonModifiers: cmdKey)
+        expect(chord.keycaps == ["⌘", "🎤"], "🎤 keeps its modifiers")
     }
 
     static func sidedModifiers() {

@@ -121,6 +121,10 @@ struct CalendarTests {
                 .absoluteString == "https://whereby.com/acme",
             "a newline ends the URL")
         expect(
+            MeetingLink.detect(in: "line one\r\nhttps://whereby.com/acme\r\nline three")?.url
+                .absoluteString == "https://whereby.com/acme",
+            "a CRLF line break ends the URL")
+        expect(
             MeetingLink.detect(in: "HTTPS://WHEREBY.COM/Acme")?.provider == .whereby,
             "the scheme and host match case-insensitively")
     }
@@ -153,6 +157,13 @@ struct CalendarTests {
         expect(
             notWrapped?.provider == .generic,
             "only the scanner's own host is unwrapped, never an arbitrary url= parameter")
+        let wrappedCRLF = MeetingLink.detect(
+            in: "Join: " + wrapped("https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc/0")
+                + "\r\nMeeting ID: 123")
+        expect(
+            wrappedCRLF?.url.absoluteString
+                == "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc/0",
+            "a CRLF after a scanner-wrapped link leaves the unwrapped target clean")
     }
 
     static func appURLRewrites() {

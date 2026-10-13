@@ -15,21 +15,18 @@ enum QuicklinkArgumentsAccessory {
     ) -> PaletteHeaderAccessory? {
         guard let quicklink else { return nil }
         let metrics = core.settings.interfaceSize.metrics
-        let arguments = core.quicklinkCoordinator.promptedArguments(for: quicklink)
+        let arguments = SnippetTemplateEngine.declaredArguments(in: quicklink.link)
         guard !arguments.isEmpty else { return nil }
 
         // Its own screen already shows the row the fields belong to, so the glyph would repeat it.
         let symbol = placement == .afterQuery ? quicklink.symbol : nil
         let value = { (name: String) in binding(quicklink: quicklink, name: name, vm: vm) }
-        let pendingSelection = vm.pendingArgumentEntryID == quicklink.entryID
         return PaletteHeaderAccessory(
             width: QuicklinkArgumentsRow.totalWidth(
                 for: arguments, hasIcon: symbol != nil, metrics: metrics),
             fieldNames: arguments.map(\.name),
             firstIncompleteField: arguments.first {
-                (!$0.isOptional
-                    || (pendingSelection && $0.name == QuicklinkCoordinator.selectionArgument.name))
-                    && value($0.name).wrappedValue.isEmpty
+                !$0.isOptional && value($0.name).wrappedValue.isEmpty
             }?.name,
             optionsMenu: { name in
                 guard let argument = arguments.first(where: { $0.name == name }),
@@ -49,9 +46,9 @@ enum QuicklinkArgumentsAccessory {
     }
 
     /// The typed values for one quicklink, stripped of blanks — what the open funnel is handed.
-    static func values(for quicklink: Quicklink, core: AppCore, vm: PaletteState) -> [String: String] {
+    static func values(for quicklink: Quicklink, vm: PaletteState) -> [String: String] {
         var values: [String: String] = [:]
-        for argument in core.quicklinkCoordinator.promptedArguments(for: quicklink) {
+        for argument in SnippetTemplateEngine.declaredArguments(in: quicklink.link) {
             let typed =
                 vm.commandArguments[
                     PaletteState.argumentKey(quicklink.entryID, argument.name)] ?? ""

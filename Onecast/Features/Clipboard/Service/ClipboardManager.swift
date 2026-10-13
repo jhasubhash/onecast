@@ -23,6 +23,7 @@ final class ClipboardManager {
     private var timer: Timer?
     private var sessionTokens: [NotificationToken] = []
     private var lastChangeCount = 0
+    private var isCapturePaused = false
     private var isCapturing = false
 
     init(store: ClipboardStore, settings: AppSettings) {
@@ -94,6 +95,16 @@ final class ClipboardManager {
         poll()
     }
 
+    /// For a ⌘C Onecast sends itself, whose copy is read and restored but never recorded.
+    func pauseCapture() {
+        prepareForOnecastPasteboardMutation()
+        isCapturePaused = true
+    }
+
+    func resumeCapture() {
+        isCapturePaused = false
+    }
+
     // Load-bearing: a mismatched count means a foreign write the next poll must still see.
     func synchronizeAfterOnecastPasteboardMutation(changeCount: Int) {
         guard NSPasteboard.general.changeCount == changeCount else { return }
@@ -131,7 +142,7 @@ final class ClipboardManager {
 
     private func poll() {
         let pb = NSPasteboard.general
-        guard pb.changeCount != lastChangeCount else { return }
+        guard !isCapturePaused, pb.changeCount != lastChangeCount else { return }
         lastChangeCount = pb.changeCount
 
         if pb.types?.contains(Self.internalType) == true { return }
