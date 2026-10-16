@@ -58,7 +58,7 @@ extension SettingsTab {
         case .fileSearch: [.searchFiles]
         case .notes: [.showNotes, .createNote, .searchNotes]
         case .snippets: [.searchSnippets, .createSnippet]
-        case .navigation: [.switchWindows, .searchMenuItems]
+        case .navigation: [.switchWindows, .switchWindowsBackwards, .searchMenuItems]
         case .windowManagement: [.createWindowLayout, .captureWindowLayout]
         case .presentation: [.togglePresentation, .startPresentation, .stopPresentation]
         case .docks: [.toggleDocks, .manageDocks]

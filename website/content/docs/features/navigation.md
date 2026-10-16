@@ -3,16 +3,18 @@ title: Navigation
 description: Jump to any open window, or press any menu bar item, from the launcher.
 ---
 
-Two commands that take you somewhere, from the keyboard:
+Navigation adds three keyboard commands:
 
-- **Switch Windows** lists every open window of every running app, and brings the one you pick to the
-  front.
-- **Search Menu Bar Items** lists every item in the front app's menus, and presses the one you pick.
+- **Switch Windows** lists every open window of every running app and brings the one you choose to
+  the front.
+- **Switch Windows Backwards** opens the same list and moves through it in reverse.
+- **Search Menu Bar Items** lists every item in the frontmost app's menus and clicks the one you
+  choose.
 
-**Settings → Navigation → Enable navigation** holds the switch. It ships **off**. While it is off,
-neither command is in the launcher and their shortcuts do nothing.
+Turn it on in **Settings → Navigation → Enable navigation**. It's **off** by default. While it's off,
+none of the commands appears in the launcher and their shortcuts do nothing.
 
-Both need the [Accessibility permission](/docs/permissions). Neither needs Screen Recording.
+All three need the [Accessibility permission](/docs/permissions). None needs Screen Recording.
 
 Each command has a checkbox, a shortcut recorder and an alias field in **Settings → Navigation**.
 
@@ -28,6 +30,10 @@ front-to-back order. **Minimized windows come last.** Type to filter by window t
 
 If the app quit between opening the list and pressing <kbd>return</kbd>, Onecast tells you instead of
 doing nothing.
+
+The Switch Windows Backwards shortcut moves up the list instead, wrapping around to the last window.
+Set it to <kbd>⌥</kbd><kbd>⇧</kbd><kbd>tab</kbd> and, while holding <kbd>⌥</kbd>, press
+<kbd>tab</kbd> or <kbd>⇧</kbd><kbd>tab</kbd> to move either way before you release.
 
 ## Search Menu Bar Items
 
