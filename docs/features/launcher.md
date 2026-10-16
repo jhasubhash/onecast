@@ -832,6 +832,14 @@ running dot and the availability of the running-only actions:
   user leaves standing, relaunches nothing and leaves that app running. The palette dismisses the
   moment the quit is asked for and never restores focus — either the relaunch takes it, or the app
   that refused the quit is the one asking for it.
+- **Assign To** — a titled section after Force Quit, on the same running guard: the Dock's
+  Options ▸ Assign To (All Desktops, This Desktop or Desktop on Display N, None), with the current
+  binding checked. `SpaceAssignment` (Model) maps `com.apple.spaces`' `app-bindings` — keyed by the
+  lowercased bundle ID, `AllSpaces` or a space UUID, absent for None — to a choice. The Dock holds
+  those bindings in memory and ignores a pref written behind its back until it relaunches, so
+  `SpaceAssigner` presses the row in the Dock's own tile menu over Accessibility, matched by
+  position since every title is localized; that applies live and persists. With no Dock tile (an
+  agent app) or no menu, it falls back to SkyLight's `SLSProcessAssignTo…` (live) plus the pref.
 - **Quit All Applications** a system action. `AppLauncher.quitAllTargets()` is the
   policy (every `.regular` app except Finder — `terminate()` only relaunches it — and Onecast,
   excluded by PID because About/Settings temporarily flips it to `.regular`). `SystemActionCoordinator.quitAllApps()`

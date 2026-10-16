@@ -136,6 +136,7 @@ run app-name-test          Onecast/Platform/AppDisplayName.swift \
                            Onecast/Platform/BundleLocalization.swift \
                            $L/SearchRelevance.swift
 run favorites-test         $L/FavoriteSlots.swift
+run space-assignment-test  $L/SpaceAssignment.swift
 run launcher-file-test     $L/LauncherFileFormat.swift \
                            Onecast/Features/Settings/Model/SettingsFileJSON.swift
 run launcher-settings-file-test \

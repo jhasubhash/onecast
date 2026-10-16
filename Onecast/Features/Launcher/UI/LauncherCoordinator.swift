@@ -350,4 +350,11 @@ final class LauncherCoordinator {
         guard AppLauncher.quit(bundleID: bundleID, force: force) else { return }
         paletteCoordinator.hidePalette(restoreFocus: !quittingPreviousApp)
     }
+
+    /// Sets which desktops the app's windows open on, as the Dock's Options ▸ Assign To does.
+    func assign(_ app: AppEntry, to assignment: SpaceAssignment) {
+        guard app.kind == .application, let bundleID = app.bundleID else { return }
+        paletteCoordinator.hidePalette(restoreFocus: true)
+        SpaceAssigner.assign(assignment, bundleID: bundleID, appURL: app.url)
+    }
 }

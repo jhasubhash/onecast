@@ -97,6 +97,9 @@ enum AppActionsMenu {
                 ) {
                     core.launcherCoordinator.quit(app, force: true)
                 })
+            if let bundleID = app.bundleID {
+                items += assignToItems(app: app, bundleID: bundleID, core: core)
+            }
         }
         if app.kind == .application {
             items.append(
@@ -136,6 +139,22 @@ enum AppActionsMenu {
                 })
         }
         return PopoverMenuContent(header: app.name, items: items)
+    }
+
+    private static func assignToItems(
+        app: AppEntry, bundleID: String, core: AppCore
+    ) -> [PopoverMenuItem] {
+        let displayCount = SpaceAssigner.displayCount()
+        let current = SpaceAssigner.current(bundleID: bundleID)
+        return SpaceAssignment.choices(displayCount: displayCount).enumerated().map { index, choice in
+            PopoverMenuItem(
+                title: choice.title(displayCount: displayCount),
+                icon: choice == current ? .symbol("checkmark") : .blank,
+                sectionTitle: index == 0 ? "Assign To" : nil, startsSection: index == 0
+            ) {
+                core.launcherCoordinator.assign(app, to: choice)
+            }
+        }
     }
 
     /// A meeting row leads with the same actions as the meeting's card.
