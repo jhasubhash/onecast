@@ -415,7 +415,6 @@ struct RootPaletteView: View {
                 vm.fileSearchFilter = .all
                 vm.emojiCategoryFilter = .all
                 vm.emojiGridColumnsOverride = nil
-                vm.fileSearchQuickLook = false
                 if menuOpen { closeMenus() }
                 land(restoringNavigation: true)
                 // `.ai` has its own field, so crossing in or out mounts one `searchFocused` won't seat.

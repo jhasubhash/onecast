@@ -53,7 +53,7 @@ struct PaletteShortcutTests {
 
         expect(resolve("v", command: true, shift: true), .pasteFile, "⇧⌘V pastes the file")
         expect(resolve("v", command: true), nil, "bare ⌘V stays with the search field")
-        expect(resolve("y", command: true), .quickLook, "⌘Y toggles Quick Look")
+        expect(resolve("y", command: true), .quickLook, "⌘Y is the Quick Look chord")
         expect(resolve("y", command: true, shift: true), .quickLook, "an extra Shift still reads ⌘Y")
         expect(resolve("o", command: true), .openInApp, "⌘O opens the row in its own app")
         expect(resolve("o", command: true, shift: true), nil, "⇧⌘O is not the open chord")

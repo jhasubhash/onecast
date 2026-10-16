@@ -28,8 +28,6 @@ final class PaletteState {
     var emojiCategoryFilter: EmojiCategoryFilter = .all
     /// Nil means the configured default; zoom only overrides it for this picker session.
     var emojiGridColumnsOverride: EmojiGridColumns?
-    /// Whether file search draws its Quick Look overlay; it follows whatever row is selected.
-    var fileSearchQuickLook = false
     /// What the user has typed to filter the open ⌘K / footer menu; empty until a menu is up.
     var menuFilterQuery = ""
     /// Ordering out leaves the SwiftUI tree mounted, so a media preview needs this to stop playing.
@@ -108,8 +106,6 @@ final class PaletteState {
 
     func noteVisible(_ visible: Bool) {
         isVisible = visible
-        // Ordering out leaves the tree mounted, and a preview must not outlive the window.
-        if !visible { fileSearchQuickLook = false }
     }
 
     var canGoBack: Bool { !backStack.isEmpty }
@@ -182,7 +178,6 @@ final class PaletteState {
         fileSearchFilter = .all
         emojiCategoryFilter = .all
         emojiGridColumnsOverride = nil
-        fileSearchQuickLook = false
         forceExpanded = false
         // The bar flavor spans `.ai` and the history it opens; leaving both drops it and its placement.
         if mode != .ai, mode != .aiHistory {
