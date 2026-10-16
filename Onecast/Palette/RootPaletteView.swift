@@ -389,6 +389,7 @@ struct RootPaletteView: View {
                 if vm.mode == .ai { updateAIComposer() } else if vm.collapseQueryLineBreaks() { return }
                 land(restoringNavigation: true)
                 if vm.mode == .fileSearch { fileSearch.search(vm.query, filter: vm.fileSearchFilter) }
+                if vm.mode == .launcher { core.fileSearchCoordinator.searchFromLauncher(vm.query) }
                 if vm.mode == .menuSearch { menuSearch.filter(vm.query) }
                 if vm.mode == .switchWindows { windowSwitch.filter(vm.query) }
                 // A command that took over the search text filters its own list.
@@ -429,6 +430,8 @@ struct RootPaletteView: View {
                 // Entering with no query is the blank screen's own request for recents.
                 if vm.mode == .fileSearch {
                     fileSearch.search(vm.query, filter: vm.fileSearchFilter)
+                } else if vm.mode == .launcher {
+                    core.fileSearchCoordinator.searchFromLauncher(vm.query)
                 } else {
                     fileSearch.cancel()
                 }

@@ -7,14 +7,13 @@ struct FileSearchSettingsView: View {
     var body: some View {
         @Bindable var settings = settings
         return Form {
-            Section {
-                Toggle(isOn: $settings.fileSearchEnabled) {
-                    SettingsRowTitle(.fileSearchFileSearch, "Enable File Search")
-                    Text("Indexes your disk for instant results. Needs Full Disk Access.")
-                }
-            } header: {
-                SettingsSectionHeader(.fileSearchFileSearch)
-            }
+            FeatureSwitchSection(
+                anchor: .fileSearchFileSearch,
+                enableTitle: "Enable File Search",
+                enableSubtitle: "Indexes your disk for instant results. Needs Full Disk Access.",
+                launcherSubtitle: "Lists the top five file hits in root search after three characters.",
+                isEnabled: $settings.fileSearchEnabled,
+                showsInLauncher: $settings.fileSearchShowInLauncher)
 
             FileSearchAccessSection()
             FileSearchIndexSection()
