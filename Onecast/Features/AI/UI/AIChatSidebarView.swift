@@ -99,8 +99,23 @@ struct AIChatSidebarView: View {
         }
     }
 
-    @ViewBuilder
+    /// Never an `if`/`else`: a conditional row makes the `List` diff in quadratic time.
     private func row(_ conversation: ChatConversation) -> some View {
+        HStack(spacing: metrics.spacing.sm) {
+            title(of: conversation)
+            Spacer(minLength: 0)
+            if session.answeringIDs.contains(conversation.id) {
+                ProgressView().controlSize(.mini)
+            } else if conversation.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(metrics.typography.keyCap)
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func title(of conversation: ChatConversation) -> some View {
         if renaming == conversation.id {
             TextField("Chat name", text: $renameText, prompt: Text(conversation.title))
                 .textFieldStyle(.plain)
@@ -111,19 +126,9 @@ struct AIChatSidebarView: View {
                     if !focused { commitRename(conversation.id) }
                 }
         } else {
-            HStack(spacing: metrics.spacing.sm) {
-                Text(conversation.displayTitle)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Spacer(minLength: 0)
-                if session.answeringIDs.contains(conversation.id) {
-                    ProgressView().controlSize(.mini)
-                } else if conversation.isPinned {
-                    Image(systemName: "pin.fill")
-                        .font(metrics.typography.keyCap)
-                        .foregroundStyle(Theme.Colors.textTertiary)
-                }
-            }
+            Text(conversation.displayTitle)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
     }
 

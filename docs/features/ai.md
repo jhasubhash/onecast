@@ -427,7 +427,9 @@ an `AppWindowController` with `AIChatWindowChrome` (toolbar: sidebar, New Chat �
 Actions ⌘K; ⌘Y or ⌘B shows and hides the sidebar, ⌃⇥ / ⌃⇧⇥ open the next or previous chat, and ⌘,
 opens Settings on AI rather than where it was left) and an `AIChatSplitViewController`:
 `AIChatSidebarView` groups the scope's conversations as Pinned then `DateBucket`, and pins,
-renames, copies, exports and deletes them. The open chat is the selected row; ⌃⇥ / ⌃⇧⇥
+renames, copies, exports and deletes them. Renaming swaps only the row's title for a field: a
+`ForEach` row that is itself an `if`/`else` makes the `List` diff in quadratic time, which held the
+main thread for seconds with a few thousand chats. The open chat is the selected row; ⌃⇥ / ⌃⇧⇥
 (`AIChatWindowSession.openAdjacentChat`) walk the rows in that order, wrapping at either end, over
 every saved chat of the scope whatever the sidebar's filter shows. A chat with no row yet enters
 from the top, or the bottom going back, and a held chord does not repeat into the composer as tabs.
