@@ -77,6 +77,9 @@ struct PaletteShortcutTests {
         expect(
             resolve("q", shift: true, option: true, control: true), .forceQuit,
             "⌃⌥⇧Q force quits the app")
+        expect(resolve("m", shift: true, control: true), .minimizeWindow, "⌃⇧M minimizes the window")
+        expect(resolve("m", command: true), nil, "⌘M stays the app menu's Minimize")
+        expect(resolve("h", shift: true, control: true), .hideApp, "⌃⇧H hides the app")
         expect(resolve("r", command: true), .restart, "⌘R restarts the app")
         expect(resolve("r", command: true, shift: true), .restart, "an extra Shift still reads ⌘R")
         expect(resolve("n", command: true), .newItem, "⌘N starts a new one")
@@ -95,7 +98,8 @@ struct PaletteShortcutTests {
 
         let expanded: [PaletteShortcut] = [
             .copyFile, .copyName, .copyPath, .pasteFile, .quickLook, .openInApp, .showDetails,
-            .toggleFavorite, .hideFromSearch, .quit, .forceQuit, .restart, .edit, .duplicate,
+            .toggleFavorite, .hideFromSearch, .quit, .forceQuit, .minimizeWindow,
+            .hideApp, .restart, .edit, .duplicate,
             .showInFinder
         ]
         let anywhere: [PaletteShortcut] = [
@@ -110,11 +114,12 @@ struct PaletteShortcutTests {
 
         let closing: [PaletteShortcut] = [
             .delete, .deleteAll, .copyFile, .copyName, .copyPath, .copyCalculation, .quickLook,
-            .openInApp, .showDetails, .toggleFavorite, .hideFromSearch, .newItem, .edit, .duplicate,
+            .openInApp, .showDetails, .toggleFavorite, .hideFromSearch, .minimizeWindow,
+            .newItem, .edit, .duplicate,
             .showInFinder
         ]
         let leaving: [PaletteShortcut] = [
-            .commandDelete, .pasteFile, .quit, .forceQuit, .restart, .pin, .favoriteSlot(0)
+            .commandDelete, .pasteFile, .quit, .forceQuit, .hideApp, .restart, .pin, .favoriteSlot(0)
         ]
         for shortcut in closing {
             expect(shortcut.closesMenu, "\(shortcut) closes an open menu")

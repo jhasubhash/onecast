@@ -65,7 +65,17 @@ enum AXWindowAccess {
             == .success
     }
 
+    static func minimize(_ window: AXUIElement) -> Bool {
+        AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+            == .success
+    }
+
     /// Raises the window inside its app, then brings the app itself forward.
+    static func setHidden(_ hidden: Bool, application: AXUIElement) {
+        AXUIElementSetAttributeValue(
+            application, kAXHiddenAttribute as CFString, hidden ? kCFBooleanTrue : kCFBooleanFalse)
+    }
+
     nonisolated static func focus(
         _ window: AXUIElement, in application: AXUIElement, of app: NSRunningApplication
     ) {
