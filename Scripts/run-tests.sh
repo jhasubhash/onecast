@@ -273,6 +273,7 @@ run hover-arming-test      Onecast/Palette/HoverArming.swift \
                            Onecast/Palette/PaletteMode.swift \
                            Onecast/Features/Emoji/Model/EmojiCatalog.swift \
                            Onecast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Onecast/Platform/Images/ImageDerivative.swift \
                            Onecast/Features/Clipboard/Model/ClipboardFilter.swift \
                            Onecast/Features/FileSearch/Model/FileSearchFilter.swift \
                            Onecast/Features/Clipboard/Model/ColorValue.swift \
