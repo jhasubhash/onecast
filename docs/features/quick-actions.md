@@ -184,9 +184,10 @@ which is a closed two-case enum measured once at present time — a growing stre
 Non-activating, so the target app keeps its selection while the panel holds key. Keys go through
 `sendEvent`: `↵` replaces, `⌘C` copies, `esc` dismisses; click-away dismisses like every other
 borderless surface. The panel is anchored by its **top-left** and re-measured as the reply arrives —
-centring on every measure would walk it up the screen. `MarkdownView` (a native text view sized by
-`sizeThatFits`) and `MarkdownBlock.parse` are reused from chat; neither takes palette state. A
-summary typesets LaTeX math as chat does, holding back an equation still arriving while it runs.
+centring on every measure would walk it up the screen. Summarize and custom actions render through
+`MarkdownView` (a native text view sized by `sizeThatFits`) and `MarkdownBlock.parse`, reused from
+chat; neither takes palette state. They typeset LaTeX math as chat does, holding back an equation
+still arriving while it runs.
 
 The body is a `ScrollView` with its height **set** rather than capped: a scroll view has no ideal
 height, so `NSHostingView.fittingSize` measures it as nothing and the body collapses to a slot. The

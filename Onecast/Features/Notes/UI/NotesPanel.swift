@@ -63,6 +63,8 @@ final class NotesPanel: NSPanel {
         onEscape?()
     }
 
-    override var canBecomeKey: Bool { true }
+    static var refusesInheritedKey = false
+
+    override var canBecomeKey: Bool { !Self.refusesInheritedKey }
     override var canBecomeMain: Bool { acceptsMain }
 }
