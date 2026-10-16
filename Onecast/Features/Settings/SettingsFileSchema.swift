@@ -79,6 +79,7 @@ enum SettingsFileSchema {
             return shortcuts.binding(for: key, action: .toggleAIBar, name: "Floating AI Bar")
         case .aiWebSearch: return bind(ai, \.webSearchEnabled)
         case .aiShowReasoning: return bind(ai, \.showReasoning)
+        case .aiChoices: return bind(ai, \.choicesEnabled)
         case .aiSystemPrompt: return bind(ai, \.systemPrompt)
         case .aiSystemPromptEnabled: return bind(ai, \.systemPromptEnabled)
         case .aiRetention: return bind(ai, \.retention)

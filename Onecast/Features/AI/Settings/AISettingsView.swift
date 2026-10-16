@@ -143,6 +143,10 @@ struct AISettingsView: View {
                 Text(
                     "Sends prompts on to a search engine when the route offers one — Codex and OpenRouter.")
             }
+            Toggle(isOn: $settings.choicesEnabled) {
+                SettingsRowTitle(.aiChat, "Suggested replies")
+                Text("Next steps the model offers as buttons after a reply.")
+            }
             Picker(selection: $settings.toolRounds) {
                 ForEach(AIToolRounds.allCases) { Text($0.title).tag($0) }
             } label: {

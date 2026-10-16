@@ -10,10 +10,12 @@ enum AIInstructions {
     /// to that folder (e.g. `./scripts/foo.py`), which resolves only if the model is told where it is.
     static func compose(
         userPrompt: String?, skills: [Skill] = [], skillBudget: Int = AISkillBudget.default,
-        allowsSkillScripts: Bool = false, isEnabled: Bool
+        allowsSkillScripts: Bool = false, isEnabled: Bool,
+        offersChoices: Bool = false
     ) -> String? {
         guard isEnabled else { return nil }
         var parts = [AIPreamble.text]
+        if offersChoices { parts.append(AIPreamble.choices) }
         let prompt = userPrompt?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !prompt.isEmpty { parts.append(prompt) }
         if let block = skillsBlock(skills, budget: skillBudget, allowsScripts: allowsSkillScripts) {

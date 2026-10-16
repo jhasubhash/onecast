@@ -465,7 +465,9 @@ editor. The floating bar's composer is the palette's own search field, which has
 
 **Choices, sources, titles and Find.** A reply's closing ```choices``` fence is hidden from its text
 and drawn as buttons under the last complete reply, in the bar and the window alike; the preamble
-asks for it. A complete reply lists the pages it linked as numbered source chips (`ChatReferences`).
+asks for it. Settings → AI → Suggested replies (`aiChoices`, on by default) turns them off: then
+`AIInstructions.compose` leaves `AIPreamble.choices` out, so no turn asks or pays for them, and
+neither surface draws chips. A complete reply lists the pages it linked as numbered source chips (`ChatReferences`).
 Regenerate (⌘R, or the footer's arrow) drops the trailing reply and asks again. After a chat's first
 complete answer, `ChatTitle` asks its route for a short name — on-device, API and Codex routes only,
 since a Claude, OpenCode or Copilot CLI would start and bill a whole process for it; a rename always

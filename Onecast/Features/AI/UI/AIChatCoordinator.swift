@@ -221,6 +221,8 @@ final class AIChatCoordinator {
             contextBudget: contextBudget)
     }
 
+    var offersChoices: Bool { core.aiSettings.choicesEnabled }
+
     var canRegenerate: Bool {
         !chat.isStreaming && chat.session.messages.last?.role == .assistant
             && chat.session.messages.count > 1
@@ -249,7 +251,8 @@ final class AIChatCoordinator {
             userPrompt: assistant?.systemPrompt ?? core.aiSettings.systemPrompt,
             skills: skills, skillBudget: skillBudget,
             allowsSkillScripts: assistant?.allowShellTools ?? false,
-            isEnabled: assistant?.systemPromptEnabled ?? core.aiSettings.systemPromptEnabled)
+            isEnabled: assistant?.systemPromptEnabled ?? core.aiSettings.systemPromptEnabled,
+            offersChoices: core.aiSettings.choicesEnabled)
         return Turn(
             webSearch: (assistant?.webSearch ?? core.aiSettings.webSearchEnabled)
                 && capabilities.webSearch,

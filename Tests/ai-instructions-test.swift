@@ -42,6 +42,21 @@ struct AIInstructionsTest {
             AIInstructions.compose(userPrompt: "Answer only in haiku.", isEnabled: false) == nil)
 
         check(
+            "suggested replies on, their ask follows the preamble and precedes the user's text",
+            AIInstructions.compose(
+                userPrompt: "  Answer only in haiku.  ", isEnabled: true, offersChoices: true)
+                == AIPreamble.text + "\n\n" + AIPreamble.choices + "\n\nAnswer only in haiku.")
+        check(
+            "turned off, the choices ask is withheld too",
+            AIInstructions.compose(userPrompt: nil, isEnabled: false, offersChoices: true) == nil)
+        check(
+            "the preamble alone never asks for a choices block",
+            !AIPreamble.text.contains("```choices"))
+        check(
+            "the preamble stays within its per-turn budget",
+            (AIPreamble.text + AIPreamble.choices).count < 1_800)
+
+        check(
             "the preamble names the app so the model can answer for it",
             AIPreamble.text.contains("Onecast"))
         check(

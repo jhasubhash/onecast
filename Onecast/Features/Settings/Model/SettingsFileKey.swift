@@ -48,6 +48,7 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case aiBarShortcut = "ai.barShortcut"
     case aiWebSearch = "ai.webSearch"
     case aiShowReasoning = "ai.showReasoning"
+    case aiChoices = "ai.choices"
     case aiSystemPrompt = "ai.systemPrompt"
     case aiSystemPromptEnabled = "ai.systemPromptEnabled"
     case aiRetention = "ai.retentionDays"

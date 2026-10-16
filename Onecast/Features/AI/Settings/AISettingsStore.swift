@@ -39,6 +39,9 @@ final class AISettingsStore {
     var showReasoning: Bool {
         didSet { defaults.set(showReasoning, forKey: AppSettingsKey.aiShowReasoning.rawValue) }
     }
+    var choicesEnabled: Bool {
+        didSet { defaults.set(choicesEnabled, forKey: AppSettingsKey.aiChoices.rawValue) }
+    }
     /// Appended to `AIInstructions.preamble` on every turn, so it is billed on every turn.
     var systemPrompt: String {
         didSet { defaults.set(systemPrompt, forKey: AppSettingsKey.aiSystemPrompt.rawValue) }
@@ -122,6 +125,8 @@ final class AISettingsStore {
             defaults.object(forKey: AppSettingsKey.aiShellAccess.rawValue) as? Bool ?? false
         showReasoning =
             defaults.object(forKey: AppSettingsKey.aiShowReasoning.rawValue) as? Bool ?? true
+        choicesEnabled =
+            defaults.object(forKey: AppSettingsKey.aiChoices.rawValue) as? Bool ?? true
         systemPrompt = defaults.string(forKey: AppSettingsKey.aiSystemPrompt.rawValue) ?? ""
         systemPromptEnabled =
             defaults.object(forKey: AppSettingsKey.aiSystemPromptEnabled.rawValue) as? Bool ?? true

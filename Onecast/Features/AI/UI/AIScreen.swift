@@ -120,7 +120,7 @@ struct AIScreen: PaletteScreen {
             .environment(
                 \.chatTranscriptActions,
                 ChatTranscriptActions(
-                    choose: { coordinator.send($0) },
+                    choose: settings.choicesEnabled ? { coordinator.send($0) } : nil,
                     regenerate: coordinator.canRegenerate ? { coordinator.regenerate() } : nil)))
     }
 }

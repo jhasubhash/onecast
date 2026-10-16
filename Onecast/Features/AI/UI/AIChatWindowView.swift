@@ -37,7 +37,7 @@ struct AIChatDetailView: View {
             .environment(
                 \.chatTranscriptActions,
                 ChatTranscriptActions(
-                    choose: { coordinator.send($0) },
+                    choose: coordinator.offersChoices ? { coordinator.send($0) } : nil,
                     regenerate: coordinator.canRegenerate ? { coordinator.regenerate() } : nil))
             .overlay(alignment: .topTrailing) {
                 if session.find.isSearching {
