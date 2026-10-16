@@ -693,6 +693,7 @@ run mcp-oauth-test         Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Features/AI/Model/AppleIntelligence.swift \
                            Onecast/Features/AI/Model/AITool.swift \
                            Onecast/Features/AI/Model/AIStreamDecoder.swift \
+                           Onecast/Features/AI/Model/AIProviderFailure.swift \
                            Onecast/Features/AI/Model/AIThinkTagDecoder.swift \
                            Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/JSONValue.swift \
@@ -706,6 +707,7 @@ run slow mcp-stdio-test    Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Features/AI/Model/AppleIntelligence.swift \
                            Onecast/Features/AI/Model/AITool.swift \
                            Onecast/Features/AI/Model/AIStreamDecoder.swift \
+                           Onecast/Features/AI/Model/AIProviderFailure.swift \
                            Onecast/Features/AI/Model/AIThinkTagDecoder.swift \
                            Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/JSONValue.swift \
