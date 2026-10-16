@@ -122,9 +122,10 @@ private struct CenteredLabelStyle: LabelStyle {
 private struct SettingsTabIcon: View {
     let systemImage: String
     let tint: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Image(systemName: systemImage)
+        Image(systemName: SystemSymbolName.resolve(systemImage, isDark: colorScheme == .dark))
             .resizable()
             .scaledToFit()
             .frame(width: Theme.Size.settingsSidebarGlyph, height: Theme.Size.settingsSidebarGlyph)
