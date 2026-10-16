@@ -167,22 +167,34 @@ run index calc-performance Onecast/Features/Calculator/Model/*.swift
 run calendar-test          Onecast/Features/Calendar/Model/*.swift \
                            Onecast/Features/Calendar/UI/EventEditorSession.swift
 run clipboard-test         Onecast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Onecast/Platform/Images/ImageDerivative.swift \
                            Onecast/Features/Clipboard/Model/ClipboardFilter.swift \
                            Onecast/Features/Clipboard/Model/ClipboardFileKind.swift \
                            Onecast/Features/Clipboard/Model/ColorValue.swift \
                            Onecast/Features/Clipboard/Model/ColorFormat.swift \
                            Onecast/Features/Clipboard/Model/ColorSpaces.swift
+run clipboard-thumbnail-test Onecast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Onecast/Platform/Images/ImageDerivative.swift \
+                           Onecast/Features/Clipboard/Model/ClipboardFilter.swift \
+                           Onecast/Features/Clipboard/Model/ClipboardFileKind.swift \
+                           Onecast/Features/Clipboard/Model/ColorValue.swift \
+                           Onecast/Features/Clipboard/Model/ColorFormat.swift \
+                           Onecast/Features/Clipboard/Model/ColorSpaces.swift \
+                           Onecast/Platform/ProcessExit.swift \
+                           Onecast/Platform/Images/ImageThumbnail.swift \
+                           Onecast/Platform/Images/ThumbnailCache.swift
 # `Q` is the URL detector a drag payload builds its link with, rather than a second one.
 Q=Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift
-run clipboard-search-test  Onecast/Features/Clipboard/Model/*.swift $Q
-run paste-sequence-test    Onecast/Features/Clipboard/Model/*.swift $Q
-run clipboard-text-test    Onecast/Features/Clipboard/Model/*.swift $Q \
+run clipboard-search-test  Onecast/Features/Clipboard/Model/*.swift Onecast/Platform/Images/ImageDerivative.swift $Q
+run paste-sequence-test    Onecast/Features/Clipboard/Model/*.swift Onecast/Platform/Images/ImageDerivative.swift $Q
+run clipboard-text-test    Onecast/Features/Clipboard/Model/*.swift Onecast/Platform/Images/ImageDerivative.swift $Q \
                            Onecast/Platform/ProcessExit.swift \
                            Onecast/Features/Clipboard/Service/ClipboardTextExtractor.swift \
                            Onecast/Features/Clipboard/Service/ClipboardTextIndexer.swift \
                            Onecast/Features/Clipboard/Service/ClipboardTextWorker.swift
 run pasteboard-test        Onecast/Platform/PasteboardFiles.swift \
                            Onecast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Onecast/Platform/Images/ImageDerivative.swift \
                            Onecast/Features/Clipboard/Model/ClipboardFilter.swift \
                            Onecast/Features/Clipboard/Model/ColorValue.swift \
                            Onecast/Features/Clipboard/Model/ColorFormat.swift \
@@ -192,11 +204,17 @@ run pasteboard-test        Onecast/Platform/PasteboardFiles.swift \
 run index clipboard-file-performance \
                            Onecast/Platform/PasteboardFiles.swift \
                            Onecast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Onecast/Platform/Images/ImageDerivative.swift \
                            Onecast/Features/Clipboard/Model/ClipboardFilter.swift \
                            Onecast/Features/Clipboard/Model/ColorValue.swift \
                            Onecast/Features/Clipboard/Model/ColorFormat.swift \
                            Onecast/Features/Clipboard/Model/ColorSpaces.swift \
                            Onecast/Features/Clipboard/Service/ClipboardManager.swift
+run index clipboard-thumbnail-performance \
+                           Onecast/Platform/ProcessExit.swift \
+                           Onecast/Platform/Images/ImageThumbnail.swift \
+                           Onecast/Platform/Images/ImageDerivative.swift \
+                           Onecast/Platform/Images/ThumbnailCache.swift
 run emoji-test             Onecast/Features/Emoji/Model/EmojiCatalog.swift \
                            Onecast/Features/Emoji/Model/EmojiGridGeometry.swift \
                            Onecast/Features/Emoji/Model/EmojiData.generated.swift
@@ -277,6 +295,7 @@ run palette-navigation-test Onecast/Palette/PaletteState.swift \
                            Onecast/Palette/HoverArming.swift \
                            Onecast/Features/Emoji/Model/EmojiCatalog.swift \
                            Onecast/Features/Clipboard/Model/ClipboardStore.swift \
+                           Onecast/Platform/Images/ImageDerivative.swift \
                            Onecast/Features/Clipboard/Model/ClipboardFilter.swift \
                            Onecast/Features/FileSearch/Model/FileSearchFilter.swift \
                            Onecast/Features/Clipboard/Model/ColorValue.swift \
