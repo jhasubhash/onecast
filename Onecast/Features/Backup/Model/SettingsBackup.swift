@@ -54,6 +54,12 @@ struct SettingsBackup: Codable {
         var notesEnabled: Bool?
         var shelfEnabled: Bool?
         var shelfShakeToOpen: Bool?
+        var teleprompterEnabled: Bool?
+        var teleprompterMode: String?
+        var teleprompterSpeed: Int?
+        var teleprompterPlacement: String?
+        var teleprompterTextSize: Int?
+        var teleprompterHighlight: String?
         // `snippetsEnabled` is absent: an import must not enable keystroke listening.
         var customCommandsEnabled: Bool?
         var customCommandsShowInLauncher: Bool?
@@ -172,6 +178,12 @@ extension SettingsBackup {
             notesEnabled: s.notesEnabled,
             shelfEnabled: s.shelfEnabled,
             shelfShakeToOpen: s.shelfShakeToOpen,
+            teleprompterEnabled: s.teleprompterEnabled,
+            teleprompterMode: s.teleprompterMode.rawValue,
+            teleprompterSpeed: s.teleprompterSpeed,
+            teleprompterPlacement: s.teleprompterPlacement.rawValue,
+            teleprompterTextSize: s.teleprompterTextSize,
+            teleprompterHighlight: s.teleprompterHighlight.rawValue,
             customCommandsEnabled: s.customCommandsEnabled,
             customCommandsShowInLauncher: s.customCommandsShowInLauncher,
             snippetsShowInLauncher: s.snippetsShowInLauncher,
@@ -450,6 +462,30 @@ extension SettingsBackup {
         }
         if let flag = s.shelfShakeToOpen {
             settings.shelfShakeToOpen = flag
+            count += 1
+        }
+        if let flag = s.teleprompterEnabled {
+            settings.teleprompterEnabled = flag
+            count += 1
+        }
+        if let raw = s.teleprompterMode, let mode = TeleprompterMode(rawValue: raw) {
+            settings.teleprompterMode = mode
+            count += 1
+        }
+        if let speed = s.teleprompterSpeed, TeleprompterPace.range.contains(speed) {
+            settings.teleprompterSpeed = speed
+            count += 1
+        }
+        if let raw = s.teleprompterPlacement, let placement = TeleprompterPlacement(rawValue: raw) {
+            settings.teleprompterPlacement = placement
+            count += 1
+        }
+        if let size = s.teleprompterTextSize, TeleprompterPace.textSizes.contains(size) {
+            settings.teleprompterTextSize = size
+            count += 1
+        }
+        if let raw = s.teleprompterHighlight, let highlight = TeleprompterHighlight(rawValue: raw) {
+            settings.teleprompterHighlight = highlight
             count += 1
         }
         if let flag = s.customCommandsEnabled {

@@ -138,6 +138,7 @@ run app-name-test          Onecast/Platform/AppDisplayName.swift \
 run favorites-test         $L/FavoriteSlots.swift
 run space-assignment-test  $L/SpaceAssignment.swift
 run shelf-test             Onecast/Features/Shelf/Model/*.swift
+run teleprompter-test      Onecast/Features/Teleprompter/Model/*.swift
 run launcher-file-test     $L/LauncherFileFormat.swift \
                            Onecast/Features/Settings/Model/SettingsFileJSON.swift
 run launcher-settings-file-test \

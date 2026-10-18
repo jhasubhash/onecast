@@ -112,7 +112,7 @@ enum SettingsSearchCatalog {
         + systemActions + commands + quicklinks + appleShortcuts + fallbacks + ai + quickActions + dictation
         + fileSearch
         + notes + shelf
-        + snippets + navigation + windowManagement + presentation + docks + clipboard + emoji
+        + snippets + navigation + windowManagement + presentation + teleprompter + docks + clipboard + emoji
         + calendar + extensions + plugins + scheduler + permissions + backup + about
 
     private static let general: [SettingsSearchEntry] = [
@@ -488,6 +488,21 @@ enum SettingsSearchCatalog {
         .init(
             .windowManagementCustomSizes, "New Custom Size",
             keywords: ["add", "create", "resize", "window size"])
+    ]
+
+    private static let teleprompter: [SettingsSearchEntry] = [
+        .init(pane: .teleprompter, keywords: ["textream", "prompter", "script", "autocue", "speech", "read"]),
+        .init(.teleprompterTeleprompter, "Enable Teleprompter", keywords: ["prompter", "script", "textream"]),
+        .init(
+            .teleprompterGuidance, "Guidance mode",
+            keywords: ["word tracking", "classic", "voice activated", "scroll", "microphone"]),
+        .init(.teleprompterGuidance, "Speed", keywords: ["words per minute", "wpm", "pace", "scroll speed"]),
+        .init(.teleprompterAppearance, "Position", keywords: ["notch", "floating", "window", "overlay"]),
+        .init(.teleprompterAppearance, "Text size", keywords: ["font", "size", "large"]),
+        .init(.teleprompterAppearance, "Highlight color", keywords: ["color", "yellow", "highlight"]),
+        .init(
+            group: .teleprompterCommands, "Teleprompter commands",
+            keywords: ["shortcut", "selected text", "pause", "resume"])
     ]
 
     private static let presentation: [SettingsSearchEntry] = [

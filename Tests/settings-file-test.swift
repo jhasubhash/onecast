@@ -49,7 +49,7 @@ struct SettingsFileTest {
                 "general", "appearance", "hyperKey", "calculator", "search", "applications",
                 "systemSettings", "systemActions", "commands", "quicklinks", "appleShortcuts", "ai",
                 "quickActions", "dictation", "fileSearch", "notes", "shelf", "snippets", "navigation",
-                "windowManagement", "presentation", "docks", "clipboard", "emoji", "calendar",
+                "windowManagement", "presentation", "teleprompter", "docks", "clipboard", "emoji", "calendar",
                 "extensions", "plugins", "scheduler"
             ])
 

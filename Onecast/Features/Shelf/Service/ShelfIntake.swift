@@ -133,11 +133,8 @@ enum ShelfIntake {
         }
     }
 
-    private static let promiseQueue: OperationQueue = {
-        let queue = OperationQueue()
-        queue.qualityOfService = .userInitiated
-        return queue
-    }()
+    /// Main, because the reply closure is formed on the main actor and checks it runs there.
+    private static let promiseQueue = OperationQueue.main
 
     private static func receive(
         _ promises: [NSFilePromiseReceiver],

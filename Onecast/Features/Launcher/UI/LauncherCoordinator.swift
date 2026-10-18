@@ -238,6 +238,15 @@ final class LauncherCoordinator {
         case .showShelf:
             dismissPalette()
             core.shelfCoordinator.toggle()
+        case .openTeleprompter:
+            dismissPalette()
+            core.teleprompterCoordinator.openEditor()
+        case .teleprompterSelection:
+            let target = paletteCoordinator.targetApp
+            dismissPalette()
+            core.teleprompterCoordinator.promptSelection(in: target)
+        case .pauseTeleprompter:
+            core.teleprompterCoordinator.togglePause()
         case .searchQuicklinks:
             paletteCoordinator.togglePalette(mode: .quicklinks)
         case .searchCustomCommands:

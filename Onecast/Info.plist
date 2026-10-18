@@ -68,7 +68,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Onecast shows a camera preview so you can check yourself, and take a photo to the clipboard.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Onecast records audio only while you use Dictation, to transcribe it on your Mac.</string>
+	<string>Onecast records audio only while you use Dictation or the Teleprompter, to follow what you say.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>The Teleprompter's Word Tracking uses speech recognition to highlight your script as you read it.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Onecast reads your upcoming events so you can join a meeting from the palette.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>

@@ -166,6 +166,7 @@ final class AppCore {
         visibility: visibility, ranking: launcherRanking, aliases: aliases,
         paletteCoordinator: paletteCoordinator, core: self)
     @ObservationIgnored private(set) lazy var shelfCoordinator = ShelfCoordinator(core: self)
+    @ObservationIgnored private(set) lazy var teleprompterCoordinator = TeleprompterCoordinator(core: self)
     @ObservationIgnored private(set) lazy var notesCoordinator = NotesCoordinator(
         store: notesStore,
         settings: settings,
@@ -315,6 +316,7 @@ final class AppCore {
             fileSearchCoordinator.applyPolicy()
             notesCoordinator.applyEnabled()
             shelfCoordinator.applyEnabled()
+            teleprompterCoordinator.applyEnabled()
             installedAI.launchSettings = { [aiSettings] in aiSettings.launch(for: $0) }
             chatGPTSubscription.launchSettings = { [aiSettings] in aiSettings.launch(for: .codex) }
             aiChatCoordinator.applyEnabled()
@@ -750,6 +752,7 @@ final class AppCore {
                 _ = $0.shelfEnabled
                 _ = $0.shelfShakeToOpen
             }, reproject: { $0.shelfCoordinator.applyEnabled() })
+        track({ _ = $0.teleprompterEnabled }, reproject: { $0.teleprompterCoordinator.applyEnabled() })
         track(
             { _ = $0.aiEnabled },
             reproject: {

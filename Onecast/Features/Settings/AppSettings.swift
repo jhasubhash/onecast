@@ -394,6 +394,31 @@ final class AppSettings {
         didSet { defaults.set(shelfShakeToOpen, forKey: Key.shelfShakeToOpen.rawValue) }
     }
 
+    var teleprompterEnabled: Bool {
+        didSet { defaults.set(teleprompterEnabled, forKey: Key.teleprompterEnabled.rawValue) }
+    }
+
+    var teleprompterMode: TeleprompterMode {
+        didSet { defaults.set(teleprompterMode.rawValue, forKey: Key.teleprompterMode.rawValue) }
+    }
+
+    /// Words per minute for Classic and Voice-Activated.
+    var teleprompterSpeed: Int {
+        didSet { defaults.set(teleprompterSpeed, forKey: Key.teleprompterSpeed.rawValue) }
+    }
+
+    var teleprompterPlacement: TeleprompterPlacement {
+        didSet { defaults.set(teleprompterPlacement.rawValue, forKey: Key.teleprompterPlacement.rawValue) }
+    }
+
+    var teleprompterTextSize: Int {
+        didSet { defaults.set(teleprompterTextSize, forKey: Key.teleprompterTextSize.rawValue) }
+    }
+
+    var teleprompterHighlight: TeleprompterHighlight {
+        didSet { defaults.set(teleprompterHighlight.rawValue, forKey: Key.teleprompterHighlight.rawValue) }
+    }
+
     var dictationEnabled: Bool {
         didSet { defaults.set(dictationEnabled, forKey: Key.dictationEnabled.rawValue) }
     }
@@ -952,6 +977,24 @@ final class AppSettings {
         shelfShakeToOpen =
             defaults.object(forKey: Key.shelfShakeToOpen.rawValue) == nil
             || defaults.bool(forKey: Key.shelfShakeToOpen.rawValue)
+        teleprompterEnabled =
+            defaults.object(forKey: Key.teleprompterEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.teleprompterEnabled.rawValue)
+        teleprompterMode =
+            defaults.string(forKey: Key.teleprompterMode.rawValue).flatMap(TeleprompterMode.init)
+            ?? .wordTracking
+        teleprompterSpeed =
+            (defaults.object(forKey: Key.teleprompterSpeed.rawValue) as? Int)
+            .flatMap { TeleprompterPace.range.contains($0) ? $0 : nil } ?? TeleprompterPace.standard
+        teleprompterPlacement =
+            defaults.string(forKey: Key.teleprompterPlacement.rawValue).flatMap(TeleprompterPlacement.init)
+            ?? .notch
+        teleprompterTextSize =
+            (defaults.object(forKey: Key.teleprompterTextSize.rawValue) as? Int)
+            .flatMap { TeleprompterPace.textSizes.contains($0) ? $0 : nil } ?? TeleprompterPace.standardTextSize
+        teleprompterHighlight =
+            defaults.string(forKey: Key.teleprompterHighlight.rawValue).flatMap(TeleprompterHighlight.init)
+            ?? .yellow
         dictationEnabled = defaults.bool(forKey: Key.dictationEnabled.rawValue)
         dictationMode =
             defaults.string(forKey: Key.dictationMode.rawValue)

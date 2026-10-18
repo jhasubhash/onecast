@@ -162,6 +162,15 @@ enum SettingsFileSchema {
         case .presentationStartShortcut: return bind(settings, \.presentationStartShortcut)
         case .presentationEndShortcut: return bind(settings, \.presentationEndShortcut)
         case .presentationCommands: return launcher.commandsBinding(for: key, owner: .presentation)
+        case .teleprompterEnabled: return bind(settings, \.teleprompterEnabled)
+        case .teleprompterMode: return bind(settings, \.teleprompterMode)
+        case .teleprompterSpeed:
+            return bind(settings, \.teleprompterSpeed) { TeleprompterPace.range.contains($0) ? $0 : nil }
+        case .teleprompterPlacement: return bind(settings, \.teleprompterPlacement)
+        case .teleprompterTextSize:
+            return bind(settings, \.teleprompterTextSize) { TeleprompterPace.textSizes.contains($0) ? $0 : nil }
+        case .teleprompterHighlight: return bind(settings, \.teleprompterHighlight)
+        case .teleprompterCommands: return launcher.commandsBinding(for: key, owner: .teleprompter)
         case .docksCommands: return launcher.commandsBinding(for: key, owner: .docks)
         case .clipboardEnabled: return bind(settings, \.clipboardEnabled)
         case .clipboardRetention: return bind(settings, \.clipboardRetention)
@@ -205,6 +214,9 @@ extension EscapeKeyBehavior: SettingsFileRawValue {}
 extension ReminderPlace: SettingsFileRawValue {}
 extension AppAppearance: SettingsFileRawValue {}
 extension InterfaceSize: SettingsFileRawValue {}
+extension TeleprompterMode: SettingsFileRawValue {}
+extension TeleprompterPlacement: SettingsFileRawValue {}
+extension TeleprompterHighlight: SettingsFileRawValue {}
 extension HyperKeyPhysicalKey: SettingsFileRawValue {}
 extension HyperKeyQuickPress: SettingsFileRawValue {}
 extension CalcNumberStyle: SettingsFileRawValue {}

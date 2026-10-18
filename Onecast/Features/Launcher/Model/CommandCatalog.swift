@@ -62,6 +62,7 @@ extension SettingsTab {
         case .navigation: [.switchWindows, .switchWindowsBackwards, .searchMenuItems]
         case .windowManagement: [.createWindowLayout, .captureWindowLayout]
         case .presentation: [.togglePresentation, .startPresentation, .stopPresentation]
+        case .teleprompter: [.openTeleprompter, .teleprompterSelection, .pauseTeleprompter]
         case .docks: [.toggleDocks, .manageDocks]
         case .clipboard: [.clipboardHistory, .pasteSequentially]
         case .emoji: [.searchEmoji]

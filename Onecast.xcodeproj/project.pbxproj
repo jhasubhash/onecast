@@ -340,6 +340,7 @@
 		456CF3B9ED0EE206C651500C /* ColorValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6CE48E272F454E5A96AAAD1 /* ColorValue.swift */; };
 		459E9A8F76CD195C4838395F /* SystemTint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F4F187FD266699BC5810EA /* SystemTint.swift */; };
 		46501847205AE7B3FCDCB57C /* FileSearchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2821AA4A8503BB2ADF8F6E5 /* FileSearchPolicy.swift */; };
+		4694382C901A7FA4BE3023B2 /* TeleprompterPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53EF8B208FE41AB2A418C60 /* TeleprompterPanel.swift */; };
 		469C85DC2B219AB8B12EF280 /* ExtensionStoreClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90458F23793139E6239C965E /* ExtensionStoreClient.swift */; };
 		46A027BADA23C8C65A3ABFC6 /* WindowCommandCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9552C3B1BE71288C383AC4F8 /* WindowCommandCoordinator.swift */; };
 		46CAF9FA6EAF2672EFFE6AC0 /* WeatherDockWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F9AD82B6F05060DDAD3A347 /* WeatherDockWidget.swift */; };
@@ -436,6 +437,7 @@
 		5906FF1C6CDC60ED58F764C1 /* VolumeLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD40837348C1600F80205C08 /* VolumeLevel.swift */; };
 		597281B7C6168537A388664F /* SkyLight.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D84CF4C9244EB357104667 /* SkyLight.swift */; };
 		5997A6DAD9A89D57CCD80F88 /* DockWindowAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB07D9B420EC38D61B20DA29 /* DockWindowAccess.swift */; };
+		59EE94F166AF2F888EF44304 /* TeleprompterEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225AFDBB056BC23B818EB865 /* TeleprompterEditorView.swift */; };
 		5A3969B15B71E57310565A4F /* MCPServerEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE136910E6105BA1CC43852 /* MCPServerEditor.swift */; };
 		5A7CC3EC053C13A251BE89BF /* AppLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F6096E3A4B4DD484F626C5 /* AppLauncher.swift */; };
 		5A89733F4116F2F9AA4072F0 /* CalcDateFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A5F4D8255938F3A38A4FB8 /* CalcDateFormatters.swift */; };
@@ -487,6 +489,7 @@
 		650912BF95188AB5C3EF90BB /* WindowLayoutCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6187EFA757CC8315197DCBC0 /* WindowLayoutCoordinator.swift */; };
 		65967A861103999AA8A7EAB6 /* FileIndexHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42ED829E7BBD397C60EF624 /* FileIndexHelper.swift */; };
 		65C42864D20D5B735884569C /* ExtensionIconCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5A00A1888B4F9F55E3078EC /* ExtensionIconCache.swift */; };
+		65F47FB01A6E6880E9DDB800 /* TeleprompterListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88EC27B88E604266A0CDAD7 /* TeleprompterListener.swift */; };
 		667D6E17D0EF7EE7C42E518E /* DockTimeClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342C51B21F2EA0AF7705E785 /* DockTimeClock.swift */; };
 		668A06123674BA71396D9B48 /* ClipboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DFA61709951124AF6220936 /* ClipboardScreen.swift */; };
 		66A46759479F14EC8DC22B94 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42D4C25DAD73E4D559572339 /* GeneralSettingsView.swift */; };
@@ -550,6 +553,7 @@
 		72DD8625F42BDE1B45ADF412 /* DockPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4CE67A51EE4CB0D8393C2D6 /* DockPanelController.swift */; };
 		734FF8FFD876AF9B695F9F22 /* DialogPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E4E5B8A4B8B3CD853FC2DB8 /* DialogPanel.swift */; };
 		738C009656A9937FC47CBFFE /* InlineEntryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3042E01308B54E954D693FF /* InlineEntryEditor.swift */; };
+		73CCDC43A6CAB06F4683C524 /* TeleprompterOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D13521876ED525339DC5B0 /* TeleprompterOptions.swift */; };
 		7412072D2567729F574CA166 /* TimeAlarm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F361E1B45FB14FFCEBCBD32 /* TimeAlarm.swift */; };
 		7422AEC15A1B00AA6200B4AB /* CustomCommandArgumentsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BF940CD0568CC9E802AFC0 /* CustomCommandArgumentsScreen.swift */; };
 		7459A053FCF47307367FD6D9 /* NowPlayingWidgetModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5840B8BC2D2FE34527F884D7 /* NowPlayingWidgetModel.swift */; };
@@ -700,6 +704,7 @@
 		950785A9133DF713DC2A5CAD /* WindowLayoutArgumentField.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8F614ACEDEB74CC5B3DF1F7 /* WindowLayoutArgumentField.swift */; };
 		950C53E2EA0B5A741395418E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 269EB945967315159A341463 /* AppDelegate.swift */; };
 		9528376DD6CA50355BA4958F /* ClipboardFilterButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811C1E795E519556FFB660B7 /* ClipboardFilterButton.swift */; };
+		95305972B02AD7388D0D8C8E /* TeleprompterAligner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A314E28DF3FD6F6675E1A /* TeleprompterAligner.swift */; };
 		95353E850316DBE831B69D75 /* CustomCommandCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 779F69539B709F94DCB6FD0C /* CustomCommandCoordinator.swift */; };
 		9552EA4C75DE93234F5B5453 /* DictationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D048BF20644839D583A62E36 /* DictationModel.swift */; };
 		956D96E27414CA24AF44F20A /* MarkdownBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89196A15F254A5F6C25E8B48 /* MarkdownBlock.swift */; };
@@ -747,6 +752,7 @@
 		9CD25EA426B85BAEA3D45FE0 /* CalendarTilePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0222BB7E193597EF60D03B5B /* CalendarTilePanels.swift */; };
 		9D83F57F18F2332E0B096F62 /* PluginBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122B17C3DCAFB745FED6C8B5 /* PluginBuilder.swift */; };
 		9D8BEFFE8898A667537B3FA8 /* SystemActivityPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACE6EF2509796773E0330D76 /* SystemActivityPopoverView.swift */; };
+		9D97BEEE65A615FC62E557EA /* TeleprompterScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F1C3349485016221FBB15E /* TeleprompterScript.swift */; };
 		9DD14DBE14C9ACB299A0B973 /* MenuBarSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C32F0245CDADDAF1D2171E04 /* MenuBarSummary.swift */; };
 		9DFDE5AC98DCC84E341AF21D /* EventDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C2E638433C941B6DF48907 /* EventDraft.swift */; };
 		9E000132686B50CD3721CAE8 /* EmojiIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB7BB4D760FFE3832D0F82C /* EmojiIndex.swift */; };
@@ -779,6 +785,7 @@
 		A2BB3BCA374CB9444DBD451E /* RaycastImportSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101B42DB065D31D03BBC02BC /* RaycastImportSelection.swift */; };
 		A2FEFE3C67329ACFAE4664AA /* AppActionsMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = F586685F91C46C9463E2066E /* AppActionsMenu.swift */; };
 		A332D8E154AD90DF475E5F6C /* AIChatCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31ED8D16B7B87DBD89D195B /* AIChatCoordinator.swift */; };
+		A338B898FE74AB517B468125 /* TeleprompterCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4F2132C27F88B6216839F8 /* TeleprompterCoordinator.swift */; };
 		A3A5ADD7A84C49E6A3BD69D1 /* TimeCountdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81BFC583A4A87D4946F83DEC /* TimeCountdown.swift */; };
 		A3A73A2AF95F28FBA1328FCD /* ShelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E51C27B915093488C06F6F /* ShelfView.swift */; };
 		A3EBBA6792E711FC138A9033 /* MCPProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50474B0E6DAE1E1B88FBDC1 /* MCPProtocol.swift */; };
@@ -805,6 +812,7 @@
 		A85F53625108B088FA117AA9 /* StockModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5F0F7D08DDEFA1B61AADBE /* StockModel.swift */; };
 		A957E2F3130D8867AAE497CD /* ToolRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F0882605DAB4B405385E1BB /* ToolRunner.swift */; };
 		A98561774D307106325B1A52 /* AIToolHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60C146056C3BFCFF538F2761 /* AIToolHelper.swift */; };
+		A99A2E63E6E9C9005ED3EAC8 /* TeleprompterSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB805F6BBBD8281677DC3DF0 /* TeleprompterSettingsView.swift */; };
 		A9C164B827FE3C3004CFAEA5 /* ExtensionDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023B36D776C392A388008B39 /* ExtensionDeepLink.swift */; };
 		AA3EACF80784FEEB75F0E341 /* PresentationPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 815452AEF582F0BD8FD6DE85 /* PresentationPopoverView.swift */; };
 		AA6999F0085AD0749B9297E0 /* DockSettingsLabels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF36EAB01652AB8A1C65597 /* DockSettingsLabels.swift */; };
@@ -1107,6 +1115,7 @@
 		F076534B606DB93598380EE4 /* ClipboardTextHelper in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 8B858E2B0287D7644A1F5D3E /* ClipboardTextHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F07992B7FC48E1B328D76212 /* CustomCommandArgumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A343C57AD399D25D19C882 /* CustomCommandArgumentsView.swift */; };
 		F127AA3BCEB4C0E7DC917221 /* OverflowFade.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31472812B22CA246308E900C /* OverflowFade.swift */; };
+		F1929CEFC45E3A474DE856EF /* TeleprompterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67928E4BB8CE42023000ACA3 /* TeleprompterView.swift */; };
 		F1F5F2A3D8691E351895806A /* HotKeySettingsFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5B1CEFBBBC9D2F66C5EAEA /* HotKeySettingsFile.swift */; };
 		F21F6FB84A102733EFE6A861 /* ClipDrag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056080F132344B51F17B832D /* ClipDrag.swift */; };
 		F2744D9338C19D23D9DFDA76 /* MCPServerConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7F0E6C93C7917140CB92C1 /* MCPServerConnection.swift */; };
@@ -1324,6 +1333,7 @@
 		1848077A9C0E4A78F65D0AB4 /* MenuSearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuSearchScreen.swift; sourceTree = "<group>"; };
 		18A317EBBF0F48FBAEE779D3 /* DockWidgetServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockWidgetServices.swift; sourceTree = "<group>"; };
 		18CF75C86BE0C334E27BCF04 /* WindowLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLevel.swift; sourceTree = "<group>"; };
+		18D13521876ED525339DC5B0 /* TeleprompterOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterOptions.swift; sourceTree = "<group>"; };
 		19723E85BE1B0E0D7E4B2A4E /* QuicklinkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuicklinkStore.swift; sourceTree = "<group>"; };
 		197D44E3401560B220012613 /* ComputerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerController.swift; sourceTree = "<group>"; };
 		19BF3520C2E5856043765968 /* ClipboardFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardFilter.swift; sourceTree = "<group>"; };
@@ -1361,6 +1371,7 @@
 		21EB934B6B9DE88EB39910A4 /* LauncherItemsTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherItemsTable.swift; sourceTree = "<group>"; };
 		21FE67C99BB0BC782EDA5E8C /* MarkdownMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownMath.swift; sourceTree = "<group>"; };
 		220C16C093752836748CEC32 /* NowPlayingArtworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingArtworkView.swift; sourceTree = "<group>"; };
+		225AFDBB056BC23B818EB865 /* TeleprompterEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterEditorView.swift; sourceTree = "<group>"; };
 		227FC60136A1A61FCA65BFA3 /* CameraCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCoordinator.swift; sourceTree = "<group>"; };
 		23135C2BC1F8C8784FEE73FF /* ExtensionSelectionForwarder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionSelectionForwarder.swift; sourceTree = "<group>"; };
 		236A1BB1C182039221C68F4F /* QuicklinkLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuicklinkLauncher.swift; sourceTree = "<group>"; };
@@ -1489,6 +1500,7 @@
 		427D86F82C325660F7A29047 /* AICLIToolConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICLIToolConfig.swift; sourceTree = "<group>"; };
 		42AFC90831EB22C0B085232F /* PersonalStockQuoteProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalStockQuoteProvider.swift; sourceTree = "<group>"; };
 		42D4C25DAD73E4D559572339 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		432A314E28DF3FD6F6675E1A /* TeleprompterAligner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterAligner.swift; sourceTree = "<group>"; };
 		437C28AEBA513E07370651CB /* KeyCapChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCapChip.swift; sourceTree = "<group>"; };
 		43E70B02EABFEF7AA743042B /* DictationCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCapture.swift; sourceTree = "<group>"; };
 		43F51EACA87DD6F169F75DE7 /* SnippetFormControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetFormControls.swift; sourceTree = "<group>"; };
@@ -1661,6 +1673,7 @@
 		66B1024E86357DA7843F82AA /* WindowSwitchSweep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSwitchSweep.swift; sourceTree = "<group>"; };
 		66B5AD790A0BD861326898BD /* InstalledAIImageInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAIImageInput.swift; sourceTree = "<group>"; };
 		66B91D39AD7E6FB212CE9F56 /* SystemNetworkSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemNetworkSampler.swift; sourceTree = "<group>"; };
+		67928E4BB8CE42023000ACA3 /* TeleprompterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterView.swift; sourceTree = "<group>"; };
 		67A7591D95AEC998D15BF366 /* SystemMemoryTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMemoryTabView.swift; sourceTree = "<group>"; };
 		67B53DF15D266D7A2898FE6E /* SnippetsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetsListView.swift; sourceTree = "<group>"; };
 		67CD49D360A95BAB65D7A75A /* WindowShortcutPresetCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowShortcutPresetCoordinator.swift; sourceTree = "<group>"; };
@@ -1747,6 +1760,7 @@
 		7C1C54542BE7C62A086D349D /* ExtensionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionListView.swift; sourceTree = "<group>"; };
 		7C2D3F10D2D87F60419049CE /* CalcTimestamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalcTimestamp.swift; sourceTree = "<group>"; };
 		7CA32899AAF8F859451F40F9 /* EventEditorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditorScreen.swift; sourceTree = "<group>"; };
+		7D4F2132C27F88B6216839F8 /* TeleprompterCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterCoordinator.swift; sourceTree = "<group>"; };
 		7DA81C779F2D6991B1B07933 /* ChatCopyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatCopyButton.swift; sourceTree = "<group>"; };
 		7DBEC3B2674B62AAAB52E632 /* Memo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Memo.swift; sourceTree = "<group>"; };
 		7DC8A69CCAF0F47C09908B7F /* AIToolBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIToolBridge.swift; sourceTree = "<group>"; };
@@ -2035,6 +2049,7 @@
 		B48A741D3BA214C17044BCAC /* SchedulerAITool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulerAITool.swift; sourceTree = "<group>"; };
 		B49AD5AC62597D67DE676CDF /* PaletteTabAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteTabAction.swift; sourceTree = "<group>"; };
 		B4E21B2B9C3AB2A54DE507D2 /* ExtensionPickerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionPickerList.swift; sourceTree = "<group>"; };
+		B53EF8B208FE41AB2A418C60 /* TeleprompterPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterPanel.swift; sourceTree = "<group>"; };
 		B55FFF49B4E7A49853868B7F /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		B5986AC35A53BE635AA753C0 /* NotesPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesPanel.swift; sourceTree = "<group>"; };
 		B5DD79AF4F950D970C071A1B /* AppWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppWindowController.swift; sourceTree = "<group>"; };
@@ -2087,6 +2102,7 @@
 		C188D88C68CC05256029DBE6 /* PersonalWeatherFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalWeatherFailure.swift; sourceTree = "<group>"; };
 		C189984B1D80F3DAB391F61B /* MCPSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPSettingsStore.swift; sourceTree = "<group>"; };
 		C1C5B2E5129E47EDE4388320 /* NotesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesWindowController.swift; sourceTree = "<group>"; };
+		C1F1C3349485016221FBB15E /* TeleprompterScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterScript.swift; sourceTree = "<group>"; };
 		C23E0B2C39C3321C21831F10 /* AgentElement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentElement.swift; sourceTree = "<group>"; };
 		C2BF759105AB6ADF0E49EE11 /* DockBadges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadges.swift; sourceTree = "<group>"; };
 		C2C87723B028FEFBC0CDCBC1 /* DialogController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogController.swift; sourceTree = "<group>"; };
@@ -2146,6 +2162,7 @@
 		CAE601C1F9D64A08EB155279 /* QuickActionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionSettings.swift; sourceTree = "<group>"; };
 		CB33D7929D105D5C50AC4975 /* VolumeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeState.swift; sourceTree = "<group>"; };
 		CB49A920740D51AD0F4A31FD /* WindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowReader.swift; sourceTree = "<group>"; };
+		CB805F6BBBD8281677DC3DF0 /* TeleprompterSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterSettingsView.swift; sourceTree = "<group>"; };
 		CB94EB4FCE287BA9F7963301 /* SettingsDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDetailView.swift; sourceTree = "<group>"; };
 		CC6CD375E1798CCA9BBA357F /* WindowLayoutGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLayoutGeometry.swift; sourceTree = "<group>"; };
 		CC76794D9BDEDF50EEEF1CA7 /* HyperKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperKey.swift; sourceTree = "<group>"; };
@@ -2352,6 +2369,7 @@
 		F83326E61D87F879570FD5FD /* ExtensionManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionManifest.swift; sourceTree = "<group>"; };
 		F838AFADE1D6F1709E28E7FD /* CustomDocksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomDocksSection.swift; sourceTree = "<group>"; };
 		F852E0B7E7154B362FB28BBD /* PersonalAIUsageScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalAIUsageScanner.swift; sourceTree = "<group>"; };
+		F88EC27B88E604266A0CDAD7 /* TeleprompterListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleprompterListener.swift; sourceTree = "<group>"; };
 		F890E6FA6FB86B95A2BE2175 /* MeetingEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingEvent.swift; sourceTree = "<group>"; };
 		F892A9F5FC5CE501F0A9ED06 /* BackupComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupComposer.swift; sourceTree = "<group>"; };
 		F8B21922189D511537B95AD7 /* WindowManagementSettingsFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManagementSettingsFile.swift; sourceTree = "<group>"; };
@@ -2384,7 +2402,7 @@
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
 		FFEE3E52A2BABF365CFA8F82 /* PresentationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSession.swift; sourceTree = "<group>"; };
-		"TEMP_1166783A-C1E5-404C-8F5C-1288C3308C70" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_DB48E1E6-7FA8-4C13-B164-03BA657C193F" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2499,6 +2517,17 @@
 				B42ED829E7BBD397C60EF624 /* FileIndexHelper.swift */,
 			);
 			path = Helper;
+			sourceTree = "<group>";
+		};
+		0929ECA9ED351C1903C37AAE /* Teleprompter */ = {
+			isa = PBXGroup;
+			children = (
+				AA384BDA795D074FD4F45DAD /* Model */,
+				22F546B83425608F31B0A8A7 /* Service */,
+				3F85038BF054E704AF07C88B /* Settings */,
+				DFC2C050970DD65D91097BD4 /* UI */,
+			);
+			path = Teleprompter;
 			sourceTree = "<group>";
 		};
 		0EE4B1B490DF4A546EF35CCE /* Settings */ = {
@@ -2823,6 +2852,14 @@
 				80AB5902D293D1058D3BF0EC /* QuickActionsSettingsView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		22F546B83425608F31B0A8A7 /* Service */ = {
+			isa = PBXGroup;
+			children = (
+				F88EC27B88E604266A0CDAD7 /* TeleprompterListener.swift */,
+			);
+			path = Service;
 			sourceTree = "<group>";
 		};
 		23B289BDBEF3BFFED869A4C6 /* Settings */ = {
@@ -3157,6 +3194,14 @@
 			children = (
 				B2C61ED2701E88FB6E74F82F /* SchedulerSettingsView.swift */,
 				F4DEF6B5B3B4ECBBE8177C11 /* SchedulerTaskEditorSheet.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		3F85038BF054E704AF07C88B /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				CB805F6BBBD8281677DC3DF0 /* TeleprompterSettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -4136,6 +4181,16 @@
 			path = UI;
 			sourceTree = "<group>";
 		};
+		AA384BDA795D074FD4F45DAD /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				432A314E28DF3FD6F6675E1A /* TeleprompterAligner.swift */,
+				18D13521876ED525339DC5B0 /* TeleprompterOptions.swift */,
+				C1F1C3349485016221FBB15E /* TeleprompterScript.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
 		AC4E23A0F28BAE7945AD681C /* Service */ = {
 			isa = PBXGroup;
 			children = (
@@ -4377,6 +4432,7 @@
 				B207D7DF172B86DD997D8DDB /* Snippets */,
 				16BF755473B3403F45910192 /* Support */,
 				A3EC5D542A7FCE10EEA4743E /* SystemActions */,
+				0929ECA9ED351C1903C37AAE /* Teleprompter */,
 				9F7969C7D461A04B1D77EBFC /* TextInjection */,
 				87D398A6E00046A6A165560D /* Uninstall */,
 				5CDAE25F7645968C5FE8F13D /* Updates */,
@@ -4774,6 +4830,17 @@
 			path = Service;
 			sourceTree = "<group>";
 		};
+		DFC2C050970DD65D91097BD4 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				7D4F2132C27F88B6216839F8 /* TeleprompterCoordinator.swift */,
+				225AFDBB056BC23B818EB865 /* TeleprompterEditorView.swift */,
+				B53EF8B208FE41AB2A418C60 /* TeleprompterPanel.swift */,
+				67928E4BB8CE42023000ACA3 /* TeleprompterView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
 		E07325372B3546ACAC177B0A /* Model */ = {
 			isa = PBXGroup;
 			children = (
@@ -5100,10 +5167,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_D4BBF1EA-0CAE-4CBE-9DB9-5484173A0726" /* onecast */ = {
+		"TEMP_56A8AFE5-9457-46B3-BBFA-5076150DF51F" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_1166783A-C1E5-404C-8F5C-1288C3308C70" /* Signing.xcconfig */,
+				"TEMP_DB48E1E6-7FA8-4C13-B164-03BA657C193F" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -6334,6 +6401,15 @@
 				459E9A8F76CD195C4838395F /* SystemTint.swift in Sources */,
 				F57C65765BAA351ED877BEE1 /* SystemValueRow.swift in Sources */,
 				749B27FF9AAD680074609152 /* SystemWidgets.swift in Sources */,
+				95305972B02AD7388D0D8C8E /* TeleprompterAligner.swift in Sources */,
+				A338B898FE74AB517B468125 /* TeleprompterCoordinator.swift in Sources */,
+				59EE94F166AF2F888EF44304 /* TeleprompterEditorView.swift in Sources */,
+				65F47FB01A6E6880E9DDB800 /* TeleprompterListener.swift in Sources */,
+				73CCDC43A6CAB06F4683C524 /* TeleprompterOptions.swift in Sources */,
+				4694382C901A7FA4BE3023B2 /* TeleprompterPanel.swift in Sources */,
+				9D97BEEE65A615FC62E557EA /* TeleprompterScript.swift in Sources */,
+				A99A2E63E6E9C9005ED3EAC8 /* TeleprompterSettingsView.swift in Sources */,
+				F1929CEFC45E3A474DE856EF /* TeleprompterView.swift in Sources */,
 				A0D80E75F1DEFDA540FE328C /* TerminalLogView.swift in Sources */,
 				113B592026587C1830D2CEE1 /* TextDiffEngine.swift in Sources */,
 				1E10D7C0A853B7218F23C6AA /* TextInjector.swift in Sources */,
@@ -6541,7 +6617,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_1166783A-C1E5-404C-8F5C-1288C3308C70" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_DB48E1E6-7FA8-4C13-B164-03BA657C193F" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6836,7 +6912,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_1166783A-C1E5-404C-8F5C-1288C3308C70" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_DB48E1E6-7FA8-4C13-B164-03BA657C193F" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

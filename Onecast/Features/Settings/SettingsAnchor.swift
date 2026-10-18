@@ -93,6 +93,11 @@ extension SettingsAnchor {
     static let presentationShortcuts = Self(tab: .presentation, title: "Shortcuts")
     static let presentationCommands = Self(tab: .presentation, title: "Commands")
 
+    static let teleprompterTeleprompter = Self(tab: .teleprompter, title: "Teleprompter")
+    static let teleprompterGuidance = Self(tab: .teleprompter, title: "Guidance")
+    static let teleprompterAppearance = Self(tab: .teleprompter, title: "Appearance")
+    static let teleprompterCommands = Self(tab: .teleprompter, title: "Commands")
+
     static let docksDocks = Self(tab: .docks, title: "Docks")
     static let docksCommands = Self(tab: .docks, title: "Commands")
     static let docksCustomDocks = Self(tab: .docks, title: "Custom Docks")

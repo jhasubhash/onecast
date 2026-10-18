@@ -44,6 +44,7 @@ open with an `## Invariants` section; read it before changing anything in that a
 [window management](features/window-management.md) ·
 [window layouts](features/window-layouts.md) ·
 [presentation mode](features/presentation.md) ·
+[teleprompter](features/teleprompter.md) ·
 [docks](features/docks.md) ·
 [scheduler](features/scheduler.md) ·
 [custom commands](features/custom-commands.md) ·

@@ -26,6 +26,7 @@ struct SettingsDetailView: View {
             case .navigation: NavigationSettingsView()
             case .windowManagement: WindowManagementSettingsView()
             case .presentation: PresentationSettingsView()
+            case .teleprompter: TeleprompterSettingsView()
             case .docks: DocksSettingsView()
             case .clipboard: ClipboardSettingsView()
             case .emoji: EmojiSettingsView()
