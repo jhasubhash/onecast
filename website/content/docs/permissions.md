@@ -80,8 +80,8 @@ Onecast **never asks** for Full Disk Access; there is no prompt for it, so you t
 System Settings → Privacy & Security → Full Disk Access.
 
 - **[File Search](/docs/features/file-search)** needs it. It reads your disk directly to build its own
-  index, and indexes nothing until the grant exists. Settings → File Search shows whether it is on and
-  opens the pane for you.
+  index, and indexes nothing until the grant exists. Settings → Permissions and Settings → File Search
+  show whether it is on and open the pane for you.
 - The [uninstaller](/docs/launcher/uninstall) checks quietly to work out which files it can move.
   Without the grant, protected places like `~/Library/Containers`, `~/Library/Group Containers` and
   `~/Library/Cookies` show as locked rows instead. The worst case is a row you clear by hand.

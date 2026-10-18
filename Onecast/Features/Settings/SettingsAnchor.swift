@@ -130,6 +130,7 @@ extension SettingsAnchor {
     static let schedulerCommands = Self(tab: .scheduler, title: "Commands")
 
     static let permissionsAccessibility = Self(tab: .permissions, title: "Accessibility")
+    static let permissionsFullDiskAccess = Self(tab: .permissions, title: "Full Disk Access")
     static let permissionsCalendars = Self(tab: .permissions, title: "Calendars")
     static let permissionsReminders = Self(tab: .permissions, title: "Reminders")
     static let permissionsMicrophone = Self(tab: .permissions, title: "Microphone")

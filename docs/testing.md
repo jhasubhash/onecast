@@ -135,6 +135,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `custom-command-test` | `CustomCommands/Model/CustomCommand.swift`, `Service/ShellCommandRunner.swift`, `UI/CustomCommandEditorSession.swift` — the store, the editor's draft, focus ring and argument rows, and the browser's `matching` filter |
 | `custom-command-list-test` | `UI/CustomCommandListScreen.swift` — Search Custom Commands' row snapshot, the actions and chords addressing the drawn row, and its empty states |
 | `uninstall-test` | all five pure files in `Uninstall/Model/` |
+| `uninstall-coordinator-test` | Confirmation and the post-confirmation quit gate; recorded quit and Trash effects only |
 | `quicklink-test` | all of `Quicklinks/Model/`, plus `QuicklinkDraft` (Save's validity rule, triggers surviving an edit, Insert at the caret) and `Platform/TextInsertion.swift` |
 | `quicklink-coordinator-test` | Quicklink opening and requested argument field — missing and ⌘C-read selection, arguments asked before the selection is judged, "Pass selected text as argument" from a shortcut, and default-app overrides — Copy Link (the saved template, feedback, palette dismissal) and Show in Finder; the editor's lifecycle — a hidden new draft resumed, another edit replacing it, cancel and the feature switch closing only an open editor, save keeping the row's place; no platform effects or on-screen focus checks |
 | `dock-badges-test` | `Docks/Model/DockBadges.swift` — mapping the macOS Dock's tiles to bundle ID → badge label |
@@ -477,6 +478,10 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Rows appear with no loading copy at any point; folder sizes fill in behind them and totals climb
 - Locked rows cannot be checked; filtering by name works
 - Confirming moves items to the Trash and they are **recoverable from it**
+- A running app exits before any files move, including a menu-bar app or one launched during confirmation
+- An app that refuses to quit leaves every item in place after the grace period
+- Full Disk Access appears in both Permissions and File Search, and both open the correct privacy pane
+- With Full Disk Access granted, protected leftovers become selectable; administrator-only items stay locked
 - Escaping mid-scan cancels promptly with no spinner left behind
 - Hiding and immediately restoring the screen never strands an in-flight file icon as a placeholder
 

@@ -465,6 +465,8 @@ run custom-command-test    Onecast/Platform/PseudoTerminal.swift \
                            Onecast/Features/CustomCommands/UI/CustomCommandEditorSession.swift
 run custom-command-list-test Onecast/Features/CustomCommands/Model/CustomCommand.swift \
                              Onecast/Features/CustomCommands/UI/CustomCommandListScreen.swift
+run uninstall-coordinator-test Onecast/Features/Uninstall/Model/*.swift \
+                           Onecast/Features/Uninstall/UI/UninstallCoordinator.swift
 run uninstall-test         Onecast/Features/Uninstall/Model/UninstallTarget.swift \
                            Onecast/Features/Uninstall/Model/UninstallSearchRoot.swift \
                            Onecast/Features/Uninstall/Model/UninstallRules.swift \

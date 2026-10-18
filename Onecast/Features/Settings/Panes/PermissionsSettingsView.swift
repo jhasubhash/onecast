@@ -5,6 +5,7 @@ import SwiftUI
 struct PermissionsSettingsView: View {
     @Environment(AppCore.self) private var core
     @State private var accessibilityTrusted = Permissions.isAccessibilityTrusted()
+    @State private var fullDiskAccess = Permissions.hasFullDiskAccess()
     @State private var calendarAccess = Permissions.calendarAccess()
     @State private var remindersAccess = Permissions.remindersAccess()
     @State private var microphoneAccess = Permissions.microphoneAccess()
@@ -40,6 +41,32 @@ struct PermissionsSettingsView: View {
                 Text("Access Onecast needs to work with other apps.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            Section {
+                LabeledContent {
+                    HStack(spacing: Theme.Spacing.lg) {
+                        statusLabel(fullDiskAccessStatus)
+                        Button(fullDiskAccess ? "Open…" : "Grant Access…") {
+                            Permissions.openFullDiskAccessSettings()
+                        }
+                        .help("Opens Privacy & Security › Full Disk Access.")
+                    }
+                } label: {
+                    HStack(spacing: Theme.Spacing.lg) {
+                        Image(systemName: "internaldrive.fill")
+                            .font(.system(size: SettingsListMetrics.iconSize - Theme.Spacing.xs))
+                            .frame(width: SettingsListMetrics.iconSize)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                            SettingsRowTitle(.permissionsFullDiskAccess, "Full Disk Access")
+                            Text("For File Search and protected app leftovers.")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                SettingsSectionHeader(.permissionsFullDiskAccess)
             }
 
             Section {
@@ -146,6 +173,10 @@ struct PermissionsSettingsView: View {
         Self.status(of: accessibilityTrusted, asked: true)
     }
 
+    private var fullDiskAccessStatus: (title: String, symbol: String, tint: Color) {
+        Self.status(of: fullDiskAccess, asked: true)
+    }
+
     private var calendarStatus: (title: String, symbol: String, tint: Color) {
         Self.status(of: calendarAccess == .granted, asked: calendarAccess != .notDetermined)
     }
@@ -177,6 +208,11 @@ struct PermissionsSettingsView: View {
     private func refresh() {
         let trusted = Permissions.isAccessibilityTrusted()
         if trusted != accessibilityTrusted { accessibilityTrusted = trusted }
+        let diskAccess = Permissions.hasFullDiskAccess()
+        if diskAccess != fullDiskAccess {
+            fullDiskAccess = diskAccess
+            core.fileIndexer.refreshAccess()
+        }
         let access = Permissions.calendarAccess()
         if access != calendarAccess { calendarAccess = access }
         let reminders = Permissions.remindersAccess()
