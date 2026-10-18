@@ -2,7 +2,8 @@ import SwiftUI
 
 /// An action's own shortcut, matched before the palette's bindings see it.
 struct ExtensionShortcutKeys: ViewModifier {
-    let screen: ExtensionCommandScreen?
+    /// Resolved per press: SwiftUI keeps stale key handlers, and a captured screen keeps its rows.
+    let screen: () -> ExtensionCommandScreen?
     let selection: Int
     /// What is typed in the actions panel while it is open, whose own rows then take the chord.
     let panelQuery: String?
@@ -10,7 +11,7 @@ struct ExtensionShortcutKeys: ViewModifier {
 
     func body(content: Content) -> some View {
         content.onKeyPress(phases: .down) { press in
-            guard let screen, !press.modifiers.isEmpty else { return .ignored }
+            guard !press.modifiers.isEmpty, let screen = screen() else { return .ignored }
             let key = ASCIIKeyboardLayout.keyEquivalent(fallingBackTo: press.key)
             guard let panelQuery else {
                 return screen.dispatchShortcut(key: key, modifiers: press.modifiers, at: selection)

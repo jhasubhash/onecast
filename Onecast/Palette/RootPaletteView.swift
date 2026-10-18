@@ -641,7 +641,7 @@ struct RootPaletteView: View {
             }
             .modifier(
                 ExtensionShortcutKeys(
-                    screen: menuOpen && openMenu != .actions ? nil : screen as? ExtensionCommandScreen,
+                    screen: { menuOpen && openMenu != .actions ? nil : screen as? ExtensionCommandScreen },
                     selection: sel, panelQuery: openMenu == .actions ? vm.menuFilterQuery : nil,
                     activatePanelRow: activateMenuItem)
             )
