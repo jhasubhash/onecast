@@ -357,6 +357,19 @@ final class AppSettings {
         }
     }
 
+    var fileSearchRemovedDefaultPatterns: [String] {
+        didSet {
+            defaults.set(
+                fileSearchRemovedDefaultPatterns,
+                forKey: Key.fileSearchRemovedDefaultPatterns.rawValue)
+        }
+    }
+
+    var fileSearchEffectiveIgnorePatterns: [String] {
+        FileSearchIgnoreList.patterns(
+            added: fileSearchIgnorePatterns, removedDefaults: fileSearchRemovedDefaultPatterns)
+    }
+
     var fileSearchShowInLauncher: Bool {
         didSet {
             defaults.set(fileSearchShowInLauncher, forKey: Key.fileSearchShowInLauncher.rawValue)
@@ -919,6 +932,8 @@ final class AppSettings {
             ?? FileSearchScope.defaultScopes
         fileSearchIgnorePatterns =
             defaults.stringArray(forKey: Key.fileSearchIgnorePatterns.rawValue) ?? []
+        fileSearchRemovedDefaultPatterns =
+            defaults.stringArray(forKey: Key.fileSearchRemovedDefaultPatterns.rawValue) ?? []
         fileSearchShowInLauncher = defaults.bool(forKey: Key.fileSearchShowInLauncher.rawValue)
         notesEnabled = defaults.bool(forKey: Key.notesEnabled.rawValue)
         notesFolder = defaults.string(forKey: Key.notesFolder.rawValue)
