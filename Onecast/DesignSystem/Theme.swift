@@ -250,6 +250,13 @@ enum Theme {
         static let cameraPreview = CGSize(width: 420, height: 236)
         /// 16:9 again, wider: the standalone camera is the surface, not a confirmation on one.
         static let cameraStage = CGSize(width: 560, height: 315)
+        static let shelfWidth: CGFloat = 300
+        static let shelfHeader: CGFloat = 52
+        static let shelfRow: CGFloat = 44
+        static let shelfThumbnail: CGFloat = 30
+        static let shelfDropZone: CGFloat = 132
+        /// Past this many rows the list scrolls rather than the shelf growing down the screen.
+        static let shelfVisibleRows = 6
         /// Wider than a dialog: a Quick Action's result is prose to read, not a sentence to answer.
         static let quickActionPanel: CGFloat = 520
         /// Matched to the title's cap height; a row-sized glyph beside it reads as an error.
@@ -370,6 +377,8 @@ enum Theme {
 
         /// Selection fill, shared by every list so they look identical.
         static let selection = ramp(dark: 0.10, light: 0.09)
+        /// A picked shelf row: tinted, so a pick reads as different from hover.
+        static let shelfSelection = Color.accentColor.opacity(0.28)
         /// Mouse hover: a fainter layer, visually distinct from selection.
         static let rowHover = ramp(dark: 0.05, light: 0.045)
         /// Emoji grid chrome: a quiet tile at rest, with two legible rings on interaction.

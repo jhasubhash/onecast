@@ -165,6 +165,7 @@ final class AppCore {
         settings: settings, appIndex: appIndex, hotKeys: hotKeys, favorites: favorites,
         visibility: visibility, ranking: launcherRanking, aliases: aliases,
         paletteCoordinator: paletteCoordinator, core: self)
+    @ObservationIgnored private(set) lazy var shelfCoordinator = ShelfCoordinator(core: self)
     @ObservationIgnored private(set) lazy var notesCoordinator = NotesCoordinator(
         store: notesStore,
         settings: settings,
@@ -313,6 +314,7 @@ final class AppCore {
             menuSearchCoordinator.applyEnabled()
             fileSearchCoordinator.applyPolicy()
             notesCoordinator.applyEnabled()
+            shelfCoordinator.applyEnabled()
             installedAI.launchSettings = { [aiSettings] in aiSettings.launch(for: $0) }
             chatGPTSubscription.launchSettings = { [aiSettings] in aiSettings.launch(for: .codex) }
             aiChatCoordinator.applyEnabled()
@@ -743,6 +745,11 @@ final class AppCore {
                 $0.menuSearchCoordinator.applyEnabled()
             })
         track({ _ = $0.notesEnabled }, reproject: { $0.notesCoordinator.applyEnabled() })
+        track(
+            {
+                _ = $0.shelfEnabled
+                _ = $0.shelfShakeToOpen
+            }, reproject: { $0.shelfCoordinator.applyEnabled() })
         track(
             { _ = $0.aiEnabled },
             reproject: {

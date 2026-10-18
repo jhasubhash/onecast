@@ -34,6 +34,8 @@ enum SettingsBackupCoverage {
         "fileSearchRemovedDefaultPatterns": .fileSearchRemovedDefaultPatterns,
         "fileSearchShowInLauncher": .fileSearchShowInLauncher,
         "notesEnabled": .notesEnabled,
+        "shelfEnabled": .shelfEnabled,
+        "shelfShakeToOpen": .shelfShakeToOpen,
         "customCommandsEnabled": .customCommandsEnabled,
         "customCommandsShowInLauncher": .customCommandsShowInLauncher,
         "snippetsShowInLauncher": .snippetsShowInLauncher,

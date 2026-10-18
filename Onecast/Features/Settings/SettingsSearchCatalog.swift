@@ -111,7 +111,7 @@ enum SettingsSearchCatalog {
         general + applications + systemSettings
         + systemActions + commands + quicklinks + appleShortcuts + fallbacks + ai + quickActions + dictation
         + fileSearch
-        + notes
+        + notes + shelf
         + snippets + navigation + windowManagement + presentation + docks + clipboard + emoji
         + calendar + extensions + plugins + scheduler + permissions + backup + about
 
@@ -293,7 +293,7 @@ enum SettingsSearchCatalog {
             .aiChat, "Browser relay",
             keywords: [
                 "chrome", "browser", "tabs", "omp", "relay", "cdp", "javascript", "logged in",
-                "port", "9224", "localhost",
+                "port", "9224", "localhost"
             ]),
         .init(
             .aiChat, "Shell access",
@@ -392,6 +392,19 @@ enum SettingsSearchCatalog {
         .init(
             group: .notesCommands, "Notes commands",
             keywords: ["shortcut", "new note", "search notes"])
+    ]
+
+    private static let shelf: [SettingsSearchEntry] = [
+        .init(pane: .shelf, keywords: ["dropover", "drag", "drop", "stash", "files", "yoink"]),
+        .init(
+            .shelfShelf, "Enable Shelf",
+            keywords: ["dropover", "drag", "drop", "stash"]),
+        .init(
+            .shelfShelf, "Shake to Open",
+            keywords: ["shake", "gesture", "drag", "pointer", "cursor"]),
+        .init(
+            group: .shelfCommands, "Shelf commands",
+            keywords: ["shortcut", "show shelf"])
     ]
 
     private static let snippets: [SettingsSearchEntry] = [

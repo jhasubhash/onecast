@@ -52,6 +52,8 @@ struct SettingsBackup: Codable {
         var fileSearchRemovedDefaultPatterns: [String]?
         var fileSearchShowInLauncher: Bool?
         var notesEnabled: Bool?
+        var shelfEnabled: Bool?
+        var shelfShakeToOpen: Bool?
         // `snippetsEnabled` is absent: an import must not enable keystroke listening.
         var customCommandsEnabled: Bool?
         var customCommandsShowInLauncher: Bool?
@@ -168,6 +170,8 @@ extension SettingsBackup {
             fileSearchRemovedDefaultPatterns: s.fileSearchRemovedDefaultPatterns,
             fileSearchShowInLauncher: s.fileSearchShowInLauncher,
             notesEnabled: s.notesEnabled,
+            shelfEnabled: s.shelfEnabled,
+            shelfShakeToOpen: s.shelfShakeToOpen,
             customCommandsEnabled: s.customCommandsEnabled,
             customCommandsShowInLauncher: s.customCommandsShowInLauncher,
             snippetsShowInLauncher: s.snippetsShowInLauncher,
@@ -438,6 +442,14 @@ extension SettingsBackup {
         }
         if let flag = s.notesEnabled {
             settings.notesEnabled = flag
+            count += 1
+        }
+        if let flag = s.shelfEnabled {
+            settings.shelfEnabled = flag
+            count += 1
+        }
+        if let flag = s.shelfShakeToOpen {
+            settings.shelfShakeToOpen = flag
             count += 1
         }
         if let flag = s.customCommandsEnabled {

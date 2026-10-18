@@ -104,6 +104,9 @@ enum SettingsFileSchema {
         case .notesEnabled: return bind(settings, \.notesEnabled)
         case .notesFolder: return bind(settings, \.notesFolder, accept: folder)
         case .notesCommands: return launcher.commandsBinding(for: key, owner: .notes)
+        case .shelfEnabled: return bind(settings, \.shelfEnabled)
+        case .shelfShakeToOpen: return bind(settings, \.shelfShakeToOpen)
+        case .shelfCommands: return launcher.commandsBinding(for: key, owner: .shelf)
         case .dictationMode: return bind(settings, \.dictationMode)
         case .dictationShortcut:
             return shortcuts.binding(for: key, action: .dictation, name: "Dictation")

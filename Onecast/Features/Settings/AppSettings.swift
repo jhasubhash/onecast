@@ -385,6 +385,15 @@ final class AppSettings {
         didSet { defaults.set(notesFolder, forKey: Key.notesFolder.rawValue) }
     }
 
+    var shelfEnabled: Bool {
+        didSet { defaults.set(shelfEnabled, forKey: Key.shelfEnabled.rawValue) }
+    }
+
+    /// Shaking the pointer mid-drag opens the shelf under it.
+    var shelfShakeToOpen: Bool {
+        didSet { defaults.set(shelfShakeToOpen, forKey: Key.shelfShakeToOpen.rawValue) }
+    }
+
     var dictationEnabled: Bool {
         didSet { defaults.set(dictationEnabled, forKey: Key.dictationEnabled.rawValue) }
     }
@@ -937,6 +946,12 @@ final class AppSettings {
         fileSearchShowInLauncher = defaults.bool(forKey: Key.fileSearchShowInLauncher.rawValue)
         notesEnabled = defaults.bool(forKey: Key.notesEnabled.rawValue)
         notesFolder = defaults.string(forKey: Key.notesFolder.rawValue)
+        shelfEnabled =
+            defaults.object(forKey: Key.shelfEnabled.rawValue) == nil
+            || defaults.bool(forKey: Key.shelfEnabled.rawValue)
+        shelfShakeToOpen =
+            defaults.object(forKey: Key.shelfShakeToOpen.rawValue) == nil
+            || defaults.bool(forKey: Key.shelfShakeToOpen.rawValue)
         dictationEnabled = defaults.bool(forKey: Key.dictationEnabled.rawValue)
         dictationMode =
             defaults.string(forKey: Key.dictationMode.rawValue)
