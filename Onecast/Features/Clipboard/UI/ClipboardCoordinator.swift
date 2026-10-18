@@ -126,7 +126,9 @@ final class ClipboardCoordinator {
             if paletteCoordinator.isVisible { paletteCoordinator.hidePalette() }
             // An image or file gone from disk writes nothing, so the press moves on to the next.
             guard Paster.pasteInPlace(item, store: clipboardStore, into: target) else { continue }
-            sequence.recordPaste(changeCount: NSPasteboard.general.changeCount, at: now)
+            sequence.recordPaste(
+                changeCount: NSPasteboard.general.changeCount,
+                text: item.kind == .text ? item.text : nil, at: now)
             pasteSequence = sequence
             return
         }
@@ -135,8 +137,12 @@ final class ClipboardCoordinator {
 
     /// A copy since the last press, or a long pause, starts the walk over from the newest entry.
     private func continuingPasteSequence(at now: Date) -> PasteSequence {
-        let changeCount = NSPasteboard.general.changeCount
-        if let pasteSequence, pasteSequence.continues(changeCount: changeCount, at: now) {
+        let pasteboard = NSPasteboard.general
+        let changeCount = pasteboard.changeCount
+        if let pasteSequence,
+            pasteSequence.continues(
+                changeCount: changeCount, pasteboardText: pasteboard.string(forType: .string), at: now)
+        {
             return pasteSequence
         }
         return PasteSequence(history: clipboardStore.items, changeCount: changeCount, now: now)

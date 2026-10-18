@@ -452,7 +452,10 @@ would start one entry too old.
 
 **What keeps a walk going is the pasteboard count its own write left.** Any other count means the
 user copied since, and a pause of `PasteSequence.idleTimeout` (60s) since the last paste does the
-same; either starts the walk over from the newest entry. Past the oldest entry a press shows
+same; either starts the walk over from the newest entry. The one exception is a target that rewrites
+the pasteboard as it pastes (Antinote re-sets the plain text without Onecast's marker ~65ms after
+⌘V): a new count still holding exactly the text just pasted is read as that same write, so the walk
+continues. Image and file pastes keep the strict count. Past the oldest entry a press shows
 **Nothing left to paste** rather than wrapping. The pasteboard keeps the last entry pasted, as after
 any other Onecast paste.
 

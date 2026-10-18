@@ -11,6 +11,8 @@ struct PasteSequence: Sendable {
     private var nextIndex = 0
     /// The pasteboard as our last write left it; any other count is a copy made since.
     private var changeCount: Int
+    /// Some apps rewrite the pasteboard as they paste; the same text there is still our write.
+    private var pastedText: String?
     private var lastPaste: Date
 
     init(history: [ClipboardItem], changeCount: Int, now: Date) {
@@ -19,8 +21,10 @@ struct PasteSequence: Sendable {
         lastPaste = now
     }
 
-    func continues(changeCount: Int, at now: Date) -> Bool {
-        changeCount == self.changeCount && now.timeIntervalSince(lastPaste) < Self.idleTimeout
+    func continues(changeCount: Int, pasteboardText: String? = nil, at now: Date) -> Bool {
+        let isOurWrite =
+            changeCount == self.changeCount || (pastedText != nil && pasteboardText == pastedText)
+        return isOurWrite && now.timeIntervalSince(lastPaste) < Self.idleTimeout
     }
 
     func isSettling(at now: Date) -> Bool {
@@ -39,8 +43,9 @@ struct PasteSequence: Sendable {
     }
 
     /// Our own write moves the count, so the walk adopts it rather than read it as a new copy.
-    mutating func recordPaste(changeCount: Int, at now: Date) {
+    mutating func recordPaste(changeCount: Int, text: String? = nil, at now: Date) {
         self.changeCount = changeCount
+        pastedText = text
         lastPaste = now
     }
 }

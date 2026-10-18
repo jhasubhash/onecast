@@ -25,6 +25,8 @@ struct PasteSequenceTests {
         clearedHistoryEndsTheWalk()
         ownPasteKeepsTheWalkGoing()
         newCopyEndsTheWalk()
+        targetRewritingOurTextKeepsTheWalkGoing()
+        differentTextEndsTheWalk()
         pauseUnderTheTimeoutKeepsTheWalkGoing()
         pauseOfTheFullTimeoutEndsTheWalk()
         eachPasteRestartsTheTimeout()
@@ -96,6 +98,26 @@ struct PasteSequenceTests {
         var sequence = freshSequence()
         sequence.recordPaste(changeCount: 4, at: start)
         expect(!sequence.continues(changeCount: 5, at: start), "a copy since the last paste ends the walk")
+    }
+
+    static func targetRewritingOurTextKeepsTheWalkGoing() {
+        var sequence = freshSequence()
+        sequence.recordPaste(changeCount: 4, text: "two", at: start)
+        expect(
+            sequence.continues(changeCount: 5, pasteboardText: "two", at: start),
+            "a target that rewrites the text it just pasted keeps the walk going")
+    }
+
+    static func differentTextEndsTheWalk() {
+        var sequence = freshSequence()
+        sequence.recordPaste(changeCount: 4, text: "two", at: start)
+        expect(
+            !sequence.continues(changeCount: 5, pasteboardText: "three", at: start),
+            "new text since the last paste ends the walk")
+        sequence.recordPaste(changeCount: 4, at: start)
+        expect(
+            !sequence.continues(changeCount: 5, pasteboardText: nil, at: start),
+            "an image or file paste still ends on any new count")
     }
 
     static func pauseUnderTheTimeoutKeepsTheWalkGoing() {
