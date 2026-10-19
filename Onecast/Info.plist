@@ -82,6 +82,6 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Onecast reads your location only when a Weather dock widget is set to use your current location.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>OneCast</string>
+	<string>© 2026 onesyntax.in · Released under AGPL-3.0</string>
 </dict>
 </plist>

@@ -4,10 +4,10 @@ import SwiftUI
 struct AboutView: View {
     @Environment(AppCore.self) private var core
 
+    // The version alone: the build number in parentheses means nothing to people.
     private static var version: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
-        return "Version \(short) (\(build))"
+        return "Version \(short)"
     }
 
     // Cached, and read from the bundle: the app icon is generic until LaunchServices registers.
@@ -122,10 +122,15 @@ struct AboutView: View {
         }
     }
 
+    // AGPL-3.0 §5 keeps the original author's notice alongside ours.
     private var footer: some View {
-        Text("© 2026 Abue Ammar · Released under AGPL-3.0")
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
+        VStack(spacing: Theme.Spacing.xxs) {
+            Text("© 2026 onesyntax.in · Released under AGPL-3.0")
+            Text("Based on Tinycast © 2026 Abue Ammar")
+        }
+        .font(.caption2)
+        .foregroundStyle(.tertiary)
+        .multilineTextAlignment(.center)
     }
 }
 
