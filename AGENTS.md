@@ -85,6 +85,11 @@ feature's doc, under its own `## Invariants`.
   [CUSTOM.md](custom_docs/CUSTOM.md#local-build-and-signing) before relaunching. No such identity
   (another contributor, CI) means self-signed is correct: never create the file or name someone
   else's identity.
+- **A release staples the app itself, not only the DMG.** `Scripts/notarize.sh` runs on the `.app`
+  before it is packed, then on the DMG. Homebrew (and anyone dragging the app out) copies the app out
+  of the DMG; without its own ticket Gatekeeper must check online, and where that fails it says
+  "Apple could not verify Onecast". Check with `xcrun stapler validate` on the app inside the
+  mounted DMG. See [release.md](docs/release.md#signing--gatekeeper).
 - **`AppCore` is the sole owner.** New long-lived state goes on `AppCore`, wired in `start()` — never a
   competing singleton. Views reach a feature's **coordinator** through `@Environment`, not `AppCore`.
 - **A file under `Features/*/Model/` may not import AppKit or SwiftUI**, and takes every environment
