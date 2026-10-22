@@ -5,13 +5,15 @@ enum AppLauncher {
     private static let finderBundleID = "com.apple.finder"
 
     @MainActor
-    static func launch(_ url: URL) {
+    static func launch(_ url: URL, allowsRunningApplicationSubstitution: Bool = true) {
         let bundleID = Bundle(url: url)?.bundleIdentifier
         let wasRunning =
             bundleID.map {
                 !NSRunningApplication.runningApplications(withBundleIdentifier: $0).isEmpty
             } ?? true
-        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) {
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.allowsRunningApplicationSubstitution = allowsRunningApplicationSubstitution
+        NSWorkspace.shared.openApplication(at: url, configuration: configuration) {
             app, _ in
             // Finder, launched from nothing, comes up with only the desktop: no window until it is
             // opened again, which is why a click on a quit Finder took two. The Dock asks Finder
@@ -96,11 +98,10 @@ enum AppLauncher {
         }
     }
 
-    /// Quits every instance; only an unforced quit lets unsaved work put up its sheet.
     @MainActor
     @discardableResult
-    static func quit(bundleID: String, force: Bool = false) -> Bool {
-        let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+    static func quit(bundleID: String, url: URL? = nil, force: Bool = false) -> Bool {
+        let running = runningApplications(bundleID: bundleID, at: url)
         for app in running {
             if force { app.forceTerminate() } else { app.terminate() }
         }
@@ -113,18 +114,24 @@ enum AppLauncher {
     /// A refused quit — a save sheet left standing — relaunches nothing.
     @MainActor
     static func restart(bundleID: String, url: URL) async {
+        let target = url.resolvingSymlinksInPath().standardizedFileURL
+        let running = runningApplications(bundleID: bundleID, at: target)
+        guard !running.isEmpty, !Task.isCancelled, await quitAwaitingExit(running), !Task.isCancelled
+        else { return }
+        launch(target, allowsRunningApplicationSubstitution: false)
+    }
+
+    @MainActor
+    private static func runningApplications(bundleID: String, at url: URL?) -> [NSRunningApplication] {
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
-        guard !running.isEmpty, await quitAwaitingExit(running) else { return }
-        launch(url)
+        guard let target = url?.resolvingSymlinksInPath().standardizedFileURL else { return running }
+        return running.filter { $0.bundleURL?.resolvingSymlinksInPath().standardizedFileURL == target }
     }
 
     /// Only the copy at `url`: another install of the same bundle ID is left running.
     @MainActor
     static func quitAwaitingExit(bundleID: String, url: URL) async -> Bool {
-        let target = url.resolvingSymlinksInPath().standardizedFileURL
-        let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
-            .filter { $0.bundleURL?.resolvingSymlinksInPath().standardizedFileURL == target }
-        return await quitAwaitingExit(running)
+        await quitAwaitingExit(runningApplications(bundleID: bundleID, at: url))
     }
 
     @MainActor

@@ -1,7 +1,16 @@
 # App launcher & root search
 
-`AppIndex.scan()` runs off-main, enumerates the user's search scopes, and dedups by bundle ID (the
-earliest scope wins; within one folder, the newest `CFBundleShortVersionString` does).
+`AppIndex.scan()` runs off-main and keeps each distinct application path in launcher results.
+Settings and app pickers retain one representative per bundle ID: the earliest scope wins;
+within one folder, the newest `CFBundleShortVersionString` does.
+
+Copies sharing a bundle ID keep app-wide aliases, visibility, ranking, favorites and global shortcuts.
+Favorites and Suggestions show the representative, while the other copies remain in ordinary results.
+Version subtitles distinguish copies; equal or missing versions also show the containing folder.
+Return opens the selected path with running-application substitution disabled, so a different running
+version cannot replace it. Restart also reopens the selected path. Bundle-ID-based operations such as
+Window Layouts retain macOS's default running-application substitution. Uninstall is unavailable while
+indexed copies share the bundle ID, because their support files and preferences may be shared.
 
 ## Invariants
 
@@ -58,9 +67,9 @@ directory to prevent cycles.
 
 Within one folder, bundles are listed newest `CFBundleShortVersionString` first, compared as numbers
 so `26.6` outranks `9.4`. A tie or an unreadable version falls back to Finder's name order. Because
-the scan keeps a bundle ID's first copy, two Xcodes in `/Applications` resolve to the newest, every
-scan, and the embedded apps follow their parent. Scope order still comes first: listing an older
-copy as its own earlier scope pins it (#1288).
+the first copy represents its bundle ID, the newest Xcode in `/Applications` represents the app in
+Settings and Favorites, and the embedded apps follow their parent. Scope order still comes first:
+listing an older copy as its own earlier scope pins it (#1288). Search retains every copy.
 
 The defaults cover `/Applications` and `/System/Applications` plus their `Utilities` folders,
 `/System/Library/CoreServices/Applications`, the cryptex apps under
@@ -226,8 +235,8 @@ from its own Info.plist.
 
 A renamed bundle is the other half. A Finder rename never touches `CFBundleDisplayName`, so the
 on-disk basename is indexed as an alternate title — rename `Slack.app` to `Work Chat.app` and both find
-it. Duplicate copies dedupe by bundle id, and the losing copy lends its file name to the winner
-rather than being dropped whole.
+it. Each installed copy keeps its own names and URL; a renamed copy never lends its name to a
+different installation.
 
 ### Subtitles
 
@@ -817,16 +826,17 @@ running dot and the availability of the running-only actions:
   running, also bound to **⌃⇧Q** on the selected row. The chord guard mirrors the menu row's
   condition (an `.application` entry that `RunningAppsMonitor` reports running) so the key never
   swallows a press it won't act on, and it's skipped in the compact bar, which shows no selection.
-  `AppLauncher.quit(bundleID:)` terminates every instance of the bundle and reports whether
+  `AppLauncher.quit(bundleID:url:)` terminates instances at the selected path and reports whether
   anything was running; the palette only dismisses when something was, and it restores focus unless
   the app it just quit _was_ `previousApp`.
 - **Force Quit Application** — the row below it and **⌃⌥⇧Q**, on the same guard and
-  the same dismissal. `AppLauncher.quit(bundleID:force:)` sends `forceTerminate()` instead, so the
+  the same dismissal. `AppLauncher.quit(bundleID:url:force:)` sends `forceTerminate()` instead, so the
   app gets no chance to save or refuse.
 - **Restart Application** — the row above Quit and **⌘R**, on the same guard: all three chords resolve
   their target through `LauncherScreen.runningApplication(at:)`, the single place that condition
-  lives. `AppLauncher.restart(bundleID:url:)` snapshots the running instances, terminates them and
-  polls each one's `isTerminated`, then reopens the bundle once every snapshotted instance is gone. The wait
+  lives. `AppLauncher.restart(bundleID:url:)` snapshots instances at the selected path, terminates
+  them and polls each one's `isTerminated`, then reopens that path once every snapshotted instance is
+  gone. The wait
   is bounded by a five-second grace: a quit an app refuses, or one sitting behind a save sheet the
   user leaves standing, relaunches nothing and leaves that app running. The palette dismisses the
   moment the quit is asked for and never restores focus — either the relaunch takes it, or the app

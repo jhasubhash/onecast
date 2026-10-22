@@ -101,7 +101,7 @@ enum AppActionsMenu {
                 items += assignToItems(app: app, bundleID: bundleID, core: core)
             }
         }
-        if app.kind == .application {
+        if app.kind == .application, app.primaryInstallationID == nil {
             items.append(
                 PopoverMenuItem(
                     title: "Uninstall Application", systemImage: "trash", startsSection: true,
