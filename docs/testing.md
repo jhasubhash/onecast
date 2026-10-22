@@ -50,15 +50,18 @@ harnesses are not still running after everything else has finished.
 The script is the **only** place the harness set is written down. Nothing runs it for you, so run it
 before you open a PR. Adding a harness means adding one `run` line.
 
-Runtime dependency resolution also has standalone checks:
+Two runtime areas also have standalone checks:
 
 ```sh
 node Scripts/raycast-runtime/modules-fixtures.mjs
+node Scripts/raycast-runtime/oauth-fixtures.mjs
 ```
 
-They cover shipped CommonJS packages, exports maps, relative directories, nested dependencies,
-cycles, failed-load retries and the extension-root boundary. The runtime fixture suite
-(`node Scripts/raycast-runtime/fixtures.mjs`) includes the same checks.
+`modules-fixtures` covers shipped CommonJS packages, exports maps, relative directories, nested
+dependencies, cycles, failed-load retries and the extension-root boundary. `oauth-fixtures` signs in
+through a stand-in for the hosted redirect page and confirms that a callback whose `state` is absent,
+repeated, stale or wrong is refused, for each redirect method and for custom `{ url }` requests. The
+runtime fixture suite (`node Scripts/raycast-runtime/fixtures.mjs`) runs both as well.
 
 Each harness compiles the **shipped sources** it guards rather than a copy of them, which is what makes
 the pure-layer boundary real: a harness that stops *compiling* means AppKit or SwiftUI has leaked into a
