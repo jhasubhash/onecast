@@ -588,15 +588,18 @@ handled in `PalettePanel.sendEvent` before `super` hands the event to the respon
 - **Emoji zoom chords.** `⌘0`, `⌘+` and `⌘-` take the same `onCommandShortcut` path on the emoji
   screen, Shift allowed since `+` is a shifted `=`. They bump `PaletteState.emojiGridZoomToken`, and
   `EmojiScreen.zoom` applies the same bounded change as its Actions rows.
-- **Chords the window server keeps for itself.** ⌘⎋ is the one that bites: macOS binds it before any
-  app sees it, so unlike ⌘. there is no keystroke left for `sendEvent` to intercept — a handler in
-  the responder chain compiles, runs never, and looks like a palette bug. `CommandEscapeTap` takes it
-  at the head of the HID stream instead, the one place earlier than the system's own binding, and
-  `prepare(mode: .launcher)`s: one chord back to the root search from any depth, window still open.
-  The tap is enabled only while the palette is on screen, watches `keyDown` alone, and declines the
-  chord whenever the panel is not key, so nothing else on the system loses ⌘⎋ to it. It is a
-  modifying tap, so it needs Accessibility — without that grant the chord is simply unavailable,
-  which is the only path this codebase has to it.
+- **Chords the window server keeps for itself.** ⌘⎋ is the one that bites: macOS binds it before
+  any app sees it, so unlike ⌘. there is no keystroke left for `sendEvent` to intercept — a handler
+  in the responder chain compiles, runs never, and looks like a palette bug. `CommandEscapeTap`
+  takes it at the head of the HID stream instead, the one place earlier than the system's own
+  binding, and `prepare(mode: .launcher)`s: one chord back to the root search from any depth, window
+  still open. Each key-focus session owns a modifying `keyDown` tap on a dedicated thread and run
+  loop, so an occupied main thread never holds up ordinary input. Losing key focus ends the session
+  immediately and wakes its worker to remove the source and invalidate the port. Timeout recovery
+  cannot re-enable an ended session. The worker swallows only bare ⌘⎋ and queues the root-search
+  action on the main actor; a closed session discards that action, including across a reopen. The
+  action also checks that the panel is still key. The tap needs Accessibility — without that grant
+  the chord is unavailable, and a later key-focus session retries installation.
 
 Adding a chord that "does nothing" is almost always one of these — check `sendEvent`, and then
 whether macOS has claimed the chord, before assuming the handler is wrong.

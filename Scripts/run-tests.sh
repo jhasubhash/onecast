@@ -268,6 +268,7 @@ run form-input-test        Onecast/Platform/Appearance.swift \
 run scroll-reveal-test     Onecast/DesignSystem/Scrolling/SelectionReveal.swift
 run redaction-test         Onecast/DesignSystem/RedactedPlaceholder.swift
 run keyboard-focus-test    Onecast/DesignSystem/Interaction/KeyboardFocus.swift
+run command-escape-tap-test Onecast/Palette/CommandEscapeTap.swift
 run ai-instructions-test   Onecast/Features/AI/Model/AIInstructions.swift \
                            Onecast/Features/AI/Model/AIPreamble.swift \
                            Onecast/Features/AI/Model/Skill.swift

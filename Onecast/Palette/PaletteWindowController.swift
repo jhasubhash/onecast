@@ -26,9 +26,8 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     private var pasteMonitor: Any?
     /// ⌘⎋: the window server claims it, so no keystroke is left for the responder chain to see.
     private lazy var commandEscapeTap = CommandEscapeTap { [weak self] in
-        guard let self, self.panel?.isKeyWindow == true else { return false }
+        guard let self, self.panel?.isKeyWindow == true else { return }
         self.core.palette.prepare(mode: .launcher)
-        return true
     }
 
     /// The centre line and its height detents for a drag in flight.
@@ -89,8 +88,6 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             core.calendarCoordinator.paletteDidShow()
             core.palette.noteVisible(true)
             core.clipboardStore.setTextSearchActive(true)
-            // Only while we are on screen: a system-wide tap has no business outliving the window.
-            commandEscapeTap.enable()
             // Non-activating, so summoning never raises our own aux windows behind it.
             panel.makeKeyAndOrderFront(nil)
             panel.orderFrontRegardless()
@@ -233,6 +230,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     /// Not for one of our own dialogs: hiding would tear down a command mid-`confirmAlert`.
     func windowDidResignKey(_ notification: Notification) {
+        commandEscapeTap.disable()
         guard isVisible, !core.isShowingDialog else { return }
         // The floating AI bar can be pinned to survive a click into another app.
         if core.palette.aiBar, core.settings.aiBarStaysOpen { return }
@@ -245,6 +243,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
+        commandEscapeTap.enable()
         panel?.level = .palette
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
