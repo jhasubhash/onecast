@@ -1065,6 +1065,12 @@ public struct PluginPopOutKey: EnvironmentKey {
     public static let defaultValue: @MainActor (PluginRoute) -> Void = { _ in }
 }
 
+/// How a surface in a pop-out window hands the window's ⌘K palette its own commands. A pop-out
+/// has no scaffold, so the host owns ⌘K there; it lists these above its window controls.
+public struct PluginWindowCommandsKey: EnvironmentKey {
+    public static let defaultValue: @MainActor (@escaping @MainActor () -> [PluginCommand]) -> Void = { _ in }
+}
+
 public extension EnvironmentValues {
     var pluginExit: @MainActor () -> Void {
         get { self[PluginExitKey.self] }
@@ -1085,5 +1091,26 @@ public extension EnvironmentValues {
     var pluginPopOut: @MainActor (PluginRoute) -> Void {
         get { self[PluginPopOutKey.self] }
         set { self[PluginPopOutKey.self] = newValue }
+    }
+    var pluginWindowCommands: @MainActor (@escaping @MainActor () -> [PluginCommand]) -> Void {
+        get { self[PluginWindowCommandsKey.self] }
+        set { self[PluginWindowCommandsKey.self] = newValue }
+    }
+}
+
+public extension View {
+    /// Offers `commands` in a pop-out window's ⌘K palette, above the window's own controls. Re-read
+    /// each time the palette opens; has no effect in the launcher, where the scaffold owns ⌘K.
+    func pluginWindowCommands(_ commands: @escaping @MainActor () -> [PluginCommand]) -> some View {
+        modifier(PluginWindowCommandsModifier(commands: commands))
+    }
+}
+
+private struct PluginWindowCommandsModifier: ViewModifier {
+    let commands: @MainActor () -> [PluginCommand]
+    @Environment(\.pluginWindowCommands) private var register
+
+    func body(content: Content) -> some View {
+        content.onAppear { register(commands) }
     }
 }

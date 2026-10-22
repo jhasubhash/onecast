@@ -15,10 +15,18 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
     private final class Entry {
         let panel: PopOutWindowPanel
         let plugin: any OnecastPlugin
-        init(panel: PopOutWindowPanel, plugin: any OnecastPlugin) {
+        let surfaceCommands: SurfaceCommands
+        init(panel: PopOutWindowPanel, plugin: any OnecastPlugin, surfaceCommands: SurfaceCommands) {
             self.panel = panel
             self.plugin = plugin
+            self.surfaceCommands = surfaceCommands
         }
+    }
+
+    /// The surface's own ⌘K rows. Made before the window, since the surface can appear and register
+    /// while the panel is still being built, before its `Entry` exists.
+    private final class SurfaceCommands {
+        var provider: (@MainActor () -> [PluginCommand])?
     }
 
     /// Persisted so the pop-outs a user leaves open reappear on the next launch; each window's size
@@ -99,11 +107,14 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
         }
 
         let menu = PopOutWindowMenu()
+        let surfaceCommands = SurfaceCommands()
         let chrome = PopOutWindowChrome(menu: menu, commands: { [weak self] in
             self?.windowCommands(key: key) ?? []
         }) {
-            // Only Escape is bridged: a windowed surface owns none of the palette's other host hooks.
-            view.environment(\.pluginExit) { [weak self] in self?.close(key: key) }
+            // Escape and ⌘K rows are bridged: a windowed surface owns none of the palette's other hooks.
+            view
+                .environment(\.pluginExit) { [weak self] in self?.close(key: key) }
+                .environment(\.pluginWindowCommands) { provider in surfaceCommands.provider = provider }
         }
         // The launcher's own environment, so the backdrop and metrics track the app's theme.
         let content = NSHostingView(
@@ -124,7 +135,7 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
             positionPopOutWindow(panel, size: size)
         }
 
-        windows[key] = Entry(panel: panel, plugin: plugin)
+        windows[key] = Entry(panel: panel, plugin: plugin, surfaceCommands: surfaceCommands)
         if allSpaces { setShowsOnAllSpaces(true, key: key) }
         panel.level = level
         if activating { panel.makeKeyAndOrderFront(nil) }
@@ -184,11 +195,16 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
 
     /// Re-read every time the palette opens, so each row's label reflects the live window state.
     private func windowCommands(key: String) -> [PopOutWindowCommand] {
-        guard let panel = windows[key]?.panel else { return [] }
+        guard let entry = windows[key] else { return [] }
+        let panel = entry.panel
         let allSpaces = panel.collectionBehavior.contains(.canJoinAllSpaces)
         let inFront = panel.level == .floating
         let pinned = panel.level == .desktopWidget
-        return [
+        let surface = (entry.surfaceCommands.provider?() ?? []).map { command in
+            PopOutWindowCommand(
+                title: command.title, systemImage: command.icon.systemImage, action: command.action)
+        }
+        return surface + [
             PopOutWindowCommand(
                 title: allSpaces ? "Show on This Space Only" : "Show on All Spaces",
                 systemImage: allSpaces ? "square.on.square.dashed" : "square.on.square",
@@ -251,5 +267,15 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
     private static func autosaveName(for key: String) -> String {
         let slug = key.map { $0.isLetter || $0.isNumber ? $0 : "_" }
         return "OnecastPluginWindow-" + String(slug)
+    }
+}
+
+private extension PluginIcon {
+    /// The window palette draws SF Symbols only; a file icon takes a generic document glyph.
+    var systemImage: String {
+        switch self {
+        case .symbol(let name): name
+        case .file: "doc"
+        }
     }
 }

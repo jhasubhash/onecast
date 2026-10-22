@@ -300,6 +300,18 @@ func rootSurface(context: PluginContext) -> AnyView? {
 `.window` needs a `PluginRoute` (the scaffold's `route:` closure), which both identifies the window
 and restores its content; a surface with no route offers no Pop Out.
 
+A bare window body has no scaffold, so the window's own ⌘K palette is the only one. To list the
+surface's actions there, above the window controls, attach them with `pluginWindowCommands`:
+
+```swift
+MyChart(route: context.route)
+    .pluginWindowCommands { [PluginCommand(title: "Refresh", icon: .symbol("arrow.clockwise")) { reload() }] }
+```
+
+The closure is re-read each time the palette opens, so the rows follow the surface's state. A
+command's `shortcut` is not shown there, since the window binds its own ⌘-letters. In the
+launcher the modifier does nothing; the scaffold's `commands:` own ⌘K there.
+
 ## Troubleshooting
 
 | Symptom | Cause & fix |
