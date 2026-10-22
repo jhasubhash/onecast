@@ -43,7 +43,7 @@ struct ClipboardScreen: PaletteScreen {
             deleteAll()
             return true
         case .pin: return pin(at: selection)
-        case .quickLook: return quickLook(at: selection)
+        case .quickLook: return quickView(at: selection)
         case .favoriteSlot(let index): return activatePinned(at: index)
         default: return false
         }
@@ -59,11 +59,11 @@ struct ClipboardScreen: PaletteScreen {
     }
 
     /// ⌘Y — mirrors the Actions row, so it answers only on an entry that is an image.
-    private func quickLook(at selection: Int) -> Bool {
+    private func quickView(at selection: Int) -> Bool {
         guard let item = item(at: selection),
-            ClipboardQuickLook.imageURL(for: item, store: store) != nil
+            ClipboardQuickView.imageURL(for: item, store: store) != nil
         else { return false }
-        core.clipboardCoordinator.quickLookClip(item)
+        core.clipboardCoordinator.quickViewClip(item)
         return true
     }
 
@@ -155,6 +155,7 @@ struct ClipboardScreen: PaletteScreen {
                     .frame(width: 1)
                 ClipboardPreview(item: selected)
             }
+            .task(id: selected?.id) { core.clipboardCoordinator.prefetchQuickView(selected) }
         }
     }
 }
@@ -205,20 +206,22 @@ enum ClipboardActionsMenu {
                     core.clipboardCoordinator.togglePinnedClip(item)
                 })
         }
-        if ClipboardQuickLook.imageURL(for: item, store: store) != nil {
-            items.append(
-                PopoverMenuItem(
-                    title: "Quick Look", systemImage: "eye", startsSection: true, shortcut: "⌘Y"
-                ) {
-                    core.clipboardCoordinator.quickLookClip(item)
-                })
+        if ClipboardQuickView.imageURL(for: item, store: store) != nil {
+            items[0].startsSection = true
+            items.insert(
+                contentsOf: [
+                    PopoverMenuItem(title: "Quick View", systemImage: "eye", shortcut: "⌘Y") {
+                        core.clipboardCoordinator.quickViewClip(item)
+                    },
+                    PopoverMenuItem(title: "Open in Preview", systemImage: "photo") {
+                        core.clipboardCoordinator.openClipInPreview(item)
+                    }
+                ],
+                at: 0)
         }
         if item.kind == .image || item.kind == .file {
             items.append(
-                PopoverMenuItem(
-                    title: "Show in Finder", systemImage: "folder",
-                    startsSection: ClipboardQuickLook.imageURL(for: item, store: store) == nil
-                ) {
+                PopoverMenuItem(title: "Show in Finder", systemImage: "folder", startsSection: true) {
                     core.clipboardCoordinator.revealClip(item)
                 })
         }

@@ -13,7 +13,7 @@ final class ClipboardCoordinator {
     /// Dialogs, for the one action here that can't be undone.
     private unowned let core: AppCore
     private var pasteSequence: PasteSequence?
-    private let quickLook = ClipboardQuickLook()
+    private let quickView = ClipboardQuickView()
 
     init(
         clipboardStore: ClipboardStore,
@@ -207,15 +207,61 @@ final class ClipboardCoordinator {
         AppLauncher.open(url)
     }
 
-    /// Hides the palette first: the panel takes key, and the palette would hide itself regardless.
-    func quickLookClip(_ item: ClipboardItem) {
-        guard ClipboardQuickLook.imageURL(for: item, store: clipboardStore) != nil,
+    /// Decodes the selected image ahead, so Quick View opens on a picture rather than a wait.
+    func prefetchQuickView(_ item: ClipboardItem?) {
+        quickView.prefetch(item.flatMap { ClipboardQuickView.imageURL(for: $0, store: clipboardStore) })
+    }
+
+    /// Hides the palette first: the window takes key, and the palette would hide itself regardless.
+    func quickViewClip(_ item: ClipboardItem) {
+        guard ClipboardQuickView.imageURL(for: item, store: clipboardStore) != nil,
             let url = clipURL(for: item)
         else { return }
+        let screen = NSScreen.main
         paletteCoordinator.hidePalette(restoreFocus: false)
         let title = item.kind == .file ? url.lastPathComponent : "Image"
-        // After the ⌘K menu's own close, which would otherwise take key back from the panel.
-        DispatchQueue.main.async { [quickLook] in quickLook.show(url, title: title) }
+        // After the ⌘K menu's own close, which would otherwise take key back from the window.
+        DispatchQueue.main.async { [quickView] in quickView.show(url, title: title, on: screen) }
+    }
+
+    /// A held image opens as a copy, so editing it in Preview can never rewrite the history's own.
+    func openClipInPreview(_ item: ClipboardItem) {
+        guard ClipboardQuickView.imageURL(for: item, store: clipboardStore) != nil,
+            var url = clipURL(for: item),
+            let preview = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Preview")
+        else { return }
+        if clipboardStore.ownsImage(of: item) {
+            guard let copy = previewCopy(of: url) else {
+                core.showMessage("Couldn't open the image")
+                return
+            }
+            url = copy
+        }
+        paletteCoordinator.hidePalette(restoreFocus: false)
+        NSWorkspace.shared.open(
+            [url], withApplicationAt: preview, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    /// Screenshot-style, with no colon, which Finder shows as a slash in a file name.
+    private static let copyStamp: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
+        return formatter
+    }()
+
+    private func previewCopy(of url: URL) -> URL? {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "Clipboard Images")
+        let stamp = Self.copyStamp.string(from: .now)
+        let copy = folder.appending(path: "Clipboard Image \(stamp).\(url.pathExtension)")
+            .standardizedFileURL
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try? FileManager.default.removeItem(at: copy)
+            try FileManager.default.copyItem(at: url, to: copy)
+            return copy
+        } catch {
+            return nil
+        }
     }
 
     /// Unmarked, so the path enters history like any other copy the reader meant to make.

@@ -394,22 +394,29 @@ blob, a file already gone at export time is counted missing, and a restore drops
 does not exist on this Mac — the same thing the Raycast import already does for an image path.
 Carrying file bytes would make a backup unbounded and defeat the point of referencing in place.
 
-## Quick Look
+## Quick View and Open in Preview
 
-An image entry — a held PNG, or a referenced file whose extension is an image — offers **Quick Look**
-in its ⌘K menu, and ⌘Y on the row runs it. `ClipboardQuickLook.imageURL(for:store:)` is the one
-test for both, so the row and the chord cannot disagree; a text entry or a non-image file gets
-neither. It opens the system `QLPreviewPanel`, not a view inside the palette: the palette hides
-first, the panel is the user's to zoom, share or close, and its title reads "Image" for a held PNG
-rather than the blob's UUID file name.
+An image entry — a held PNG, or a referenced file whose extension is an image — leads its ⌘K menu
+with **Quick View** (⌘Y) and **Open in Preview**. `ClipboardQuickView.imageURL(for:store:)` is the
+one test for the rows and the chord, so they cannot disagree; a text entry or a non-image file gets
+neither.
 
-**The panel is made `.nonactivatingPanel`.** Onecast is an accessory app, and `NSApp.activate()` is
-only a request: from the ⌘K menu's Return macOS refused it, so the panel came up without the keyboard
-and Escape reached the app behind it. A non-activating key panel never needs the grant — the same
-reason the palette is one — and the app the user was in stays frontmost when the panel closes.
-**It is shown on the next turn of the run loop**, after the ⌘K menu has finished closing. Being the
-panel's data source directly, rather than its responder-chain controller, is deliberate: once the
-palette hides there is no Onecast window left for the panel's controller search to start from.
+**Quick View is Onecast's own window, not the system `QLPreviewPanel`.** Measured from Onecast, the
+Quick Look panel's `makeKeyAndOrderFront` blocked for about half a second on almost every open while
+its out-of-process preview loaded, and the panel grew in two steps around that wait; activating the
+app first did not reliably avoid it. `ClipboardImagePanel` instead draws a bitmap Onecast already
+decoded. **The decode starts when the selection lands** on an image row: `ClipboardScreen` calls
+`prefetchQuickView`, which decodes off-main, capped at the image's own size and the largest screen's
+(ImageIO would otherwise scale a small image up), and keeps that one bitmap. ⌘Y then opens on it with
+the `.documentWindow` animation; an image larger than the screen swaps in its full-resolution decode
+once that finishes. The window is a `.nonactivatingPanel`,
+key without activating Onecast like the palette, so Escape, Space and a click elsewhere close it and
+the app the user was in stays frontmost. It opens on the next turn of the run loop, after the ⌘K
+menu has finished closing, which would otherwise take key back.
+
+**Open in Preview hands a held image over as a copy** in the temporary directory, named like a
+screenshot, so editing and saving in Preview can never rewrite the history's own PNG. A referenced
+file opens as itself: it was the user's file to begin with.
 
 ## Dragging out
 
