@@ -43,6 +43,7 @@ struct ClipboardScreen: PaletteScreen {
             deleteAll()
             return true
         case .pin: return pin(at: selection)
+        case .quickLook: return quickLook(at: selection)
         case .favoriteSlot(let index): return activatePinned(at: index)
         default: return false
         }
@@ -54,6 +55,15 @@ struct ClipboardScreen: PaletteScreen {
             return false
         }
         core.clipboardCoordinator.activate(item)
+        return true
+    }
+
+    /// ⌘Y — mirrors the Actions row, so it answers only on an entry that is an image.
+    private func quickLook(at selection: Int) -> Bool {
+        guard let item = item(at: selection),
+            ClipboardQuickLook.imageURL(for: item, store: store) != nil
+        else { return false }
+        core.clipboardCoordinator.quickLookClip(item)
         return true
     }
 
@@ -195,9 +205,20 @@ enum ClipboardActionsMenu {
                     core.clipboardCoordinator.togglePinnedClip(item)
                 })
         }
+        if ClipboardQuickLook.imageURL(for: item, store: store) != nil {
+            items.append(
+                PopoverMenuItem(
+                    title: "Quick Look", systemImage: "eye", startsSection: true, shortcut: "⌘Y"
+                ) {
+                    core.clipboardCoordinator.quickLookClip(item)
+                })
+        }
         if item.kind == .image || item.kind == .file {
             items.append(
-                PopoverMenuItem(title: "Show in Finder", systemImage: "folder", startsSection: true) {
+                PopoverMenuItem(
+                    title: "Show in Finder", systemImage: "folder",
+                    startsSection: ClipboardQuickLook.imageURL(for: item, store: store) == nil
+                ) {
                     core.clipboardCoordinator.revealClip(item)
                 })
         }

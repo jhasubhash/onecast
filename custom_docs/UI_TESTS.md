@@ -406,6 +406,17 @@ custom dock at the system Dock's level (20).
 **Fix.** Both use `NSWindow.Level.notice`, one above `.systemDock`.
 **Check.** With a bottom dock visible, show a HUD or post a notification: it draws over the dock.
 
+### Quick Look opened without taking the keyboard from ⌘K — 2026-10
+
+**Symptom.** ⌘K › Quick Look on a clipboard image showed the panel, but Escape and Space went to the
+app behind it; ⌘Y on the same row worked.
+**Cause.** `NSApp.activate()` is a request under cooperative activation, and an accessory app's
+request made from the ⌘K menu's Return was refused, so the panel ordered front but never became key.
+**Fix.** `ClipboardQuickLook` makes `QLPreviewPanel` a `.nonactivatingPanel`, key without
+activating Onecast, the way the palette itself is.
+**Check.** From another app, open clipboard history, press ⌘K, type `quick`, ↵ with real keys:
+`state` lists `QLPreviewPanel` with `isKey: true`, Escape closes it, the other app stays frontmost.
+
 ## 8. Before you call a UI change done
 
 - Driver ran end to end against a freshly restarted Debug build — `dev-run.sh`, then the agent

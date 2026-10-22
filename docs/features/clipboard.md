@@ -394,6 +394,23 @@ blob, a file already gone at export time is counted missing, and a restore drops
 does not exist on this Mac — the same thing the Raycast import already does for an image path.
 Carrying file bytes would make a backup unbounded and defeat the point of referencing in place.
 
+## Quick Look
+
+An image entry — a held PNG, or a referenced file whose extension is an image — offers **Quick Look**
+in its ⌘K menu, and ⌘Y on the row runs it. `ClipboardQuickLook.imageURL(for:store:)` is the one
+test for both, so the row and the chord cannot disagree; a text entry or a non-image file gets
+neither. It opens the system `QLPreviewPanel`, not a view inside the palette: the palette hides
+first, the panel is the user's to zoom, share or close, and its title reads "Image" for a held PNG
+rather than the blob's UUID file name.
+
+**The panel is made `.nonactivatingPanel`.** Onecast is an accessory app, and `NSApp.activate()` is
+only a request: from the ⌘K menu's Return macOS refused it, so the panel came up without the keyboard
+and Escape reached the app behind it. A non-activating key panel never needs the grant — the same
+reason the palette is one — and the app the user was in stays frontmost when the panel closes.
+**It is shown on the next turn of the run loop**, after the ⌘K menu has finished closing. Being the
+panel's data source directly, rather than its responder-chain controller, is deliberate: once the
+palette hides there is no Onecast window left for the panel's controller search to start from.
+
 ## Dragging out
 
 Every row is a drag source, so reaching another app costs one gesture instead of Reveal in Finder and

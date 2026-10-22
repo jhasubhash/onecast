@@ -13,6 +13,7 @@ final class ClipboardCoordinator {
     /// Dialogs, for the one action here that can't be undone.
     private unowned let core: AppCore
     private var pasteSequence: PasteSequence?
+    private let quickLook = ClipboardQuickLook()
 
     init(
         clipboardStore: ClipboardStore,
@@ -204,6 +205,17 @@ final class ClipboardCoordinator {
         guard let url = clipURL(for: item) else { return }
         paletteCoordinator.hidePalette(restoreFocus: false)
         AppLauncher.open(url)
+    }
+
+    /// Hides the palette first: the panel takes key, and the palette would hide itself regardless.
+    func quickLookClip(_ item: ClipboardItem) {
+        guard ClipboardQuickLook.imageURL(for: item, store: clipboardStore) != nil,
+            let url = clipURL(for: item)
+        else { return }
+        paletteCoordinator.hidePalette(restoreFocus: false)
+        let title = item.kind == .file ? url.lastPathComponent : "Image"
+        // After the ⌘K menu's own close, which would otherwise take key back from the panel.
+        DispatchQueue.main.async { [quickLook] in quickLook.show(url, title: title) }
     }
 
     /// Unmarked, so the path enters history like any other copy the reader meant to make.

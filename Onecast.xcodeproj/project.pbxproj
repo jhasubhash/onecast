@@ -478,6 +478,7 @@
 		62DE0B32B14ED463919E133E /* ExtensionMenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DABF3E8635782FDA28627A8F /* ExtensionMenuBarController.swift */; };
 		6304A9D7E79BD08F7B86EF65 /* CalendarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F378EDA933224E9C617F900C /* CalendarStore.swift */; };
 		63B2FD26B109E0CF1774D17A /* PluginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F26A1DBFA3C860BF1BCE2E8 /* PluginManager.swift */; };
+		63E9884BB37BE65319F6A945 /* ClipboardQuickLook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 506520A1ADB8C6CF8E2E6657 /* ClipboardQuickLook.swift */; };
 		640AAE4F68E90EB2ABE28BE6 /* MathAttachmentCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D46DAE49772488E979852B6 /* MathAttachmentCell.swift */; };
 		641BB2E42AC452AC5A8596A2 /* PresentationFrameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF15F128D43DA22EA629F49 /* PresentationFrameEngine.swift */; };
 		648D38D374644EE7054CE460 /* NoteTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB4055A052C68E6A554E66D /* NoteTextView.swift */; };
@@ -1567,6 +1568,7 @@
 		50199A2B50C01891143B394C /* SettingsFileFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFileFormat.swift; sourceTree = "<group>"; };
 		50275D775B61A37788335CB1 /* CalcDimension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalcDimension.swift; sourceTree = "<group>"; };
 		503A0B699F5C3C282425AC52 /* MeetingSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingSpan.swift; sourceTree = "<group>"; };
+		506520A1ADB8C6CF8E2E6657 /* ClipboardQuickLook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardQuickLook.swift; sourceTree = "<group>"; };
 		50737F33AFE9FA3551714530 /* DictationHelper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DictationHelper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5077892BBB9258C9070B29AF /* CalculatorHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorHistoryView.swift; sourceTree = "<group>"; };
 		50B8856DDC3790E26559C0DB /* ClockDockWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockDockWidget.swift; sourceTree = "<group>"; };
@@ -2404,7 +2406,7 @@
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
 		FFEE3E52A2BABF365CFA8F82 /* PresentationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSession.swift; sourceTree = "<group>"; };
-		"TEMP_0685D691-8B83-456B-8329-F6F768EE0A21" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_8470AD14-5E28-4630-9DD0-D0A35250FC8F" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -4140,6 +4142,7 @@
 			children = (
 				0962ADC11B390791A0FBC74D /* ClipboardCoordinator.swift */,
 				811C1E795E519556FFB660B7 /* ClipboardFilterButton.swift */,
+				506520A1ADB8C6CF8E2E6657 /* ClipboardQuickLook.swift */,
 				7DFA61709951124AF6220936 /* ClipboardScreen.swift */,
 				C97187BF6A55CE68F5D5D340 /* ClipboardView.swift */,
 				056080F132344B51F17B832D /* ClipDrag.swift */,
@@ -5170,10 +5173,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_82A2CB60-545A-42E1-982C-0C9942870A18" /* onecast */ = {
+		"TEMP_7ED00487-145C-4365-8DFA-9F8B802331BC" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_0685D691-8B83-456B-8329-F6F768EE0A21" /* Signing.xcconfig */,
+				"TEMP_8470AD14-5E28-4630-9DD0-D0A35250FC8F" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -5607,6 +5610,7 @@
 				C0D0CE0E266AE76281614914 /* ClipboardFilter.swift in Sources */,
 				9528376DD6CA50355BA4958F /* ClipboardFilterButton.swift in Sources */,
 				43B772CC3D4E54DC95B08BA0 /* ClipboardManager.swift in Sources */,
+				63E9884BB37BE65319F6A945 /* ClipboardQuickLook.swift in Sources */,
 				668A06123674BA71396D9B48 /* ClipboardScreen.swift in Sources */,
 				30BF9B3638B2DE9A4FBE8743 /* ClipboardSettingsView.swift in Sources */,
 				22EFCD6B02D429B78849EE41 /* ClipboardStore.swift in Sources */,
@@ -6621,7 +6625,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_0685D691-8B83-456B-8329-F6F768EE0A21" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_8470AD14-5E28-4630-9DD0-D0A35250FC8F" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6916,7 +6920,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_0685D691-8B83-456B-8329-F6F768EE0A21" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_8470AD14-5E28-4630-9DD0-D0A35250FC8F" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
