@@ -9,6 +9,7 @@ struct AIUsageStoredSettings: DynamicProperty {
     @AppStorage private var display: String
     @AppStorage private var measure: String
     @AppStorage private var limitsSource: String
+    @AppStorage private var claudeConfig: String
 
     init(instanceID: String) {
         func key(_ name: String) -> String {
@@ -29,12 +30,13 @@ struct AIUsageStoredSettings: DynamicProperty {
         _limitsSource = AppStorage(
             wrappedValue: PersonalAIUsageLimitsSource.standard.rawValue,
             key(PersonalAIUsageSettings.Name.limitsSource))
+        _claudeConfig = AppStorage(wrappedValue: "", key(PersonalAIUsageSettings.Name.claudeConfig))
     }
 
     var value: PersonalAIUsageSettings {
         PersonalAIUsageSettings(
             content: content, range: range, display: display, measure: measure,
-            limitsSource: limitsSource)
+            limitsSource: limitsSource, claudeConfig: claudeConfig)
     }
 }
 

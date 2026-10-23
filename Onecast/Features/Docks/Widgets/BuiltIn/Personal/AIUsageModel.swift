@@ -20,6 +20,8 @@ final class AIUsageModel {
         let source: PersonalAIUsageLimitsSource
         let fallbackTitle: String
         let window: PersonalAIUsageLimitWindow
+        /// Which Claude account the row is from, when the widget follows a custom folder.
+        var account: String?
         var amounts: PersonalAIUsageLimitsReport.Amounts? = nil
     }
 
@@ -78,8 +80,15 @@ final class AIUsageModel {
                 window: PersonalAIUsageLimitWindow(
                     usedPercent: $0.usedPercent, durationMinutes: $0.durationMinutes,
                     resetsAt: $0.resetsAt),
+                account: settings.limitsSource == .claude ? claudeConfig.accountName : nil,
                 amounts: $0.amounts)
         }
+    }
+
+    /// The Claude Code folder this widget reads its sign-in and logs from.
+    var claudeConfig: PersonalClaudeConfig {
+        PersonalClaudeConfig(
+            settings.claudeConfig, home: FileManager.default.homeDirectoryForCurrentUser)
     }
 
     /// The chosen remote source's quotas it does not meter, for the popover to name.
@@ -202,7 +211,11 @@ final class AIUsageModel {
         let rescans =
             next.range != settings.range || next.content != settings.content
             || next.limitsSource != settings.limitsSource
-        if next.limitsSource != settings.limitsSource { isForcingLimits = true }
+            || next.claudeConfig != settings.claudeConfig
+        if next.limitsSource != settings.limitsSource || next.claudeConfig != settings.claudeConfig {
+            remoteStatus[.claude] = nil
+            isForcingLimits = true
+        }
         if next != settings { settings = next }
         return rescans
     }
@@ -235,11 +248,13 @@ final class AIUsageModel {
         }
         limitsRequestedAt = now
         checkingSources.insert(source)
+        let config = claudeConfig
         Task { [weak self] in
             let result =
                 source == .claude
-                ? await PersonalClaudeUsageClient.fetch() : await PersonalCopilotUsageClient.fetch()
-            guard let self else { return }
+                ? await PersonalClaudeUsageClient.fetch(config)
+                : await PersonalCopilotUsageClient.fetch()
+            guard let self, source != .claude || config == claudeConfig else { return }
             checkingSources.remove(source)
             switch result {
             case .success(let report): remoteStatus[source] = .ready(report)
@@ -255,11 +270,13 @@ final class AIUsageModel {
         let since = range.interval(now: now, calendar: calendar).start
         let cache = fileCache
         let home = FileManager.default.homeDirectoryForCurrentUser
+        let config = claudeConfig
         isScanning = true
         defer { isScanning = false }
 
         let work = Task.detached(priority: .utility) {
-            let scan = PersonalAIUsageScanner.scan(home: home, modifiedSince: since, cache: cache)
+            let scan = PersonalAIUsageScanner.scan(
+                home: home, claudeConfig: config, modifiedSince: since, cache: cache)
             let summaries = PersonalAIUsageProvider.allCases.compactMap { provider in
                 let series = PersonalAIUsageAggregator.series(
                     entries: scan.entries[provider] ?? [], range: range, now: now,
@@ -277,7 +294,7 @@ final class AIUsageModel {
             work.cancel()
         }
         fileCache = outcome.cache
-        guard outcome.isComplete, range == settings.range else { return }
+        guard outcome.isComplete, range == settings.range, config == claudeConfig else { return }
         scannedActivity = Activity(
             range: range, summaries: outcome.summaries, foundFolders: outcome.foundFolders,
             updatedAt: Date())
@@ -305,7 +322,8 @@ final class AIUsageModel {
             range: preferences.string(PersonalAIUsageSettings.Name.range),
             display: preferences.string(PersonalAIUsageSettings.Name.display),
             measure: preferences.string(PersonalAIUsageSettings.Name.measure),
-            limitsSource: preferences.string(PersonalAIUsageSettings.Name.limitsSource))
+            limitsSource: preferences.string(PersonalAIUsageSettings.Name.limitsSource),
+            claudeConfig: preferences.string(PersonalAIUsageSettings.Name.claudeConfig))
     }
 }
 

@@ -31,6 +31,12 @@ final class AIUsageDockWidget: OnecastDockWidget {
             },
             defaultValue: .string(PersonalAIUsageLimitsSource.standard.rawValue)),
         PluginPreference(
+            name: PersonalAIUsageSettings.Name.claudeConfig, title: "Claude config folder",
+            description:
+                "The CLAUDE_CONFIG_DIR of the Claude Code account to follow, for a second "
+                + "account. Leave empty for ~/.claude.",
+            placeholder: "~/.claude", kind: .textfield),
+        PluginPreference(
             name: PersonalAIUsageSettings.Name.range, title: "Activity range",
             description: "The days AI Activity adds up. A day runs midnight to midnight, your time.",
             kind: .dropdown,

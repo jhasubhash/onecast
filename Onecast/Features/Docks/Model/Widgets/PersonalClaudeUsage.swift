@@ -1,4 +1,44 @@
+import CryptoKit
 import Foundation
+
+/// The Claude Code folder a widget follows, as `CLAUDE_CONFIG_DIR` names one: one per account.
+struct PersonalClaudeConfig: Sendable, Equatable {
+    private static let keychainService = "Claude Code-credentials"
+    private static let hashPrefixLength = 8
+
+    /// The folder Claude Code reads, `~/.claude` when none is set.
+    let folder: URL
+    /// False for `~/.claude`, the folder Claude Code uses without `CLAUDE_CONFIG_DIR`.
+    let isCustom: Bool
+
+    /// `text` is the preference as typed: empty is the default, and a leading `~` is `home`.
+    init(_ text: String?, home: URL) {
+        let standard = home.appending(path: ".claude", directoryHint: .isDirectory)
+        var path = (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if path == "~" || path.hasPrefix("~/") { path = home.path + path.dropFirst() }
+        let url = path.isEmpty ? standard : URL(fileURLWithPath: path, isDirectory: true).standardized
+        isCustom = url.path != standard.standardized.path
+        folder = isCustom ? url : standard
+    }
+
+    /// Where its session logs live.
+    var projects: URL { folder.appending(path: "projects", directoryHint: .isDirectory) }
+
+    /// Claude Code suffixes a custom folder's item with the first hex of the path's SHA-256.
+    var keychainService: String {
+        guard isCustom else { return Self.keychainService }
+        let digest = SHA256.hash(data: Data(folder.path.utf8))
+        let hex = digest.map { String(format: "%02x", $0) }.joined()
+        return "\(Self.keychainService)-\(hex.prefix(Self.hashPrefixLength))"
+    }
+
+    /// "claude1" for `~/.claude1`, to tell one account's tile from another's; nil for the default.
+    var accountName: String? {
+        guard isCustom else { return nil }
+        let name = folder.lastPathComponent
+        return name.hasPrefix(".") ? String(name.dropFirst()) : name
+    }
+}
 
 /// Claude Code's sign-in as it stores it in the keychain item `Claude Code-credentials`.
 struct PersonalClaudeCredentials: Sendable, Equatable {

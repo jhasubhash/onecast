@@ -63,6 +63,7 @@ struct PersonalAIUsageSettings: Sendable, Equatable {
         static let display = "display"
         static let measure = "measure"
         static let limitsSource = "limitsSource"
+        static let claudeConfig = "claudeConfig"
     }
 
     var content = PersonalAIUsageContent.standard
@@ -70,12 +71,16 @@ struct PersonalAIUsageSettings: Sendable, Equatable {
     var display = PersonalAIUsageDisplay.standard
     var measure = PersonalAIUsageMeasure.standard
     var limitsSource = PersonalAIUsageLimitsSource.standard
+    /// The Claude Code folder as typed; `PersonalClaudeConfig` resolves it. Empty is `~/.claude`.
+    var claudeConfig = ""
 
     init() {}
 
     init(
-        content: String?, range: String?, display: String?, measure: String?, limitsSource: String?
+        content: String?, range: String?, display: String?, measure: String?, limitsSource: String?,
+        claudeConfig: String?
     ) {
+        self.claudeConfig = (claudeConfig ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         self.content = content.flatMap(PersonalAIUsageContent.init(rawValue:)) ?? .standard
         self.range = range.flatMap(PersonalAIUsageRange.init(rawValue:)) ?? .standard
         self.display = display.flatMap(PersonalAIUsageDisplay.init(rawValue:)) ?? .standard

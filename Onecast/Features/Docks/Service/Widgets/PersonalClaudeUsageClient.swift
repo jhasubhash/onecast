@@ -3,7 +3,6 @@ import Foundation
 /// Claude's plan limits for the account Claude Code is signed in to, read with its own sign-in.
 enum PersonalClaudeUsageClient {
     private static let endpoint = URL(string: "https://api.anthropic.com/api/oauth/usage")!
-    private static let keychainService = "Claude Code-credentials"
     private static let timeout: TimeInterval = 12
 
     /// Cacheless and cookieless: the response carries the account's limits and stays in memory.
@@ -15,9 +14,11 @@ enum PersonalClaudeUsageClient {
     }()
 
     /// Never refreshes the sign-in itself: that would rotate Claude Code's refresh token under it.
-    static func fetch() async -> Result<PersonalAIUsageLimitsReport, PersonalAIUsageLimitsProblem> {
+    static func fetch(_ config: PersonalClaudeConfig) async
+        -> Result<PersonalAIUsageLimitsReport, PersonalAIUsageLimitsProblem>
+    {
         let credentials: PersonalClaudeCredentials
-        switch await readCredentials() {
+        switch await readCredentials(config) {
         case .success(let read): credentials = read
         case .failure(let problem): return .failure(problem)
         }
@@ -72,10 +73,12 @@ enum PersonalClaudeUsageClient {
     /// What `security` exits with when no item matches (errSecItemNotFound).
     private static let itemNotFound: Int32 = 44
 
-    private static func readCredentials() async
+    private static func readCredentials(_ config: PersonalClaudeConfig) async
         -> Result<PersonalClaudeCredentials, PersonalAIUsageLimitsProblem>
     {
-        let arguments = ["find-generic-password", "-s", keychainService, "-a", NSUserName(), "-w"]
+        let arguments = [
+            "find-generic-password", "-s", config.keychainService, "-a", NSUserName(), "-w",
+        ]
         guard let result = try? await ToolRunner.run(securityTool, arguments, timeout: timeout) else {
             return .failure(
                 PersonalAIUsageLimitsProblem(
@@ -85,7 +88,10 @@ enum PersonalClaudeUsageClient {
         if result.status == itemNotFound {
             return .failure(
                 PersonalAIUsageLimitsProblem(
-                    message: "Sign in to Claude Code (claude, then /login) to see its limits.",
+                    message: config.isCustom
+                        ? "Sign in to Claude Code with CLAUDE_CONFIG_DIR=\(config.folder.path) "
+                            + "(claude, then /login) to see its limits."
+                        : "Sign in to Claude Code (claude, then /login) to see its limits.",
                     canRetry: true))
         }
         guard result.succeeded else {

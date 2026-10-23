@@ -89,8 +89,10 @@ struct AIUsagePopover: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             let source = stored.value.limitsSource
+            let account = source == .claude ? model.claudeConfig.accountName : nil
             sectionHeader(
-                mark: source.markName, title: "\(source.title) limits",
+                mark: source.markName,
+                title: account.map { "\(source.title) (\($0)) limits" } ?? "\(source.title) limits",
                 trailing: model.limitsPlan)
             if let rows {
                 ForEach(rows) { limitRow($0, measure: measure, now: now) }

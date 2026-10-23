@@ -647,22 +647,48 @@ enum AIUsageChecks {
 
     private static func settingsAndContent() {
         let standard = PersonalAIUsageSettings(
-            content: nil, range: nil, display: nil, measure: nil, limitsSource: nil)
+            content: nil, range: nil, display: nil, measure: nil, limitsSource: nil, claudeConfig: nil)
         t.expect(
             standard == PersonalAIUsageSettings() && standard.content == .limits
                 && standard.range == .last7Days && standard.display == .rings
                 && standard.measure == .remaining && standard.limitsSource == .codex,
             "unset preferences are the documented defaults")
         let garbage = PersonalAIUsageSettings(
-            content: "", range: "yesterday", display: "3d", measure: "x", limitsSource: "gemini")
+            content: "", range: "yesterday", display: "3d", measure: "x", limitsSource: "gemini",
+            claudeConfig: "  ")
         t.expect(garbage == standard, "unrecognised preferences fall back to the defaults")
         let chosen = PersonalAIUsageSettings(
             content: "activity", range: "monthToDate", display: "bars", measure: "used",
-            limitsSource: "claude")
+            limitsSource: "claude", claudeConfig: " ~/.claude1 ")
         t.expect(
             chosen.content == .activity && chosen.range == .monthToDate && chosen.display == .bars
-                && chosen.measure == .used && chosen.limitsSource == .claude,
+                && chosen.measure == .used && chosen.limitsSource == .claude
+                && chosen.claudeConfig == "~/.claude1",
             "every preference value reads back")
+
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        let standardConfig = PersonalClaudeConfig("", home: home)
+        t.expect(
+            !standardConfig.isCustom && standardConfig.keychainService == "Claude Code-credentials"
+                && standardConfig.projects.path == "/Users/me/.claude/projects"
+                && standardConfig.accountName == nil,
+            "no folder is Claude Code's default account")
+        t.expect(
+            PersonalClaudeConfig("~/.claude/", home: home) == standardConfig,
+            "naming ~/.claude is the default account")
+        let second = PersonalClaudeConfig("~/.claude1", home: home)
+        t.expect(
+            second.isCustom && second.folder.path == "/Users/me/.claude1"
+                && second.projects.path == "/Users/me/.claude1/projects"
+                && second.accountName == "claude1",
+            "a custom folder expands ~ and reads its own logs")
+        t.expect(
+            PersonalClaudeConfig("/Users/subhashjha/.claude1", home: home).keychainService
+                == "Claude Code-credentials-630b5bc9",
+            "a custom folder's sign-in is the item Claude Code suffixes with the path's hash")
+        t.expect(
+            PersonalClaudeConfig("/Users/me/.claude1/", home: home) == second,
+            "a trailing slash names the same folder")
 
         let both = PersonalAIUsageContent.resolve(preferred: .limits, hasLimits: true, hasActivity: true)
         t.expect(both == PersonalAIUsageResolution(content: .limits, isFallback: false), "the chosen kind shows when it has data")

@@ -125,7 +125,7 @@ extension AIUsageCell {
         _ row: AIUsageModel.LimitRow, measure: PersonalAIUsageMeasure, now: Date, calendar: Calendar
     ) -> AIUsageCell {
         let window = row.window
-        let source = row.source.shortTitle
+        let source = row.account.map { "\(row.source.shortTitle) \($0)" } ?? row.source.shortTitle
         let title = window.title(fallback: row.fallbackTitle)
         let short = window.shortTitle(fallback: row.fallbackTitle)
         let phrase = window.resetsAt.map {

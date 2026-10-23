@@ -41,16 +41,20 @@ enum PersonalAIUsageScanner {
     private static let maxLineBytes = 64 << 20
     private static let newline: Int32 = 0x0A
 
-    nonisolated static func folder(for provider: PersonalAIUsageProvider, home: URL) -> URL {
+    /// `claudeConfig` is the Claude Code folder to read, `~/.claude` when nil.
+    nonisolated static func folder(
+        for provider: PersonalAIUsageProvider, home: URL, claudeConfig: PersonalClaudeConfig? = nil
+    ) -> URL {
         switch provider {
-        case .claudeCode: home.appending(path: ".claude/projects", directoryHint: .isDirectory)
+        case .claudeCode: (claudeConfig ?? PersonalClaudeConfig(nil, home: home)).projects
         case .codex: home.appending(path: ".codex/sessions", directoryHint: .isDirectory)
         }
     }
 
     /// Opens only files touched since `modifiedSince`; a log has nothing newer than its mtime.
     nonisolated static func scan(
-        home: URL, modifiedSince: Date, cache: PersonalAIUsageFileCache
+        home: URL, claudeConfig: PersonalClaudeConfig? = nil, modifiedSince: Date,
+        cache: PersonalAIUsageFileCache
     ) -> PersonalAIUsageScan {
         var scan = PersonalAIUsageScan(cache: cache)
         for provider in PersonalAIUsageProvider.allCases {
@@ -58,7 +62,8 @@ enum PersonalAIUsageScanner {
                 scan.isComplete = false
                 break
             }
-            let root = folder(for: provider, home: home).resolvingSymlinksInPath()
+            let root = folder(for: provider, home: home, claudeConfig: claudeConfig)
+                .resolvingSymlinksInPath()
             var isDirectory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory),
                 isDirectory.boolValue

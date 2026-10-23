@@ -163,7 +163,7 @@ protocol in-process:
 | Time | Clock, World Clock, Focus Timer, Stopwatch, Countdown, Alarm, Time Progress |
 | Productivity | Calendar, Reminders, Sticky Note, Shortcut, AirDrop, Presentation ([presentation.md](presentation.md#the-dockwidget)) |
 | System | Now Playing (Spotify and Music over Apple Events; a Music track with no artwork for Apple Events, as a streamed one often has, gets its cover from Apple's public catalog search by title, artist and album, in the Mac's region), Battery, System Activity, Network Activity |
-| Personal | Hydration, Weather (Open-Meteo), AI Usage (one service per tile: Codex limits and logs; Claude Code limits with its own keychain sign-in, never refreshed by Onecast, and logs; or GitHub Copilot quotas through the signed-in `gh`, which keeps no logs), Stock, Watchlist |
+| Personal | Hydration, Weather (Open-Meteo), AI Usage (one service per tile: Codex limits and logs; Claude Code limits with its own keychain sign-in, never refreshed by Onecast, and logs, from `~/.claude` or the tile's own `CLAUDE_CONFIG_DIR` folder; or GitHub Copilot quotas through the signed-in `gh`, which keeps no logs), Stock, Watchlist |
 
 Networked widgets use private `.ephemeral` sessions with no URL cache. Business integrations (Stripe,
 Paddle, Shopify) are deliberately left to third-party DockWidgets.
