@@ -5,6 +5,35 @@ struct ScriptSpec: Codable, Hashable, Sendable {
     var arguments: [String]
     var workingDirectory: String?
     var notifyOnFinish: Bool
+    /// When set, the task runs this file and `source` is ignored.
+    var scriptFile: String?
+
+    /// What the shell is handed: a file path rides in as `$1`, never spliced into the command text.
+    struct Invocation: Equatable, Sendable {
+        var command: String
+        var arguments: [String]
+        var workingDirectory: String?
+    }
+
+    /// A file without the executable bit still runs, through zsh, rather than failing on permissions.
+    static let fileRunner = #"if [[ -x $1 ]]; then exec "$@"; else exec /bin/zsh "$@"; fi"#
+
+    /// A file runs from its own folder unless the task names another.
+    func invocation(home: String) -> Invocation {
+        let directory = workingDirectory.map { Self.expandingTilde($0, home: home) }
+        guard let file = scriptFile.map({ Self.expandingTilde($0, home: home) }) else {
+            return Invocation(command: source, arguments: arguments, workingDirectory: directory)
+        }
+        return Invocation(
+            command: Self.fileRunner, arguments: [file] + arguments,
+            workingDirectory: directory ?? (file as NSString).deletingLastPathComponent)
+    }
+
+    private static func expandingTilde(_ path: String, home: String) -> String {
+        if path == "~" { return home }
+        guard path.hasPrefix("~/") else { return path }
+        return home + path.dropFirst()
+    }
 }
 
 enum ScheduledAction: Codable, Hashable, Sendable {

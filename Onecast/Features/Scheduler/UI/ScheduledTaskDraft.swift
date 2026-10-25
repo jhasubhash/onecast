@@ -26,6 +26,19 @@ final class ScheduledTaskDraft {
         var label: String { self == .script ? "Run Script" : "Notification" }
     }
 
+    enum ScriptMode: String, CaseIterable, Identifiable {
+        case command, file
+        var id: Self { self }
+        var label: String { self == .command ? "Command" : "Script File" }
+    }
+
+    /// The form's own trial run, which never touches the schedule or the task's anchor.
+    enum TestRun: Equatable {
+        case idle, running
+        case passed(String)
+        case failed(String)
+    }
+
     enum IntervalUnit: String, CaseIterable, Identifiable {
         case minutes, hours, days
         var id: Self { self }
@@ -49,7 +62,9 @@ final class ScheduledTaskDraft {
     var monthDay: Int
 
     var actionKind: ActionKind
+    var scriptMode: ScriptMode
     var scriptSource: String
+    var scriptFile: String
     var workingDirectory: String
     var notifyOnFinish: Bool
     var notificationID: UUID?
@@ -64,6 +79,7 @@ final class ScheduledTaskDraft {
     var catchUp: CatchUpPolicy
     /// Defaults on for a one-time task; the user can still turn it off, or on for a recurring one.
     var deleteAfterRun: Bool
+    private(set) var testRun = TestRun.idle
 
     /// The task being edited, kept so a save preserves its id, anchor and creation date; nil on add.
     private let existing: ScheduledTask?
@@ -102,7 +118,9 @@ final class ScheduledTaskDraft {
         monthDay = day
 
         var action = ActionKind.script
+        var mode = ScriptMode.command
         var source = ""
+        var file = ""
         var directory = ""
         var notify = false
         var notifID: UUID?
@@ -117,6 +135,7 @@ final class ScheduledTaskDraft {
         case .runScript(let spec):
             action = .script
             source = spec.source
+            if let path = spec.scriptFile { mode = .file; file = path }
             directory = spec.workingDirectory ?? ""
             notify = spec.notifyOnFinish
         case .postNotification(let spec):
@@ -131,7 +150,9 @@ final class ScheduledTaskDraft {
         case nil: break
         }
         actionKind = action
+        scriptMode = mode
         scriptSource = source
+        scriptFile = file
         workingDirectory = directory
         notifyOnFinish = notify
         notificationID = notifID
@@ -153,7 +174,7 @@ final class ScheduledTaskDraft {
         if ruleKind == .interval && !(intervalValue >= 1) { return false }
         switch actionKind {
         case .script:
-            return !scriptSource.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return hasScript
         case .notification:
             return !notifyTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
@@ -175,12 +196,7 @@ final class ScheduledTaskDraft {
         let action: ScheduledAction
         switch actionKind {
         case .script:
-            let directory = workingDirectory.trimmingCharacters(in: .whitespacesAndNewlines)
-            action = .runScript(
-                ScriptSpec(
-                    source: scriptSource, arguments: [],
-                    workingDirectory: directory.isEmpty ? nil : directory,
-                    notifyOnFinish: notifyOnFinish))
+            action = .runScript(scriptSpec)
         case .notification:
             action = .postNotification(
                 NotificationSpec(
@@ -193,6 +209,50 @@ final class ScheduledTaskDraft {
             id: existing?.id ?? UUID(), name: name, isEnabled: existing?.isEnabled ?? true,
             rule: rule, action: action, catchUp: catchUp, deleteAfterRun: deleteAfterRun,
             lastFired: existing?.lastFired, createdAt: existing?.createdAt ?? Date())
+    }
+
+    var hasScript: Bool {
+        let text = scriptMode == .command ? scriptSource : scriptFile
+        return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var canTestScript: Bool { hasScript && testRun != .running }
+
+    /// Only the chosen mode's text is kept, so a task never carries a stale command beside its file.
+    private var scriptSpec: ScriptSpec {
+        let directory = workingDirectory.trimmingCharacters(in: .whitespacesAndNewlines)
+        let file = scriptFile.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ScriptSpec(
+            source: scriptMode == .command ? scriptSource : "", arguments: [],
+            workingDirectory: directory.isEmpty ? nil : directory, notifyOnFinish: notifyOnFinish,
+            scriptFile: scriptMode == .file ? file : nil)
+    }
+
+    /// Runs exactly what the saved task would, so a passing test means the schedule will too.
+    func testScript() {
+        guard canTestScript else { return }
+        let invocation = scriptSpec.invocation(home: NSHomeDirectory())
+        testRun = .running
+        Task { [weak self] in
+            let result = await ShellCommandRunner.run(invocation)
+            self?.testRun = Self.report(result)
+        }
+    }
+
+    private static func report(_ result: ShellCommandResult) -> TestRun {
+        switch result.termination {
+        case .exited(status: 0):
+            return .passed(result.lastOutputLine ?? "Finished with no output.")
+        case .exited(let status):
+            let reason = result.standardError?
+                .split(whereSeparator: \.isNewline).last
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+            return .failed(reason.map { "Exit \(status): \($0)" } ?? "Exit \(status).")
+        case .launchFailed(let message):
+            return .failed(message)
+        case .stopped:
+            return .failed("Stopped.")
+        }
     }
 
     private static func time(_ hour: Int, _ minute: Int) -> Date {

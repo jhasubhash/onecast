@@ -5,7 +5,8 @@ enum ScheduleFormatter {
     static func summary(of task: ScheduledTask) -> String {
         let action: String
         switch task.action {
-        case .runScript: action = "Run script"
+        case .runScript(let spec):
+            action = spec.scriptFile.map { "Run \(($0 as NSString).lastPathComponent)" } ?? "Run script"
         case .postNotification: action = "Notify"
         }
         return "\(action) · \(rule(task.rule))"

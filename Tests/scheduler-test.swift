@@ -39,6 +39,8 @@ struct SchedulerTests {
         appsRefuseTheRepeatsTheyCannotHold()
         savedNotificationsWithoutAColourStayNeutral()
         inkContrastsWithTheBackground()
+        scriptFileRunsFromItsFolder()
+        savedScriptTasksDecodeWithoutAFile()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -76,6 +78,38 @@ struct SchedulerTests {
             action: .runScript(
                 ScriptSpec(source: "echo hi", arguments: [], workingDirectory: nil, notifyOnFinish: false)),
             catchUp: .skip, deleteAfterRun: deleteAfterRun, lastFired: lastFired, createdAt: createdAt)
+    }
+
+    static func scriptFileRunsFromItsFolder() {
+        let home = "/Users/me"
+        let command = ScriptSpec(
+            source: "echo hi", arguments: [], workingDirectory: nil, notifyOnFinish: false)
+        expect(
+            command.invocation(home: home)
+                == .init(command: "echo hi", arguments: [], workingDirectory: nil),
+            "a command runs as typed")
+
+        var file = command
+        file.scriptFile = "~/bin/say hi.sh"
+        let invocation = file.invocation(home: home)
+        expect(invocation.command == ScriptSpec.fileRunner, "a file runs through the fixed runner")
+        expect(
+            invocation.arguments == ["/Users/me/bin/say hi.sh"],
+            "the path is expanded and passed as data, spaces intact")
+        expect(invocation.workingDirectory == "/Users/me/bin", "a file defaults to its own folder")
+
+        file.workingDirectory = "~"
+        expect(file.invocation(home: home).workingDirectory == home, "a named folder wins")
+        expect(
+            ScheduleFormatter.summary(of: makeTask(rule: .daily(hour: 9, minute: 0), createdAt: baseCreatedAt))
+                .hasPrefix("Run script"),
+            "a command task keeps its generic summary")
+    }
+
+    static func savedScriptTasksDecodeWithoutAFile() {
+        let json = #"{"source":"echo hi","arguments":[],"notifyOnFinish":false}"#
+        let spec = try? JSONDecoder().decode(ScriptSpec.self, from: Data(json.utf8))
+        expect(spec?.source == "echo hi" && spec?.scriptFile == nil, "a stored command task still loads")
     }
 
     static func onceFiresOnlyInTheFuture() {

@@ -161,31 +161,74 @@ struct SchedulerActionControls: View {
 
     private var scriptFields: some View {
         Group {
-            SchedulerField(title: "Command") {
-                TextEditor(text: $draft.scriptSource)
-                    .font(.body.monospaced())
-                    // A shell command is not prose to rewrite, and the orb covered its first line.
-                    .writingToolsBehavior(.disabled)
-                    .scrollContentBackground(.hidden)
-                    .padding(Theme.Spacing.sm)
-                    .frame(height: Theme.Size.editorTextHeight)
-                    .background(
-                        RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
-                            .fill(Theme.Colors.cardFill))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
-                            .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1))
-                    .contentShape(Rectangle())
-                    .pointerStyle(.horizontalText)
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                SchedulerChips(
+                    options: ScheduledTaskDraft.ScriptMode.allCases.map { ($0, $0.label) },
+                    selection: $draft.scriptMode)
+                if draft.scriptMode == .command {
+                    commandEditor
+                } else {
+                    TextField("~/scripts/backup.sh", text: $draft.scriptFile)
+                        .font(.body.monospaced())
+                        .dialogTextField()
+                }
             }
             SchedulerField(title: "Working directory (optional)") {
-                TextField("~", text: $draft.workingDirectory)
+                TextField(
+                    draft.scriptMode == .file ? "The script's folder" : "~",
+                    text: $draft.workingDirectory)
                     .dialogTextField()
             }
-            Toggle("Notify when it finishes", isOn: $draft.notifyOnFinish)
-                .toggleStyle(.checkbox)
-                .tint(Theme.Colors.textPrimary)
+            HStack(spacing: Theme.Spacing.md) {
+                Toggle("Notify when it finishes", isOn: $draft.notifyOnFinish)
+                    .toggleStyle(.checkbox)
+                    .tint(Theme.Colors.textPrimary)
+                Spacer(minLength: 0)
+                DialogChip(title: draft.testRun == .running ? "Testing…" : "Test", selected: false) {
+                    draft.testScript()
+                }
+                .disabled(!draft.canTestScript)
+            }
+            testReport
         }
+    }
+
+    @ViewBuilder private var testReport: some View {
+        switch draft.testRun {
+        case .idle, .running:
+            EmptyView()
+        case .passed(let line):
+            testLine(line, symbol: "checkmark.circle", color: Theme.Colors.textSecondary)
+        case .failed(let line):
+            testLine(line, symbol: "exclamationmark.triangle", color: Theme.Colors.textPrimary)
+        }
+    }
+
+    private func testLine(_ text: String, symbol: String, color: Color) -> some View {
+        Label(text, systemImage: symbol)
+            .font(.callout)
+            .foregroundStyle(color)
+            .lineLimit(2)
+            .truncationMode(.middle)
+            .textSelection(.enabled)
+    }
+
+    private var commandEditor: some View {
+        TextEditor(text: $draft.scriptSource)
+            .font(.body.monospaced())
+            // A shell command is not prose to rewrite, and the orb covered its first line.
+            .writingToolsBehavior(.disabled)
+            .scrollContentBackground(.hidden)
+            .padding(Theme.Spacing.sm)
+            .frame(height: Theme.Size.editorTextHeight)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+                    .fill(Theme.Colors.cardFill))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+                    .strokeBorder(Theme.Colors.cardStroke, lineWidth: 1))
+            .contentShape(Rectangle())
+            .pointerStyle(.horizontalText)
     }
 
     private var notificationFields: some View {

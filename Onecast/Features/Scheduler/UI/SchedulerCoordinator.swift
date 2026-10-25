@@ -151,9 +151,7 @@ final class SchedulerCoordinator {
             notifications.post(spec, playsSound: settings.schedulerPlaysSound)
         case .runScript(let script):
             Task { [weak self] in
-                let result = await ShellCommandRunner.run(
-                    script.source, arguments: script.arguments,
-                    loadingShellEnvironment: true, workingDirectory: script.workingDirectory)
+                let result = await ShellCommandRunner.run(script.invocation(home: NSHomeDirectory()))
                 guard script.notifyOnFinish else { return }
                 self?.notifyScriptFinished(name: name, result: result)
             }
@@ -170,5 +168,14 @@ final class SchedulerCoordinator {
                 id: UUID(), title: name, body: body, style: .toast, corner: .topTrailing,
                 dwell: 6, actions: []),
             playsSound: settings.schedulerPlaysSound)
+    }
+}
+
+extension ShellCommandRunner {
+    /// A scheduled script always loads the user's shell environment, so its `PATH` matches a terminal.
+    nonisolated static func run(_ invocation: ScriptSpec.Invocation) async -> ShellCommandResult {
+        await run(
+            invocation.command, arguments: invocation.arguments, loadingShellEnvironment: true,
+            workingDirectory: invocation.workingDirectory)
     }
 }

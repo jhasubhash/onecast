@@ -81,8 +81,16 @@ missed occurrences, and applies the task's `CatchUpPolicy`. Because the anchor i
 added while others were overdue only ever replays *its* history.
 
 `perform(_:name:)` dispatches the action: a notification goes straight to `NotificationPresenter`; a
-script runs through `ShellCommandRunner.run(loadingShellEnvironment: true, …)` off the main actor,
-and — if the task set `notifyOnFinish` — a completion toast reports the last output line or a failure.
+script runs `ScriptSpec.invocation(home:)` through `ShellCommandRunner` with the shell environment
+loaded, off the main actor, and — if the task set `notifyOnFinish` — a completion toast reports the
+last output line or a failure.
+
+A script is either typed **Command** text or a **Script File** (`ScriptSpec.scriptFile`). A file's
+path, `~` expanded, reaches zsh as `$1` behind the fixed `ScriptSpec.fileRunner`, never spliced into
+command text; it is `exec`ed when executable and handed to `/bin/zsh` when not, and it runs from its
+own folder unless the task names another. The form's **Test** button (`ScheduledTaskDraft.testScript`)
+runs that same invocation once and shows the last output line, or the exit status and last error
+line, under the form. It never touches the schedule or the anchor, and works before the task is saved.
 
 ## Launcher and shortcut
 
