@@ -88,6 +88,7 @@ fit the table.
 | `Engine` | A pure evaluator: input → output |
 | `Policy` | A pure decision — no state, no effects |
 | `Remapper` | Keeps one HID key mapping on every matching device, including later arrivals |
+| `Lock` | Holds a cross-process exclusive claim that the kernel frees on exit |
 
 `Manager` is the one worth thinking twice about. It means *lifecycle plus policy*, which is a lot for one
 type, so there are only four: `ClipboardManager` (polls, and owns the capture policy and the

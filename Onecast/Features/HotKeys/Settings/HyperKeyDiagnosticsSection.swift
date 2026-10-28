@@ -32,6 +32,22 @@ struct HyperKeyDiagnosticsSection: View {
             ) {
                 DiagnosticList(items: conflictItems, empty: ("None", DiagnosticTone.valid))
             }
+            if let takeover = diagnostics.takeover {
+                SettingsRow(
+                    title: "Remapped by Another App",
+                    subtitle: "Caps Lock goes elsewhere on these keyboards, so another app's Hyper Key runs.",
+                    subtitleLineLimit: 2, alignment: .top
+                ) {
+                    DiagnosticList(items: takeover.keyboards.map { ($0, DiagnosticTone.invalid) }, empty: nil)
+                }
+            }
+            SettingsRow(
+                title: "Apps Changing Keys",
+                subtitle: "Other apps that rewrite keystrokes. A slow one delays all typing.",
+                subtitleLineLimit: 2, alignment: .top
+            ) {
+                DiagnosticList(items: keyboardTapItems, empty: ("None", DiagnosticTone.valid))
+            }
             SettingsRow(title: "Karabiner Conflict", subtitle: karabinerDetail, subtitleLineLimit: 2) {
                 DiagnosticValue(
                     text: diagnostics.karabinerConflict ? "Detected" : "None",
@@ -76,6 +92,14 @@ struct HyperKeyDiagnosticsSection: View {
     private var conflictItems: [(String, DiagnosticTone)] {
         diagnostics.conflictingApps.map { app in
             (app.name, app.severity == .blocking ? DiagnosticTone.invalid : DiagnosticTone.warning)
+        }
+    }
+
+    private var keyboardTapItems: [(String, DiagnosticTone)] {
+        diagnostics.keyboardTaps.map { tap in
+            tap.isSlow
+                ? ("\(tap.appName), slow", DiagnosticTone.invalid)
+                : (tap.appName, DiagnosticTone.neutral)
         }
     }
 
