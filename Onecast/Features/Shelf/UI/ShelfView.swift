@@ -27,6 +27,8 @@ struct ShelfView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.dialog, style: .continuous))
         .animation(.easeOut(duration: Theme.Duration.hover), value: coordinator.isTargeted)
         .environment(\.tooltipPresenter, tooltips)
+        // Its host is typed to this view, so the root's scope is applied from inside.
+        .motionScope()
     }
 
     @ViewBuilder

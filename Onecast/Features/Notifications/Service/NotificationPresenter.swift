@@ -35,7 +35,7 @@ final class NotificationPresenter {
                 spec: spec,
                 onAction: { onAction?($0) },
                 onDismiss: { [weak self] in self?.dismiss(id) }))
-        let host = NSHostingView(rootView: body)
+        let host = NSHostingView(rootView: body.motionScope())
         // Never size from `host.frame` after attaching: AppKit resets it to the content rect.
         let size = host.fittingSize
         host.setFrameSize(size)

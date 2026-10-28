@@ -90,7 +90,7 @@ private struct Picture {
 }
 
 /// Key without activating Onecast, like the palette, so Escape reaches it and focus stays put.
-private final class ClipboardImagePanel: NSPanel {
+private final class ClipboardImagePanel: NSPanel, AnimatedPanel {
     private let imageView = NSImageView()
 
     init() {
@@ -103,7 +103,7 @@ private final class ClipboardImagePanel: NSPanel {
         isReleasedWhenClosed = false
         hidesOnDeactivate = false
         level = .floating
-        animationBehavior = .documentWindow
+        followMotion()
         backgroundColor = .windowBackgroundColor
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.imageFrameStyle = .none

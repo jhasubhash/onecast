@@ -16,7 +16,7 @@ enum DockPoof {
         panel.setFrame(
             CGRect(x: point.x - side / 2, y: point.y - side / 2, width: side, height: side),
             display: false)
-        let host = NSHostingView(rootView: DockPoofView(image: image, reach: reach))
+        let host = NSHostingView(rootView: DockPoofView(image: image, reach: reach).motionScope())
         host.sizingOptions = []
         panel.contentView = host
         panel.orderFrontRegardless()

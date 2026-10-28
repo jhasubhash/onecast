@@ -25,7 +25,7 @@ final class ShelfTooltip {
     }
 
     private func show(_ text: String, owner: UUID, above anchor: NSRect) {
-        let hosting = NSHostingView(rootView: TooltipChip(text: text))
+        let hosting = NSHostingView(rootView: TooltipChip(text: text).motionScope())
         hosting.setFrameSize(hosting.fittingSize)
         let panel = self.panel ?? Self.makePanel()
         self.panel = panel

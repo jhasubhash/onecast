@@ -157,7 +157,8 @@ final class DictationPanelController {
         let panel =
             panel
             ?? DictationPanel(
-                content: NSHostingView(rootView: DictationPanelView(state: state)), size: size)
+                content: NSHostingView(rootView: DictationPanelView(state: state).motionScope()),
+                size: size)
         panel.onAccept = onAccept
         panel.onCancel = onCancel
         self.panel = panel

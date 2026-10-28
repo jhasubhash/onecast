@@ -1091,6 +1091,8 @@ private struct DockRoot: View {
     var tooltips: TooltipPresenter?
 
     var body: some View {
+        // Its host is typed to this view, so the root's scope is applied from inside.
         DockView(model: model).dockEnvironment(core).environment(\.tooltipPresenter, tooltips)
+            .motionScope()
     }
 }

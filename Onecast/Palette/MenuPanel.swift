@@ -305,7 +305,7 @@ final class MenuPanelController {
         timing: CAMediaTimingFunction, completion: @escaping @MainActor () -> Void
     ) {
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = duration
+            context.duration = Motion.duration(duration)
             context.timingFunction = timing
             panel.animator().alphaValue = alpha
         } completionHandler: {

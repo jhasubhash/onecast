@@ -609,7 +609,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             return
         }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = Theme.Duration.aiBarResize
+            context.duration = Motion.duration(Theme.Duration.aiBarResize)
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().setFrame(frame, display: true)
         }

@@ -65,6 +65,9 @@ struct GeneralSettingsView: View {
                     SettingsRowTitle(.generalAppearance, "Theme")
                     Text("Match macOS, or pin Onecast to Light or Dark.")
                 }
+                Toggle(isOn: $settings.animationsEnabled) {
+                    SettingsRowTitle(.generalAppearance, "Show animations")
+                }
                 InterfaceSizeRow()
                 WindowModeRow()
                 Toggle(isOn: $settings.showFavoritesInCompactMode) {

@@ -145,6 +145,9 @@ enum SettingsSearchCatalog {
             .generalAppearance, "Theme",
             keywords: ["dark", "light", "mode", "appearance"]),
         .init(
+            .generalAppearance, "Show animations",
+            keywords: ["motion", "transitions", "reduce motion", "effects", "instant"]),
+        .init(
             .generalAppearance, "Interface size",
             keywords: ["text size", "font size", "scale", "zoom", "bigger", "larger", "legible"]),
         .init(

@@ -45,6 +45,17 @@ These are the things that quietly break the look if changed. Preserve them unles
 - **Don't use the native scroll edge effect.** Inside a transparent panel it renders a hard-bounded rectangle. Use `edgeDissolve()`, or a gradient `mask` where a surface owns its own fade — `scrollEdgeEffectStyle` draws a *material* where a scroll view meets a safe area, so over a panel that already has `panelScrim` + `GlassEffectView` it composites to nothing. Tried and rejected on `QuickActionResultView`, with and without `safeAreaBar`. This is a rule about the borderless panels; the Settings window is a titled `NSWindow` whose system titlebar draws the band itself (see "Settings").
 - **Test over a light desktop.** Transparency and corner masking bugs only show over bright wallpaper. Dark wallpaper hides them.
 - **No `NSAlert`, no `NSSlider`, no system popovers.** Every confirmation, failure report, value prompt and transient readout is Onecast's own SwiftUI surface (see "Dialogs & HUD"). An Aqua alert on an alpha-over-vibrancy app reads as a different product, and its `runModal` run loop keeps Carbon hotkeys firing underneath.
+- **Animations follow one switch.** General → Appearance → **Show animations**
+  (`AppSettings.animationsEnabled`, on by default) reaches `Motion.isEnabled` through
+  `AppCore.applyMotion()`. It is global for the reason `IconCache` is: a missed injection would animate
+  silently. Every `NSHostingView` and `NSHostingController` root applies `motionScope()`, which strips
+  the animation from every transaction beneath it; a typed host applies it at the end of its view's
+  `body`. An `NSAnimationContext` group — the shared `fadeIn`/`fadeOut`, menus, the AI bar resize, the
+  Notes move — takes its duration from `Motion.duration(_:)`, and the one `.documentWindow` panel
+  (Clipboard Quick View) is an `AnimatedPanel` that sets its behaviour with `followMotion()`. So no
+  animation site checks the setting itself, and Reduce Motion keeps trimming movement where it did
+  while animations are on. Activity indicators — spinners, `symbolEffect` loaders, the dictation pulse
+  — keep running, because they report work rather than move between states.
 - **A dialog has three independent axes; never let one infer another.** The **icon** (`DialogRequest.symbol`, required) is always the *subject's* own glyph — a command being confirmed uses its `SystemAction.sfSymbol`, so the Restart dialog shows the same icon as the Restart row. Tone never picks an icon. The **tone** (`DialogTone`: `.neutral` / `.success` / `.danger`) tints only that glyph. The **button** takes its color from `DialogAction.Role` (`.standard` white / `.destructive` red / `.cancel` secondary), so a red-glyph security warning can still carry a plain white button — as "Import executable commands?" does.
 - **Resolve every glyph through `SymbolImage`, not `Image(systemName:)`.** Some catalog symbols are bundled assets in `Assets.xcassets` (`toggleBluetooth`), and `Image(systemName:)` silently renders nothing for those.
 - **↵ runs the primary action, Escape cancels, and Cancel always renders leading** (the left button), matching macOS convention. A button never prints its key cap; hovering it shows a `Tooltip` instead, styled like the palette's own keycap chips.

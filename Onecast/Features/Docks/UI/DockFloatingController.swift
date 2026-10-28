@@ -53,7 +53,7 @@ final class DockFloatingController {
         dismiss(animated: false)
         label.hideAll()
         let panel = DockFloatingPanel()
-        let host = NSHostingView(rootView: wrapped(content))
+        let host = NSHostingView(rootView: wrapped(content).motionScope())
         host.sizingOptions = [.intrinsicContentSize]
         panel.contentView = host
         panel.keyHandler = keys
@@ -231,7 +231,7 @@ final class DockLabelPresenter {
                 label.isControl
                 ? AnyView(DockControlTooltipView(text: label.text))
                 : AnyView(DockLabelView(text: label.text))
-            let host = NSHostingView(rootView: AnyView(view.environment(\.metrics, metrics)))
+            let host = NSHostingView(rootView: AnyView(view.environment(\.metrics, metrics).motionScope()))
             host.sizingOptions = [.intrinsicContentSize]
             panel.contentView = host
             self.host = host

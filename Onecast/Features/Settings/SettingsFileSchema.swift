@@ -37,6 +37,7 @@ enum SettingsFileSchema {
         case .autoSwitchInputSource: return bind(settings, \.autoSwitchInputSourceID)
         case .supportReminders: return bind(settings, \.supportRemindersEnabled)
         case .appearance: return bind(settings, \.appearance)
+        case .animationsEnabled: return bind(settings, \.animationsEnabled)
         case .interfaceSize: return bind(settings, \.interfaceSize)
         case .compactMode: return bind(settings, \.compactMode)
         case .showFavoritesInCompactMode: return bind(settings, \.showFavoritesInCompactMode)

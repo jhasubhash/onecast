@@ -120,7 +120,8 @@ final class PluginWindowController: NSObject, NSWindowDelegate {
         let content = NSHostingView(
             rootView: chrome
                 .environment(core.settings)
-                .environment(\.metrics, core.settings.interfaceSize.metrics))
+                .environment(\.metrics, core.settings.interfaceSize.metrics)
+                .motionScope())
         content.sizingOptions = []
 
         // Opens at the size the surface fills inside the launcher; the user resizes from there.

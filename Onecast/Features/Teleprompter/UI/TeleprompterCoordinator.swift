@@ -211,7 +211,8 @@ final class TeleprompterCoordinator {
         let size = TeleprompterPanel.size(
             for: placement, textSize: settings.teleprompterTextSize, topInset: inset)
         let hosting = NSHostingView(
-            rootView: TeleprompterView(coordinator: self, placement: placement, topInset: inset))
+            rootView: TeleprompterView(coordinator: self, placement: placement, topInset: inset)
+                .motionScope())
         hosting.setFrameSize(size)
         let panel = TeleprompterPanel(content: hosting, placement: placement)
         panel.onScroll = { [weak self] in self?.scroll(by: $0) }
