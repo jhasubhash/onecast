@@ -53,6 +53,7 @@ struct SettingsBackup: Codable {
         var fileSearchRemovedDefaultPatterns: [String]?
         var fileSearchShowInLauncher: Bool?
         var notesEnabled: Bool?
+        var notesShowsInMenuBar: Bool?
         var shelfEnabled: Bool?
         var shelfShakeToOpen: Bool?
         var teleprompterEnabled: Bool?
@@ -178,6 +179,7 @@ extension SettingsBackup {
             fileSearchRemovedDefaultPatterns: s.fileSearchRemovedDefaultPatterns,
             fileSearchShowInLauncher: s.fileSearchShowInLauncher,
             notesEnabled: s.notesEnabled,
+            notesShowsInMenuBar: s.notesShowsInMenuBar,
             shelfEnabled: s.shelfEnabled,
             shelfShakeToOpen: s.shelfShakeToOpen,
             teleprompterEnabled: s.teleprompterEnabled,
@@ -460,6 +462,10 @@ extension SettingsBackup {
         }
         if let flag = s.notesEnabled {
             settings.notesEnabled = flag
+            count += 1
+        }
+        if let flag = s.notesShowsInMenuBar {
+            settings.notesShowsInMenuBar = flag
             count += 1
         }
         if let flag = s.shelfEnabled {

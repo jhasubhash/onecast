@@ -104,6 +104,7 @@ enum SettingsFileSchema {
         case .fileSearchCommands: return launcher.commandsBinding(for: key, owner: .fileSearch)
         case .notesEnabled: return bind(settings, \.notesEnabled)
         case .notesFolder: return bind(settings, \.notesFolder, accept: folder)
+        case .notesShowsInMenuBar: return bind(settings, \.notesShowsInMenuBar)
         case .notesCommands: return launcher.commandsBinding(for: key, owner: .notes)
         case .shelfEnabled: return bind(settings, \.shelfEnabled)
         case .shelfShakeToOpen: return bind(settings, \.shelfShakeToOpen)

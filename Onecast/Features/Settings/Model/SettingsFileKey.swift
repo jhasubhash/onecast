@@ -81,6 +81,7 @@ enum SettingsFileKey: String, CaseIterable, Sendable {
     case fileSearchCommands = "fileSearch.commands"
     case notesEnabled = "notes.enabled"
     case notesFolder = "notes.folder"
+    case notesShowsInMenuBar = "notes.showsInMenuBar"
     case notesCommands = "notes.commands"
     case shelfEnabled = "shelf.enabled"
     case shelfShakeToOpen = "shelf.shakeToOpen"

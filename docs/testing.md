@@ -616,6 +616,9 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   screen's bottom, then the window moves up. It stops at 860pt or the screen's usable height and
   scrolls. A dragged height holds until the next keystroke, which fits the window again. Switching
   to a shorter note shrinks it. Repeat with the find bar open and on a secondary display
+- With Show in Menu Bar on, the Notes icon appears at once; a click shows Notes and a second click
+  hides it, and right-, Control- and Option-click open Create Note and Search Notes. Turning the
+  setting or Notes off removes the icon, and a ⌘-dragged position survives a relaunch
 - Traffic lights sit top-left, the title is centred **on the window**, and the capsule is top-right, all
   on one line; the yellow light is disabled and green zooms
 - Each capsule button shows a hover capsule and a native tooltip, and fires its action

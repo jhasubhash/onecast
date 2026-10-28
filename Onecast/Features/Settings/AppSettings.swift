@@ -390,6 +390,10 @@ final class AppSettings {
         didSet { defaults.set(notesFolder, forKey: Key.notesFolder.rawValue) }
     }
 
+    var notesShowsInMenuBar: Bool {
+        didSet { defaults.set(notesShowsInMenuBar, forKey: Key.notesShowsInMenuBar.rawValue) }
+    }
+
     var shelfEnabled: Bool {
         didSet { defaults.set(shelfEnabled, forKey: Key.shelfEnabled.rawValue) }
     }
@@ -983,6 +987,7 @@ final class AppSettings {
         fileSearchShowInLauncher = defaults.bool(forKey: Key.fileSearchShowInLauncher.rawValue)
         notesEnabled = defaults.bool(forKey: Key.notesEnabled.rawValue)
         notesFolder = defaults.string(forKey: Key.notesFolder.rawValue)
+        notesShowsInMenuBar = defaults.bool(forKey: Key.notesShowsInMenuBar.rawValue)
         shelfEnabled =
             defaults.object(forKey: Key.shelfEnabled.rawValue) == nil
             || defaults.bool(forKey: Key.shelfEnabled.rawValue)

@@ -21,6 +21,11 @@ struct NotesSettingsView: View {
                     SettingsRowTitle(.notesNotes, "Notes Folder")
                     Text((core.notesStore.notesDirectory.path as NSString).abbreviatingWithTildeInPath)
                 }
+                Toggle(isOn: $settings.notesShowsInMenuBar) {
+                    SettingsRowTitle(.notesNotes, "Show in Menu Bar")
+                    Text("Right-click the icon to create or search notes.")
+                }
+                .settingsEnabled(settings.notesEnabled)
             } header: {
                 SettingsSectionHeader(.notesNotes)
             }

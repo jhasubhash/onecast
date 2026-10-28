@@ -43,6 +43,7 @@ enum AppSettingsKey: String, CaseIterable {
     case fileSearchShowInLauncher = "fileSearchShowInLauncher"
     case notesEnabled = "notesEnabled"
     case notesFolder = "notesFolder"
+    case notesShowsInMenuBar = "notesShowsInMenuBar"
     case shelfEnabled = "shelfEnabled"
     case shelfShakeToOpen = "shelfShakeToOpen"
     case teleprompterEnabled = "teleprompterEnabled"

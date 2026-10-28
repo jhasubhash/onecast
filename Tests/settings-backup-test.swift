@@ -57,6 +57,9 @@ struct SettingsBackupTest {
             mirrored["fileSearchRemovedDefaultPatterns"] == .fileSearchRemovedDefaultPatterns)
         check("notes enablement rides the settings backup", mirrored["notesEnabled"] == .notesEnabled)
         check(
+            "the Notes menu bar item rides the settings backup",
+            mirrored["notesShowsInMenuBar"] == .notesShowsInMenuBar)
+        check(
             "clipboard enablement rides the settings backup",
             mirrored["clipboardEnabled"] == .clipboardEnabled)
         check(
