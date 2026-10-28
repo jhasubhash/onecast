@@ -204,6 +204,7 @@ enum Theme {
         /// The narrowest the pane column may get before a grouped row's control starts colliding.
         static let settingsDetailMinimum: CGFloat = 420
         static let settingsRowIcon: CGFloat = 20
+        static let settingsRowButton: CGFloat = 24
         /// A sidebar glyph inside its tinted tile; the tile's inset brings it to the row icon's size.
         static let settingsSidebarGlyph: CGFloat = 14
         /// A grouped `Form` row's control height.
