@@ -6,7 +6,7 @@ struct LauncherList: View {
     let results: [AppEntry]
     /// The flat row id the screen has selected, not an entry id: a fallback can repeat a result.
     let selectedRowID: String?
-    let favoriteCount: Int
+    let favorites: [FavoritesStore.Item]
     let meetingCount: Int
     let suggestionCount: Int
     let matchCount: Int
@@ -19,6 +19,8 @@ struct LauncherList: View {
     var onCardActions: () -> Void = {}
     let onActivate: (AppEntry) -> Void
     let onActions: (AppEntry) -> Void
+    let onActivateFavorite: (Int) -> Void
+    let onFavoriteActions: (Int) -> Void
     let onDropped: () -> Void
     var files: FileSection?
     /// The `Use "…" with` section, always last; nil when nothing is typed.
@@ -68,8 +70,8 @@ struct LauncherList: View {
         /// Its own case, because only this header carries a gear.
         case fallbackHeader(String)
         case card(LeadCard)
-        /// `slot` is the row's ⌘-digit, carried from the section build rather than searched.
-        case app(AppEntry, slot: Character?)
+        case app(AppEntry)
+        case favorite(FavoritesStore.Item, index: Int)
         case file(FileSearchResult, index: Int)
         case fallback(AppEntry, index: Int)
         var id: String {
@@ -77,7 +79,8 @@ struct LauncherList: View {
             case .header(let title): return "header-" + title
             case .fallbackHeader: return "fallback-header"
             case .card(let card): return card.rowID
-            case .app(let app, _): return app.id
+            case .app(let app): return app.id
+            case .favorite(let favorite, _): return favorite.id
             case .file(let result, _): return "file-" + result.id
             case .fallback(let app, _): return "fallback-" + app.id
             }
@@ -86,7 +89,8 @@ struct LauncherList: View {
 
     /// Whether the selection sits on flat index 0: the card, else the first result.
     private var firstRowSelected: Bool {
-        card != nil ? cardSelected : selectedRowID != nil && selectedRowID == results.first?.id
+        if card != nil { return cardSelected }
+        return selectedRowID != nil && selectedRowID == (favorites.first?.id ?? results.first?.id)
     }
 
     private var fileRows: [Row] {
@@ -110,10 +114,9 @@ struct LauncherList: View {
     private var rows: [Row] {
         var rows: [Row] = []
         if let card { rows = [.header(card.sectionTitle), .card(card)] }
-        let favorites = results.prefix(favoriteCount)
-        let meetings = results.dropFirst(favoriteCount).prefix(meetingCount)
-        let suggestions = results.dropFirst(favoriteCount + meetingCount).prefix(suggestionCount)
-        let pinnedCount = favoriteCount + meetingCount + suggestionCount
+        let meetings = results.prefix(meetingCount)
+        let suggestions = results.dropFirst(meetingCount).prefix(suggestionCount)
+        let pinnedCount = meetingCount + suggestionCount
         let matches = results.dropFirst(pinnedCount).prefix(matchCount)
         let rest = results.dropFirst(pinnedCount + matchCount)
         var grouped: [AppEntry.Kind: [AppEntry]] = [:]
@@ -122,26 +125,26 @@ struct LauncherList: View {
             rows.append(.header("Favorites"))
             rows.append(
                 contentsOf: favorites.enumerated().map {
-                    .app($1, slot: FavoriteSlots.digit(at: $0))
+                    .favorite($1, index: $0)
                 })
         }
         if !meetings.isEmpty {
             rows.append(.header(AppEntry.Kind.meeting.descriptor.sectionTitle))
-            rows.append(contentsOf: meetings.map { .app($0, slot: nil) })
+            rows.append(contentsOf: meetings.map { .app($0) })
         }
         if !suggestions.isEmpty {
             rows.append(.header("Suggestions"))
-            rows.append(contentsOf: suggestions.map { .app($0, slot: nil) })
+            rows.append(contentsOf: suggestions.map { .app($0) })
         }
         if !matches.isEmpty {
             rows.append(.header("Results"))
-            rows.append(contentsOf: matches.map { .app($0, slot: nil) })
+            rows.append(contentsOf: matches.map { .app($0) })
         }
         // Every kind that has entries, in section order; see `sectionOrder`.
         for kind in Self.sectionOrder {
             guard let group = grouped[kind], !group.isEmpty else { continue }
             rows.append(.header(kind.descriptor.sectionTitle))
-            rows.append(contentsOf: group.map { .app($0, slot: nil) })
+            rows.append(contentsOf: group.map { .app($0) })
         }
         return rows + fileRows + fallbackRows
     }
@@ -149,7 +152,7 @@ struct LauncherList: View {
     var body: some View {
         let rows = rows
         return Group {
-            if results.isEmpty && card == nil && files == nil && fallbacks == nil {
+            if results.isEmpty && favorites.isEmpty && card == nil && files == nil && fallbacks == nil {
                 EmptyResults(text: "No apps found")
             } else {
                 ScrollViewReader { proxy in
@@ -171,17 +174,23 @@ struct LauncherList: View {
                                         .onRightClick(perform: onCardActions)
                                         .padding(.bottom, metrics.spacing.xs)
                                         .selectionFrame(cardSelected)
-                                case .app(let app, let slot):
+                                case .app(let app):
                                     AppRow(
                                         app: app,
                                         selected: app.id == selectedRowID,
                                         running: runningApps.isRunning(app),
-                                        slot: slot
+                                        slot: nil
                                     )
                                     .contentShape(Rectangle())
                                     .onRowTap(drag: drag(for: app)) { onActivate(app) }
                                     .onRightClick { onActions(app) }
                                     .selectionFrame(app.id == selectedRowID)
+                                case .favorite(let favorite, let index):
+                                    favoriteRow(favorite, index: index)
+                                        .contentShape(Rectangle())
+                                        .onRowTap(drag: drag(for: favorite)) { onActivateFavorite(index) }
+                                        .onRightClick { onFavoriteActions(index) }
+                                        .selectionFrame(favorite.id == selectedRowID)
                                 case .file(let result, let index):
                                     FileSearchRow(
                                         result: result, selected: row.id == selectedRowID,
@@ -218,6 +227,28 @@ struct LauncherList: View {
                         scroll, row: selectedRowID, atOrigin: firstRowSelected, proxy: proxy)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func favoriteRow(_ favorite: FavoritesStore.Item, index: Int) -> some View {
+        let slot = FavoriteSlots.digit(at: index)
+        switch favorite {
+        case .entry(let entry):
+            AppRow(
+                app: entry, selected: favorite.id == selectedRowID,
+                running: runningApps.isRunning(entry), slot: slot)
+        case .file(let file):
+            FileSearchRow(
+                result: file, selected: favorite.id == selectedRowID,
+                showsLocation: true, slot: slot)
+        }
+    }
+
+    private func drag(for favorite: FavoritesStore.Item) -> RowDrag? {
+        switch favorite {
+        case .entry(let entry): drag(for: entry)
+        case .file(let file): file.rowDrag(dropped: onDropped)
         }
     }
 

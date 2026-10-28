@@ -2,7 +2,13 @@ import SwiftUI
 
 /// Overflow is a button rather than a slot, so no favorite loses its digit to it.
 struct CompactFavoritesRow: View {
-    let favorites: [AppEntry]
+    /// `slot` is the favorite's place in the full section, which a skipped file can make differ.
+    struct Favorite {
+        let slot: Int
+        let app: AppEntry
+    }
+
+    let favorites: [Favorite]
     let showsOverflow: Bool
     let onLaunch: (AppEntry) -> Void
     let onOverflow: () -> Void
@@ -11,12 +17,12 @@ struct CompactFavoritesRow: View {
     var body: some View {
         HStack(spacing: metrics.spacing.xs) {
             // Identified by the app, so a reorder moves an icon with its app, not by position.
-            ForEach(Array(favorites.enumerated()), id: \.element.id) { index, app in
-                CompactFavoriteButton(help: help(for: app, at: index)) {
-                    onLaunch(app)
+            ForEach(favorites, id: \.app.id) { favorite in
+                CompactFavoriteButton(help: help(for: favorite)) {
+                    onLaunch(favorite.app)
                 } content: {
                     // The result rows' size, so collapsing and expanding share one cached bitmap.
-                    AppIconView(app: app, pointSize: metrics.size.resultRowIcon)
+                    AppIconView(app: favorite.app, pointSize: metrics.size.resultRowIcon)
                         .frame(width: metrics.size.rowIcon, height: metrics.size.rowIcon)
                 }
             }
@@ -36,9 +42,9 @@ struct CompactFavoritesRow: View {
         }
     }
 
-    private func help(for app: AppEntry, at index: Int) -> String {
-        guard let digit = FavoriteSlots.digit(at: index) else { return app.name }
-        return "\(app.name)  ⌘\(digit)"
+    private func help(for favorite: Favorite) -> String {
+        guard let digit = FavoriteSlots.digit(at: favorite.slot) else { return favorite.app.name }
+        return "\(favorite.app.name)  ⌘\(digit)"
     }
 }
 

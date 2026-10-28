@@ -123,39 +123,49 @@ struct FileSearchScreen: PaletteScreen {
 @MainActor
 enum FileSearchActionsMenu {
     static func content(
-        result: FileSearchResult, core: AppCore, target: PasteTarget?
+        result: FileSearchResult, core: AppCore, target: PasteTarget?,
+        favorites: FavoriteActions? = nil
     ) -> PopoverMenuContent {
         let coordinator = core.fileSearchCoordinator
-        let items = [
-            PopoverMenuItem(
-                title: result.isDirectory ? "Open Folder" : "Open File",
-                systemImage: result.isDirectory ? "folder" : "doc", shortcut: "↵"
-            ) { coordinator.open(result) },
-            PopoverMenuItem(
-                title: "Show in Finder", systemImage: "folder", shortcut: "⌘↵"
-            ) { coordinator.showInFinder(result) },
-            PopoverMenuItem(title: "Share…", systemImage: "square.and.arrow.up") {
-                coordinator.share(result)
-            },
-            PopoverMenuItem(
-                title: "Copy File", systemImage: "doc.on.clipboard", startsSection: true,
-                shortcut: "⇧⌘C"
-            ) { coordinator.copyFile(result) },
-            PopoverMenuItem(
-                title: target.map { "Paste File to \($0.name)" } ?? "Paste File",
-                icon: .paste(target, fallback: "doc.on.clipboard"), shortcut: "⇧⌘V"
-            ) { coordinator.pasteFile(result) },
-            PopoverMenuItem(
-                title: "Copy Name", systemImage: "doc.on.clipboard", shortcut: "⌥⌘C"
-            ) { coordinator.copyName(result) },
-            PopoverMenuItem(
-                title: "Copy Path", systemImage: "doc.on.clipboard", shortcut: "⌃⌘C"
-            ) { coordinator.copyPath(result) },
-            PopoverMenuItem(
-                title: "Move to Trash", systemImage: "trash", startsSection: true,
-                shortcut: "⌃X", isDestructive: true
-            ) { coordinator.trash(result) }
-        ]
+        let favorites =
+            favorites
+            ?? FavoriteActions(
+                isFavorite: core.favorites.isFavorite(result), toggle: { core.favorites.toggle(result) })
+        let items =
+            [
+                PopoverMenuItem(
+                    title: result.isDirectory
+                        ? "Open Folder" : "Open File",
+                    systemImage: result.isDirectory ? "folder" : "doc", shortcut: "↵"
+                ) { coordinator.open(result) },
+                PopoverMenuItem(
+                    title: "Show in Finder", systemImage: "folder", shortcut: "⌘↵"
+                ) { coordinator.showInFinder(result) },
+                PopoverMenuItem(title: "Share…", systemImage: "square.and.arrow.up") {
+                    coordinator.share(result)
+                }
+            ] + favorites.items + [
+                PopoverMenuItem(
+                    title: "Copy File", systemImage: "doc.on.clipboard",
+                    startsSection: true,
+                    shortcut: "⇧⌘C"
+                ) { coordinator.copyFile(result) },
+                PopoverMenuItem(
+                    title: target.map { "Paste File to \($0.name)" }
+                        ?? "Paste File",
+                    icon: .paste(target, fallback: "doc.on.clipboard"), shortcut: "⇧⌘V"
+                ) { coordinator.pasteFile(result) },
+                PopoverMenuItem(
+                    title: "Copy Name", systemImage: "doc.on.clipboard", shortcut: "⌥⌘C"
+                ) { coordinator.copyName(result) },
+                PopoverMenuItem(
+                    title: "Copy Path", systemImage: "doc.on.clipboard", shortcut: "⌃⌘C"
+                ) { coordinator.copyPath(result) },
+                PopoverMenuItem(
+                    title: "Move to Trash", systemImage: "trash", startsSection: true,
+                    shortcut: "⌃X", isDestructive: true
+                ) { coordinator.trash(result) }
+            ]
         return PopoverMenuContent(header: result.name, items: items)
     }
 
@@ -163,6 +173,7 @@ enum FileSearchActionsMenu {
     static func perform(_ shortcut: PaletteShortcut, result: FileSearchResult, core: AppCore) -> Bool {
         let coordinator = core.fileSearchCoordinator
         switch shortcut {
+        case .toggleFavorite: core.favorites.toggle(result)
         case .copyFile: coordinator.copyFile(result)
         case .copyName: coordinator.copyName(result)
         case .copyPath: coordinator.copyPath(result)

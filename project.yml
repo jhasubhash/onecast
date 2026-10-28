@@ -169,6 +169,7 @@ targets:
       - Onecast/Features/FileSearch/Model/FileSearchIgnoreList.swift
       - Onecast/Features/FileSearch/Model/FileSearchPolicy.swift
       - Onecast/Features/FileSearch/Model/FileSearchQuery.swift
+      - Onecast/Features/FileSearch/Model/FileSearchResult.swift
       - Onecast/Features/FileSearch/Model/FileSearchScope.swift
       - Onecast/Features/FileSearch/Service/FileIndexCrawler.swift
       - Onecast/Features/FileSearch/Service/FileIndexSnapshot.swift

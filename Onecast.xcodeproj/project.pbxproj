@@ -193,6 +193,7 @@
 		24C9C04E4083A5093E71232E /* EmojiGridGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEAF51133C8A647254E7B0B /* EmojiGridGeometry.swift */; };
 		24DF939B740A95DCC5E7276C /* UpdateCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEDBE50BF83D1A9E721E4576 /* UpdateCoordinator.swift */; };
 		25073C62D459DAF0AFDF4741 /* SystemNetworkProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616BF5DF8AA19C5FC9307443 /* SystemNetworkProbe.swift */; };
+		250F1BAD4D5FC28D7A5183DA /* FavoriteActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CDC5479CBA5FBB5FE8EFF5A /* FavoriteActions.swift */; };
 		256023AC82AE436E1941EADB /* AIThinkTagDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6602CE266467B1D0858AC15 /* AIThinkTagDecoder.swift */; };
 		256A37C173544B9CD925E37F /* PersonalTileMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268684774C44175919196E51 /* PersonalTileMetrics.swift */; };
 		2582385D11A4256A796C66A1 /* PaletteMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD53B5F386593C3F2B3C8FB1 /* PaletteMode.swift */; };
@@ -751,6 +752,7 @@
 		9BC1572A05B1F89D0E25004F /* SystemMetricReadout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E1E51769912D31BA8CD95EF /* SystemMetricReadout.swift */; };
 		9BE518928F282652713DA953 /* HydrationTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED17C4B502CC70D09A4E436 /* HydrationTileView.swift */; };
 		9BE5E0227219BE45F2218444 /* CompactFavoritesRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2377CE8E2F9E3EACA13B5C32 /* CompactFavoritesRow.swift */; };
+		9C1D59650371AF8925EFD465 /* FileSearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF9F45DCEFB5BF413C8FEA9 /* FileSearchResult.swift */; };
 		9C4B31984E5D553F61F025E0 /* CommandArgumentsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A939DE62022990F3BDAE809 /* CommandArgumentsRow.swift */; };
 		9CA8D6B74DCDF935AE7358D5 /* FileIndexCrawler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34E70AFC507811C781152DB3 /* FileIndexCrawler.swift */; };
 		9CCB1A2F8AE810041DCCC8DC /* ClipboardTextWorker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3745C4891601873A69F9B63 /* ClipboardTextWorker.swift */; };
@@ -1421,6 +1423,7 @@
 		2C3E1FE753F5C5ABD7615C25 /* SettingsFileValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFileValue.swift; sourceTree = "<group>"; };
 		2C5BDE761B9B69AD3D0B44BD /* TimeTileHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTileHeader.swift; sourceTree = "<group>"; };
 		2C8FA2B10AEC8A7EE614D759 /* PaletteDropGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteDropGuideView.swift; sourceTree = "<group>"; };
+		2CDC5479CBA5FBB5FE8EFF5A /* FavoriteActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteActions.swift; sourceTree = "<group>"; };
 		2DB2540B148725902759F9DF /* MCPServerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPServerManager.swift; sourceTree = "<group>"; };
 		2E12CB234C37EB64F109887B /* FavoriteSlots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteSlots.swift; sourceTree = "<group>"; };
 		2E1E51769912D31BA8CD95EF /* SystemMetricReadout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMetricReadout.swift; sourceTree = "<group>"; };
@@ -2420,7 +2423,7 @@
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
 		FFEE3E52A2BABF365CFA8F82 /* PresentationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSession.swift; sourceTree = "<group>"; };
-		"TEMP_8C4DDCBA-ADEC-45F8-A488-F8E8E4933FAC" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_1CC78560-082D-499E-A163-9105F6D9CB49" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -3686,6 +3689,7 @@
 				2377CE8E2F9E3EACA13B5C32 /* CompactFavoritesRow.swift */,
 				1F0666AAA99880297982EA68 /* FallbackActionsMenu.swift */,
 				CAA9AC77EE7CCAC44C3C10B0 /* FallbackCoordinator.swift */,
+				2CDC5479CBA5FBB5FE8EFF5A /* FavoriteActions.swift */,
 				A3042E01308B54E954D693FF /* InlineEntryEditor.swift */,
 				DE2AA8DC9F3B21BF5F88BB17 /* LauncherCoordinator.swift */,
 				55ADB7F83CA3CA7CFC511989 /* LauncherList.swift */,
@@ -5194,10 +5198,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_847E8BA2-096B-43EC-92D5-5528A50B0E1F" /* onecast */ = {
+		"TEMP_5E451C5F-A934-4D5F-93A5-5DCB9D56BC54" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_8C4DDCBA-ADEC-45F8-A488-F8E8E4933FAC" /* Signing.xcconfig */,
+				"TEMP_1CC78560-082D-499E-A163-9105F6D9CB49" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -5870,6 +5874,7 @@
 				0E5DCB7C4E83566FBDE401E7 /* FallbackCoordinator.swift in Sources */,
 				18040D0142061B4BB698ACF2 /* FallbackStore.swift in Sources */,
 				78012AA01AFCDB53CFE76DAD /* FallbacksSettingsView.swift in Sources */,
+				250F1BAD4D5FC28D7A5183DA /* FavoriteActions.swift in Sources */,
 				2C220F5EF142DCF93423B2A7 /* FavoriteSlots.swift in Sources */,
 				FD47F7BDF0962E2B6AD8D8DF /* FavoritesStore.swift in Sources */,
 				69844D8CA68825E0EB582703 /* FeatureCommandsSection.swift in Sources */,
@@ -6606,6 +6611,7 @@
 				3F9729056191C7D9DFCA32CE /* FileSearchIgnoreList.swift in Sources */,
 				46501847205AE7B3FCDCB57C /* FileSearchPolicy.swift in Sources */,
 				232659E7EF17F953D292D2A6 /* FileSearchQuery.swift in Sources */,
+				9C1D59650371AF8925EFD465 /* FileSearchResult.swift in Sources */,
 				01781ACA429D54C92578D007 /* FileSearchScope.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -6653,7 +6659,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_8C4DDCBA-ADEC-45F8-A488-F8E8E4933FAC" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_1CC78560-082D-499E-A163-9105F6D9CB49" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6948,7 +6954,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_8C4DDCBA-ADEC-45F8-A488-F8E8E4933FAC" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_1CC78560-082D-499E-A163-9105F6D9CB49" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
