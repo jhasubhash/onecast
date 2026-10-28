@@ -838,6 +838,7 @@
 		AE210E64101DE506C988DA64 /* PopOutWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C93C9C9E60E3E777360B5452 /* PopOutWindow.swift */; };
 		AE353C1694A5F16FF2AB8333 /* WindowCycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B243594188073A47E0F75DB5 /* WindowCycle.swift */; };
 		AE844588CA75A1362A2D13FE /* ReleaseChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7EC822E518BF6DFB3E9F2D2 /* ReleaseChannel.swift */; };
+		AEA465E794B91C44B75C11F1 /* DictationCueRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29D4C2F52427B280C7E55978 /* DictationCueRunner.swift */; };
 		AEB59139152F6E63F6A784F7 /* RaycastScriptImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D408CF981A635F06B1A097 /* RaycastScriptImport.swift */; };
 		AF0D84D54D727D20167EE8D2 /* DockGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72324A24D124A17295771136 /* DockGeometry.swift */; };
 		AF6CCCFAC0711FCD40C70952 /* DockWidgetLibrarySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E096C8B8F1BDE71B25C029 /* DockWidgetLibrarySheet.swift */; };
@@ -1404,6 +1405,7 @@
 		28C4B8B6135D682C89FB5ECC /* RaycastQuicklinkImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastQuicklinkImport.swift; sourceTree = "<group>"; };
 		29196B069A5B25E5104EC5B1 /* AIProviderFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderFailure.swift; sourceTree = "<group>"; };
 		293BE1DEB12FCCA00E7AAD00 /* StockDockWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockDockWidget.swift; sourceTree = "<group>"; };
+		29D4C2F52427B280C7E55978 /* DictationCueRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCueRunner.swift; sourceTree = "<group>"; };
 		2A939DE62022990F3BDAE809 /* CommandArgumentsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandArgumentsRow.swift; sourceTree = "<group>"; };
 		2AE3975AE177FF8ED3DD3F86 /* DictationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationHelper.swift; sourceTree = "<group>"; };
 		2BD0EE13E62A738D040B5B3A /* PaletteEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteEnvironment.swift; sourceTree = "<group>"; };
@@ -2406,7 +2408,7 @@
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
 		FFEE3E52A2BABF365CFA8F82 /* PresentationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSession.swift; sourceTree = "<group>"; };
-		"TEMP_40E7B5A0-6508-4675-B268-78556CE9C61A" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_440E5478-70C7-4126-860C-EA656A9C72CB" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -4314,6 +4316,7 @@
 				B17EBC61D2AF45C1003C46B6 /* DictationAudioDucker.swift */,
 				43E70B02EABFEF7AA743042B /* DictationCapture.swift */,
 				FC7453DE63B46ADC3DFE11C7 /* DictationCoordinator.swift */,
+				29D4C2F52427B280C7E55978 /* DictationCueRunner.swift */,
 				5A7B6F6DFBD872FB0698F711 /* DictationInsertionContext.swift */,
 				E8112BC3251956DD7D72BC1C /* DictationModelDownloader.swift */,
 				3E42D6C94062D014CA38B8AC /* DictationModelStore.swift */,
@@ -5173,10 +5176,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_EC294682-CD0F-44B9-A414-6BAC549E8C56" /* onecast */ = {
+		"TEMP_672FE8DB-9E22-4B73-87F9-F9FE2B130406" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_40E7B5A0-6508-4675-B268-78556CE9C61A" /* Signing.xcconfig */,
+				"TEMP_440E5478-70C7-4126-860C-EA656A9C72CB" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -5674,6 +5677,7 @@
 				92C089AF9A06DAE7D183F604 /* DictationAudioDucker.swift in Sources */,
 				4AD107BAD519DF021D64655A /* DictationCapture.swift in Sources */,
 				91D7901D842CDB42753D836B /* DictationCoordinator.swift in Sources */,
+				AEA465E794B91C44B75C11F1 /* DictationCueRunner.swift in Sources */,
 				A62DE4578E4BEE342B4994E5 /* DictationDestination.swift in Sources */,
 				7B6956CF72B365B1B8049AED /* DictationIdleRelease.swift in Sources */,
 				FCC5EB8E3F1F4C8511799786 /* DictationInsertionContext.swift in Sources */,
@@ -6625,7 +6629,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_40E7B5A0-6508-4675-B268-78556CE9C61A" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_440E5478-70C7-4126-860C-EA656A9C72CB" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6920,7 +6924,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_40E7B5A0-6508-4675-B268-78556CE9C61A" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_440E5478-70C7-4126-860C-EA656A9C72CB" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

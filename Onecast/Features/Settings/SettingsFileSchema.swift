@@ -110,6 +110,7 @@ enum SettingsFileSchema {
         case .dictationMode: return bind(settings, \.dictationMode)
         case .dictationShortcut:
             return shortcuts.binding(for: key, action: .dictation, name: "Dictation")
+        case .dictationPlaysSounds: return bind(settings, \.dictationPlaysSounds)
         case .dictationModel: return bind(settings, \.dictationModel)
         case .dictationMicrophone: return bind(settings, \.dictationMicrophone)
         case .dictationDestination: return bind(settings, \.dictationDestination)

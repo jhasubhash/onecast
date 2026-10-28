@@ -125,7 +125,8 @@ If a change touches anything in the right column, the harness on the left is man
 | `hyper-key-test` | `HotKeys/Model/HIDKeyMapping.swift`, `HyperKeyConflictPolicy.swift`, `Service/KeyboardRemapper.swift` — mapping ownership, refused writes, crash recovery, device reconnection, Caps Lock and 🎤 remaps sharing a keyboard, conflict severities, Modifier Keys and Karabiner parsing |
 | `hotkey-dispatch-test` | `HotKeys/Service/HotKeyManager.swift` — Secure Input side isolation, shared Control registrations, press/release routing, recording and cancellation; isolated preferences and simulated Carbon registration |
 | `dictation-test` | `Dictation/Model/DictationModel.swift`, `DictationTextFormatter.swift`, `DictationLiveTranscript.swift` — model paths, text formatting, and live typing's word agreement, cut carry-over and continued context |
-| `dictation-field-test` | Composer rebinding and teardown, field-scoped dictation cancellation, queued insertion validity, and live typing (agreed words typed, changing words previewed, Escape keeps typed words); synthetic capture and real AppKit editors |
+| `dictation-field-test` | Composer rebinding and teardown, field-scoped dictation cancellation, queued insertion validity, and live typing (agreed words typed, changing words previewed, Escape keeps typed words), and sound cues against ducking; synthetic capture and real AppKit editors |
+| `dictation-cue-test` | System dictation sound paths, stop-before-play ordering and missing resources, without playing audio |
 | `dictation-volume-test` | Volume recovery across fade steps, user changes, output switching, failed writes and cancellation; injected audio controls only |
 | `dictation-inference-test` | Dictation byte BPE, Fourier/mel features and non-overlapping audio chunks; no downloaded models |
 | `dictation-worker-test` | Dictation's framed channel, worker reuse/switching, removal, cancellation and broken pipes with a fixture helper |

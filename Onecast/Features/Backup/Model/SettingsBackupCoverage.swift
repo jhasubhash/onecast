@@ -97,6 +97,8 @@ enum SettingsBackupCoverage {
             "Dictation preferences stay local until backup supports them.",
         AppSettingsKey.dictationTypesWhileSpeaking.rawValue:
             "Dictation preferences stay local until backup supports them.",
+        AppSettingsKey.dictationPlaysSounds.rawValue:
+            "Dictation preferences stay local until backup supports them.",
         AppSettingsKey.dictationIdleRelease.rawValue:
             "Dictation memory use stays a device-local preference.",
         AppSettingsKey.clipboardTextSearchEnabled.rawValue:

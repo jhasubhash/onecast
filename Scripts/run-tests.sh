@@ -335,6 +335,7 @@ run fallback-test          Onecast/Features/Launcher/Model/Fallback.swift \
 run intent-test            Onecast/Features/Intent/Model/*.swift
 run dictation-test         Onecast/Features/Dictation/Model/DictationModel.swift Onecast/Features/Dictation/Model/DictationIdleRelease.swift Onecast/Features/Dictation/Model/DictationTextFormatter.swift \
                            Onecast/Features/Dictation/Model/DictationLiveTranscript.swift
+run dictation-cue-test     Onecast/Features/Dictation/Service/DictationCueRunner.swift
 run dictation-field-test   Onecast/Features/Dictation/Model/DictationModel.swift \
                            Onecast/Features/Dictation/Model/DictationMode.swift \
                            Onecast/Features/Dictation/Model/DictationDestination.swift \
