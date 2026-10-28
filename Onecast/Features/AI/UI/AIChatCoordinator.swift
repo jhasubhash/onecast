@@ -239,20 +239,23 @@ final class AIChatCoordinator {
     private func turn(addressing slug: String?) -> Turn {
         let assistant = activeAssistant
         let skills = assistant.map { core.skills.enabledSkills(ids: $0.skillIDs) } ?? []
+        let onDevice = effectiveModel?.isOnDevice == true
         let skillBudget: Int
-        if effectiveModel?.isOnDevice == true {
+        if onDevice {
             skillBudget = AISkillBudget.onDevice
         } else if effectiveModel?.source.installedKind != nil {
             skillBudget = AISkillBudget.cli
         } else {
             skillBudget = AISkillBudget.default
         }
+        // On device, an assistant's own prompt and Skills still go; the global prompt does not.
         let instructions = AIInstructions.compose(
-            userPrompt: assistant?.systemPrompt ?? core.aiSettings.systemPrompt,
+            userPrompt: onDevice
+                ? assistant?.systemPrompt : assistant?.systemPrompt ?? core.aiSettings.systemPrompt,
             skills: skills, skillBudget: skillBudget,
             allowsSkillScripts: assistant?.allowShellTools ?? false,
             isEnabled: assistant?.systemPromptEnabled ?? core.aiSettings.systemPromptEnabled,
-            offersChoices: core.aiSettings.choicesEnabled)
+            offersChoices: core.aiSettings.choicesEnabled, onDevice: onDevice)
         return Turn(
             webSearch: (assistant?.webSearch ?? core.aiSettings.webSearchEnabled)
                 && capabilities.webSearch,

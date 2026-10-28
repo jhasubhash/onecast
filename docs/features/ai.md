@@ -29,7 +29,7 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
 - **A set command path wins or fails, and a reader's variable never replaces one Onecast sets.**
   Falling back to the lookup would hide the mistake the path was set to fix; `isManagedVariable`
   keeps the chat's own sandbox variables, `COPILOT_ALLOW_ALL` included, out of the reader's reach.
-- **Every request carries Onecast's own preamble, and the user's text goes after it.**
+- **Every off-device request carries Onecast's own preamble, and the user's text goes after it.**
   `AIInstructions.compose` builds `AIRequest.instructions`: a fixed preamble that tells the model
   where it is running and what the app can do, then whatever Settings → AI holds. The preamble
   keeps the model a general-purpose assistant — the app facts are reference for when the user asks,
@@ -37,6 +37,10 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
   Onecast over anything else. It is not shown in the pane, and `AIPreamble.swift` holds the only
   copy of it — edit the prompt there, not here. `compose` returns `nil` when the user has turned
   the system prompt off, and every transport drops a nil instruction, so a turn then carries none.
+  On Apple Intelligence the preamble, the choices request and the global Settings prompt are all
+  left out: the on-device model is small enough that any standing instruction steers every answer
+  toward it. An assistant's own prompt and its Skills still go, within `AISkillBudget.onDevice`,
+  since the user picked those for that chat; with neither, the turn carries the conversation alone.
 - **API keys live only in the login Keychain.** `AIConnection` persists the provider, endpoint and
   model identifiers in `UserDefaults`; it never contains a key. Keys are addressed by connection UUID
   through `KeychainSecretStore.aiAPIKeys`, and never enter logs, errors or settings backups. A key is issued for one
@@ -61,7 +65,7 @@ depends on neither, and Quick Actions carries its own route rather than borrowin
 - **The on-device route is configured by having a Mac.** `.appleIntelligence` takes no key, opens no
   socket and names no endpoint, so the Keychain, HTTPS and ephemeral-session rules below have nothing
   to bind to — the Settings pane must never grow a credential field for it. It is text-only and
-  offers no web search, the preamble still rides ahead of every turn, and history is bounded to
+  offers no web search, only an assistant's own prompt and Skills ride ahead of its turns, and history is bounded to
   `AppleIntelligence.contextBudget` rather than the cloud routes' ~100 KB because the on-device window
   holds a prompt and its reply together. Availability is asked for each time, never cached at launch:
   the model finishes downloading mid-session, and reading it inside a view body leaves SwiftUI

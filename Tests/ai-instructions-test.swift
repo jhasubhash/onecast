@@ -49,6 +49,20 @@ struct AIInstructionsTest {
         check(
             "turned off, the choices ask is withheld too",
             AIInstructions.compose(userPrompt: nil, isEnabled: false, offersChoices: true) == nil)
+        // The on-device model bends every answer toward a standing instruction, so it gets none of ours.
+        check(
+            "on device, a turn without a prompt carries nothing",
+            AIInstructions.compose(
+                userPrompt: nil, isEnabled: true, offersChoices: true, onDevice: true) == nil)
+        check(
+            "on device, the user's own text goes alone, without the preamble or choices",
+            AIInstructions.compose(
+                userPrompt: "  Answer only in haiku.  ", isEnabled: true, offersChoices: true,
+                onDevice: true) == "Answer only in haiku.")
+        check(
+            "on device, turned off still withholds everything",
+            AIInstructions.compose(
+                userPrompt: "Answer only in haiku.", isEnabled: false, onDevice: true) == nil)
         check(
             "the preamble alone never asks for a choices block",
             !AIPreamble.text.contains("```choices"))

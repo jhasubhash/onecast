@@ -1,7 +1,8 @@
 import Foundation
 
 /// Every turn carries `AIPreamble`, then the user's text, then any enabled Skills; turned off, it
-/// carries none of them.
+/// carries none of them. On device it carries no preamble: the small model bends every answer
+/// toward any standing instruction, so only what the user chose for this chat goes.
 enum AIInstructions {
     /// The user's own text goes after the preamble so it qualifies rather than fights it; enabled
     /// Skills follow, injected newest-first into `skillBudget` bytes with the overflow noted.
@@ -11,17 +12,20 @@ enum AIInstructions {
     static func compose(
         userPrompt: String?, skills: [Skill] = [], skillBudget: Int = AISkillBudget.default,
         allowsSkillScripts: Bool = false, isEnabled: Bool,
-        offersChoices: Bool = false
+        offersChoices: Bool = false, onDevice: Bool = false
     ) -> String? {
         guard isEnabled else { return nil }
-        var parts = [AIPreamble.text]
-        if offersChoices { parts.append(AIPreamble.choices) }
+        var parts: [String] = []
+        if !onDevice {
+            parts.append(AIPreamble.text)
+            if offersChoices { parts.append(AIPreamble.choices) }
+        }
         let prompt = userPrompt?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !prompt.isEmpty { parts.append(prompt) }
         if let block = skillsBlock(skills, budget: skillBudget, allowsScripts: allowsSkillScripts) {
             parts.append(block)
         }
-        return parts.joined(separator: "\n\n")
+        return parts.isEmpty ? nil : parts.joined(separator: "\n\n")
     }
 
     private static func skillsBlock(_ skills: [Skill], budget: Int, allowsScripts: Bool) -> String? {
