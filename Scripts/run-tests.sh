@@ -530,8 +530,17 @@ run hyper-key-engine-test  Onecast/Features/HotKeys/Model/HyperKeyEngine.swift \
 run hyper-key-test         Onecast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Onecast/Features/HotKeys/Model/HyperKeyConflictPolicy.swift \
                            Onecast/Features/HotKeys/Service/KeyboardRemapper.swift \
-                           Onecast/Features/HotKeys/Service/HyperKeyInstanceLock.swift \
+                           Onecast/Features/HotKeys/Service/RemapInstanceLock.swift \
                            Tests/hyper-key-fixtures.swift
+run dictation-key-test     Onecast/Features/HotKeys/Model/HIDKeyMapping.swift \
+                           Onecast/Features/HotKeys/Model/HyperKeyConflictPolicy.swift \
+                           Onecast/Features/HotKeys/Service/KeyboardRemapper.swift \
+                           Onecast/Features/HotKeys/Service/RemapInstanceLock.swift \
+                           Onecast/Features/HotKeys/Service/DictationKeyManager.swift \
+                           Onecast/Platform/HealthTicker.swift \
+                           Onecast/Platform/NotificationToken.swift \
+                           Tests/hyper-key-fixtures.swift \
+                           Tests/dictation-key-fixtures.swift
 run hotkey-dispatch-test   Onecast/Features/HotKeys/Model/DoubleTapModifier.swift \
                            Onecast/Features/HotKeys/Model/ModifierKey.swift \
                            Onecast/Features/HotKeys/Model/HotKeyBinding.swift \

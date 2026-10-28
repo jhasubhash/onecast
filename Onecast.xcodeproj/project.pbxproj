@@ -286,7 +286,6 @@
 		39487F5EAE2ACB547B0A7CE0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E805CEB4DBE3E16B0C328455 /* Assets.xcassets */; };
 		395246E392E2640A8506E4CB /* HydrationPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E36D555AB9D244CBCF4841 /* HydrationPopoverView.swift */; };
 		396C93CE6740407AFBBBC728 /* DockSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 713D94FE40097A5C95691471 /* DockSurface.swift */; };
-		39AB36C399C3D80DDC3792B8 /* HyperKeyInstanceLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901C124BECF490D8474BB622 /* HyperKeyInstanceLock.swift */; };
 		39AF1A2FB726FB603F864479 /* CalcTimestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2D3F10D2D87F60419049CE /* CalcTimestamp.swift */; };
 		39B1556669E97D828D21959A /* AppleShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A3E4C79A4D2F3CDF85F196 /* AppleShortcutsSettingsView.swift */; };
 		3A4109049FCCE80715CEB5D2 /* QuickLookSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8D6303304B8478B0FC8C32 /* QuickLookSurface.swift */; };
@@ -314,6 +313,7 @@
 		3ECBC2E542FDA91378D3D8CB /* QuicklinkLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236A1BB1C182039221C68F4F /* QuicklinkLauncher.swift */; };
 		3EDF938487DFFFE853C729F2 /* WindowManagementSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F9722F3EE1B37124A1CB723 /* WindowManagementSettingsView.swift */; };
 		3F3182AD8F3EE5E98F928620 /* QuickActionPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AF771878BBC87C92046DBCB /* QuickActionPrompt.swift */; };
+		3F4706B9F9985511A38F5D44 /* RemapInstanceLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 767952B1AA078EB2E7DD7FF7 /* RemapInstanceLock.swift */; };
 		3F6AF6652CC8B3F952C6AB38 /* SystemActionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 693459A837032A7B2809E6E2 /* SystemActionsSettingsView.swift */; };
 		3F9729056191C7D9DFCA32CE /* FileSearchIgnoreList.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4CBE74C58EA91BB7ACCC8D /* FileSearchIgnoreList.swift */; };
 		3FC9D5867F54595247184BD1 /* FileIndexSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9A070248F20C5F4433EA8 /* FileIndexSnapshot.swift */; };
@@ -1748,6 +1748,7 @@
 		75FAFF74C747EF223B6A7720 /* NotesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesSettingsView.swift; sourceTree = "<group>"; };
 		760E45AA5CCE258FC97BACF9 /* WindowDragHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDragHandle.swift; sourceTree = "<group>"; };
 		766194687738ECC1B2CA8F91 /* ColorDot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorDot.swift; sourceTree = "<group>"; };
+		767952B1AA078EB2E7DD7FF7 /* RemapInstanceLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemapInstanceLock.swift; sourceTree = "<group>"; };
 		76F2B6D5CBB562F5B9CF51E9 /* AgentHTTPRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHTTPRequest.swift; sourceTree = "<group>"; };
 		76F378A2319FA8FFD8323AB5 /* ExtensionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsSettingsView.swift; sourceTree = "<group>"; };
 		76F64A4CF2C03DBB774B28C3 /* ReleaseNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesView.swift; sourceTree = "<group>"; };
@@ -1877,7 +1878,6 @@
 		8F7DDC368C5688B2C336B694 /* NetworkActivityTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkActivityTileView.swift; sourceTree = "<group>"; };
 		8FD9E8915D02F1BDD64A2A5C /* AIBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBrand.swift; sourceTree = "<group>"; };
 		8FE907E489B41A012D388990 /* SystemSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSeries.swift; sourceTree = "<group>"; };
-		901C124BECF490D8474BB622 /* HyperKeyInstanceLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyperKeyInstanceLock.swift; sourceTree = "<group>"; };
 		9027630F336D56C9FE479032 /* IntentClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentClassifier.swift; sourceTree = "<group>"; };
 		90458F23793139E6239C965E /* ExtensionStoreClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionStoreClient.swift; sourceTree = "<group>"; };
 		90798C9A9A5070B096AB1382 /* AgentWindowCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentWindowCapture.swift; sourceTree = "<group>"; };
@@ -2418,7 +2418,7 @@
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
 		FFEE3E52A2BABF365CFA8F82 /* PresentationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSession.swift; sourceTree = "<group>"; };
-		"TEMP_F8100E00-68DC-45C3-B568-1A6C6D07F307" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_685C6865-317C-4D63-B8C1-C53A84BC4DEB" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -3821,12 +3821,12 @@
 				7986334C8AC133528554D244 /* HotKeyManager.swift */,
 				7F5B1CEFBBBC9D2F66C5EAEA /* HotKeySettingsFile.swift */,
 				D98473A34DC0627E740496EF /* HyperKeyConflictScanner.swift */,
-				901C124BECF490D8474BB622 /* HyperKeyInstanceLock.swift */,
 				B3844493C83A8E1549E00BF4 /* HyperKeyManager.swift */,
 				8E86EBF525381B60A91DAEBA /* HyperKeyTap.swift */,
 				98E4B9860A1F7524CF2BEF1F /* KeyboardRemapper.swift */,
 				B8300307228F93E69BA2A8FB /* KeyShortcut.swift */,
 				C3E31EBCE398D827B5FF7917 /* ModifierTapMonitor.swift */,
+				767952B1AA078EB2E7DD7FF7 /* RemapInstanceLock.swift */,
 				4C12639B48015992E741418C /* SecureInputMonitor.swift */,
 				FA89C4A73F7AB7259989FD26 /* ShortcutCaptureSession.swift */,
 			);
@@ -5191,10 +5191,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_6C3F8933-96E4-45C8-B575-CC46D1B1898F" /* onecast */ = {
+		"TEMP_63CF44EB-9BDE-4325-B0F8-44B1B47D7D05" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_F8100E00-68DC-45C3-B568-1A6C6D07F307" /* Signing.xcconfig */,
+				"TEMP_685C6865-317C-4D63-B8C1-C53A84BC4DEB" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -5929,7 +5929,6 @@
 				5242878B65F4A874F44C0DEA /* HyperKeyDiagnostics.swift in Sources */,
 				5628409049813F6EF2494E73 /* HyperKeyDiagnosticsSection.swift in Sources */,
 				438D3786B4EF9634AF845E36 /* HyperKeyEngine.swift in Sources */,
-				39AB36C399C3D80DDC3792B8 /* HyperKeyInstanceLock.swift in Sources */,
 				831590589926FBE5E8288F10 /* HyperKeyManager.swift in Sources */,
 				DF6B82956E3353E579391FE7 /* HyperKeySettingsSection.swift in Sources */,
 				05E2465450E47B64C3B66F3F /* HyperKeyTap.swift in Sources */,
@@ -6251,6 +6250,7 @@
 				99E52229992F026F34B61DD7 /* ReleaseFeed.swift in Sources */,
 				C8B6F3885F741E0ED488007C /* ReleaseNotes.swift in Sources */,
 				287B0735D5866C475B95E527 /* ReleaseNotesView.swift in Sources */,
+				3F4706B9F9985511A38F5D44 /* RemapInstanceLock.swift in Sources */,
 				A0870F794815DF33C13FDCA4 /* ReminderApp.swift in Sources */,
 				6E4CBFD0988E66C8ACEDC841 /* ReminderAppExporter.swift in Sources */,
 				7C9A90CBA26346465EDBAB6A /* ReminderPhraseModel.swift in Sources */,
@@ -6649,7 +6649,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_F8100E00-68DC-45C3-B568-1A6C6D07F307" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_685C6865-317C-4D63-B8C1-C53A84BC4DEB" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6944,7 +6944,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_F8100E00-68DC-45C3-B568-1A6C6D07F307" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_685C6865-317C-4D63-B8C1-C53A84BC4DEB" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

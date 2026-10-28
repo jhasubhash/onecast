@@ -199,7 +199,7 @@ where a bare ⇧ combo would shadow typing.
 into the ⌃⌥(⇧)⌘ chord system-wide. It owns the lifecycle and policy. `HyperKeyEngine` decides
 transitions; `HyperKeyTap` owns a **modifying** `CGEventTap` at the HID level, a separate layer from
 `HotKeyCenter` because Carbon cannot intercept a lone key at all. The tap is served by its own thread,
-`com.tinycast.hyper-key`, with the engine behind a `Mutex` — the shape `CommandEscapeTap` uses — so a
+`com.onecast.hyper-key`, with the engine behind a `Mutex` — the shape `CommandEscapeTap` uses — so a
 busy main thread never delays typing or times the tap out. The rewritten flags flow onward into Carbon
 matching, so existing combo hotkeys fire from Hyper+key with no extra registration.
 
@@ -256,6 +256,11 @@ on either side of the write therefore restores the original, even with Hyper Key
 next launch. Failed cleanup retains its record and is retried on relaunch or keyboard reconnection.
 Records from another boot are ignored because HID mappings do not survive a reboot. The client stays
 alive after first use so connected keyboards receive the remap or finish pending cleanup.
+
+Hyper's remapper takes the instance lock before any mapping or recovery write, including startup,
+teardown and reconnect cleanup. It reloads the journal under the lock so a waiting copy cannot use
+another owner's stale recovery records. Cleanup without a live Hyper key borrows the lock only for
+that operation; a blocked copy leaves both the mapping and journal alone.
 
 The mapping comes off on unbind, on quit, while the Mac sleeps, while the screen is locked — a password
 typed at the lock screen needs a real Caps Lock — and while another user's session is active, and goes
@@ -322,10 +327,10 @@ machine for it.
   50 ms or more per event is marked slow, since it delays all typing. Those taps are listed, never
   acted on: most are benign.
 - **Another Onecast.** Release and Dev builds would each remap the key and rewrite every event.
-  `HyperKeyInstanceLock` holds an `flock` on `com.onecast.hyper-key.lock` in the shared temporary
-  directory while a key is live, and the kernel drops it when its holder exits, so no record goes
-  stale. The holder writes its pid so the refused process can name it in the `.blocked` HUD; the
-  watchdog takes over once the lock is free.
+  `RemapInstanceLock` holds an `flock` on `com.onecast.hyper-key.lock` in the shared temporary
+  directory while a key is live and during recovery cleanup. The kernel drops it when its holder
+  exits, so no record goes stale. The holder writes its pid so the refused process can name it in the
+  `.blocked` HUD; the watchdog takes over once the lock is free.
 - **Karabiner.** It seizes the real keyboards and types through its virtual keyboard, so that one gets
   the remap too. A conflict is that keyboard already sending our key elsewhere, or the selected profile
   in `~/.config/karabiner/karabiner.json` remapping the key.
@@ -423,6 +428,13 @@ like on any other combo. Otherwise, and in other users' sessions, macOS Dictatio
 draw as `mic` (`KeyCapChip`), and a shortcut printed as text goes through `KeyCapChip.inlineText`. The
 remap has its own recovery journal (`dictationKeyKeyboardMappings`) beside the Hyper Key's, so the two
 share a keyboard and each removal leaves the other's mapping in place.
+
+Like Hyper's, its remap and recovery journal are guarded by a `RemapInstanceLock`, on
+`com.onecast.dictation-key.lock`, held while the remap is wanted. A second copy that finds the lock
+held leaves both alone: the remap is system-wide, so its F20 already arrives.
+It subscribes to the shared one-second watchdog while waiting for ownership, then takes over when
+the owner quits or stops using the key. Taking ownership, removing the binding, leaving the session
+or terminating stops the retry.
 
 ## Recorder
 
