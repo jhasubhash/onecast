@@ -56,12 +56,12 @@ enum CommandID: String, CaseIterable, Sendable {
     case quit = "command:quit"
 
     static let defaultCompactBarCommands: [CommandID] = [
-        .clipboardHistory, .searchFiles, .searchSnippets, .searchQuicklinks
+        .clipboardHistory, .searchEmoji, .searchFiles, .searchQuicklinks
     ]
 
     static let compactBarOptions: [CommandID] =
         defaultCompactBarCommands + [
-            .searchEmoji, .showNotes, .mySchedule, .aiChat
+            .searchSnippets, .showNotes, .mySchedule, .aiChat
         ]
 
     static let compactBarLimit = 4
