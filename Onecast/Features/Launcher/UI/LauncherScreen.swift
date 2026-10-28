@@ -500,17 +500,6 @@ struct LauncherScreen: PaletteScreen {
         return core.runningApps.isRunning(app)
     }
 
-    /// The compact bar's icons: the apps among the first five favorites, each with its own slot.
-    /// A file or folder keeps its slot but shows only expanded, so no icon borrows its digit.
-    var compactFavorites: [CompactFavoritesRow.Favorite] {
-        pinnedFavorites.prefix(5).enumerated().compactMap { slot, favorite in
-            if case .entry(let entry) = favorite { .init(slot: slot, app: entry) } else { nil }
-        }
-    }
-
-    /// Whether the compact bar's "…" has anything to reveal, a file or folder favorite included.
-    var hasUnshownFavorites: Bool { pinnedFavorites.count > compactFavorites.count }
-
     func body(selection: Int, scroll: ScrollIntent) -> AnyView {
         AnyView(content(selection: selection, scroll: scroll))
     }

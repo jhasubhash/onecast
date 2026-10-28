@@ -320,6 +320,20 @@ run palette-tab-test       Onecast/Palette/PaletteMode.swift \
                            Onecast/Features/Quicklinks/Model/Quicklink.swift \
                            Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
                            Onecast/Features/CustomCommands/Model/CustomCommand.swift
+run compact-bar-test       Onecast/Features/Launcher/Model/CompactBarSelection.swift \
+                           Onecast/Features/Settings/AppSettingsKey.swift \
+                           Onecast/Features/Settings/Model/*.swift \
+                           Onecast/Features/Launcher/Model/CommandID.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Onecast/Features/QuickActions/Model/QuickAction.swift \
+                           Onecast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Onecast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Onecast/Features/Quicklinks/Model/Quicklink.swift \
+                           Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Onecast/Features/SystemActions/Model/SystemAction.swift \
+                           Onecast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Onecast/Features/Snippets/Model/Snippet.swift \
+                           Onecast/Features/Intent/Model/*.swift
 run fallback-test          Onecast/Features/Launcher/Model/Fallback.swift \
                            Onecast/Features/Launcher/Model/CommandID.swift \
                            Onecast/Features/HotKeys/Model/HotKeyAction.swift \

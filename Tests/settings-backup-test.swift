@@ -60,6 +60,9 @@ struct SettingsBackupTest {
             "the Notes menu bar item rides the settings backup",
             mirrored["notesShowsInMenuBar"] == .notesShowsInMenuBar)
         check(
+            "compact shortcuts ride the settings backup",
+            mirrored["compactBarCommands"] == .compactBarCommands)
+        check(
             "clipboard enablement rides the settings backup",
             mirrored["clipboardEnabled"] == .clipboardEnabled)
         check(

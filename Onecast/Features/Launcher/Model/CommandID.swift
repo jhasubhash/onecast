@@ -55,6 +55,28 @@ enum CommandID: String, CaseIterable, Sendable {
     case support = "command:support"
     case quit = "command:quit"
 
+    static let defaultCompactBarCommands: [CommandID] = [
+        .clipboardHistory, .searchFiles, .searchSnippets, .searchQuicklinks
+    ]
+
+    static let compactBarOptions: [CommandID] =
+        defaultCompactBarCommands + [
+            .searchEmoji, .showNotes, .mySchedule, .aiChat
+        ]
+
+    static let compactBarLimit = 4
+
+    static func validCompactBarCommands(_ commands: [CommandID]) -> Bool {
+        commands.count <= compactBarLimit && Set(commands).count == commands.count
+            && commands.allSatisfy(compactBarOptions.contains)
+    }
+
+    static func compactBarCommands(from identifiers: [String]) -> [CommandID]? {
+        let commands = identifiers.compactMap(CommandID.init(rawValue:))
+        guard commands.count == identifiers.count, validCompactBarCommands(commands) else { return nil }
+        return commands
+    }
+
     var name: String {
         switch self {
         case .aiChat: return "AI Chat"

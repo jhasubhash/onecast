@@ -26,7 +26,7 @@ struct CustomCommandEditorView: View {
                             FormTextArea(
                                 text: $editor.shellCommand, selection: $editor.selection,
                                 focused: focusBinding(.command),
-                                minimumHeight: metrics.size.headerHeight * 2,
+                                minimumHeight: metrics.size.textAreaUnit * 2,
                                 label: "Shell command", isCode: true, moveFocus: editor.advanceFocus
                             )
                             .formFieldChrome(focused: focusedField == .command)

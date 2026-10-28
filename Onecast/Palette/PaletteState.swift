@@ -50,7 +50,6 @@ final class PaletteState {
     private(set) var emojiGridZoomToken = UUID()
     /// The last zoom from `noteEmojiGridZoom`, consumed by the SwiftUI layer.
     private(set) var emojiGridZoom: EmojiGridZoom?
-    /// Set by the compact bar's overflow to expand without a query; cleared by `prepare`.
     var forceExpanded = false
     /// This AI summon is the floating bar: its own placement, a collapsed composer, direction-aware.
     var aiBar = false

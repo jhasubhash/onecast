@@ -48,8 +48,12 @@ struct RootPaletteView: View {
     @State private var paletteWidth: CGFloat = 0
     /// The pending scroll request; modes are exclusive, so one piece of state serves all.
     @State private var scroll = ScrollIntent(kind: .top)
+    @State private var compactSelection = CompactBarSelection()
+
     /// Compact vs. full; the source of truth is on `AppCore`, so the two can't disagree.
     private var isCollapsed: Bool { core.paletteCoordinator.paletteIsCollapsed }
+    /// Collapsed to the launcher's compact bar; the collapsed AI bar is the other collapsed state.
+    private var isCompactLauncher: Bool { isCollapsed && !vm.aiBar }
 
     /// The low-placed AI bar docks its composer at the bottom with the transcript above it, so the
     /// bar the user typed in stays put and the chat grows upward into the space over it.
@@ -330,7 +334,7 @@ struct RootPaletteView: View {
                 }
                 // The panel has no title bar, so this thin top margin is the only place left to grab
                 // it — kept even over a plugin surface, so Drag to reposition still works there.
-                .overlay(alignment: .top) { topDragStrip }
+                .overlay(alignment: .topLeading) { topDragStrip }
                 // The menu lives in its own window; this only reports the one to hang it from.
                 .background(
                     WindowReader {
@@ -341,8 +345,10 @@ struct RootPaletteView: View {
                 // The window's frame is the size source, so the glass and clip stay matched.
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { paletteWidth = $0 }
-                .background(Theme.Colors.panelScrim)
-                .background(GlassEffectView())
+                // Compact, the bar's own glass shapes are the surface and the window is bare.
+                .background(isCompactLauncher ? .clear : Theme.Colors.panelScrim)
+                // Hidden rather than unmounted, so expanding never shows a frame without glass.
+                .background(GlassEffectView().opacity(isCompactLauncher ? 0 : 1))
                 .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))),
             selection: sel)
     }
@@ -380,11 +386,20 @@ struct RootPaletteView: View {
         menuObservers(emojiObservers(content)
             // Every show bumps focusToken so the search field refocuses.
             .onChange(of: vm.focusToken) {
+                resetCompactSelection()
                 searchFocused = !screen.hidesSearchField
+            }
+            .onChange(of: vm.isVisible) { resetCompactSelection() }
+            .onChange(of: vm.isComposing) {
+                if vm.isComposing { resetCompactSelection() }
+            }
+            .onChange(of: compactCommands) {
+                compactSelection.reconcile(commands: compactCommands)
             }
             // A preserved screen re-summons as it was left, so a menu must end with the palette.
             .modifier(PaletteHideObserver { if menuOpen { closeMenus() } })
             .onChange(of: vm.query) {
+                resetCompactSelection()
                 // AI keeps its line breaks and re-measures its composer; every other mode is one line.
                 if vm.mode == .ai { updateAIComposer() } else if vm.collapseQueryLineBreaks() { return }
                 land(restoringNavigation: true)
@@ -512,6 +527,7 @@ struct RootPaletteView: View {
             .modifier(SearchFieldHiding(hidden: hidesSearchField, apply: applySearchFieldHiding))
             // Several paths flip `paletteIsCollapsed`, so resize the window to match.
             .onChange(of: core.paletteCoordinator.paletteIsCollapsed) {
+                resetCompactSelection()
                 core.paletteCoordinator.syncPaletteSize()
             }
             // Leaving the AI bar may keep the collapsed state, yet its size and resizability go.
@@ -529,16 +545,21 @@ struct RootPaletteView: View {
                 if let reorder = movePinnedOrFavorite(1, modifiers: press.modifiers) { return reorder }
                 // A control's own list owns every navigation key while it is up.
                 if vm.isControlListOpen { return .ignored }
+                if menuOpen {
+                    moveMenu(1)
+                    return .handled
+                }
                 if isCollapsed {
                     // The AI bar has no list to reveal; only the launcher bar expands on Down.
                     if vm.aiBar { return .ignored }
+                    guard !vm.isComposing else { return .ignored }
+                    if compactSelection.command != nil {
+                        activateCompactSelection()
+                        return .handled
+                    }
                     // The compact bar shows no selection, so Down reveals the list's first row.
                     vm.selection = 0
                     core.paletteCoordinator.expandFromCompact()
-                    return .handled
-                }
-                if menuOpen {
-                    moveMenu(1)
                     return .handled
                 }
                 return moveVertically(1)
@@ -554,15 +575,16 @@ struct RootPaletteView: View {
                 }
                 return moveVertically(-1)
             }
-            // Horizontal arrows step the grid; elsewhere they stay with the caret.
-            .onKeyPress(.leftArrow) {
+            .onKeyPress(keys: [.leftArrow], phases: [.down, .repeat]) { press in
                 if vm.isControlListOpen { return .ignored }
                 if menuOpen { return .handled }
+                if moveCompactSelection(-1, modifiers: press.modifiers) { return .handled }
                 return moveHorizontally(-1) ? .handled : .ignored
             }
-            .onKeyPress(.rightArrow) {
+            .onKeyPress(keys: [.rightArrow], phases: [.down, .repeat]) { press in
                 if vm.isControlListOpen { return .ignored }
                 if menuOpen { return .handled }
+                if moveCompactSelection(1, modifiers: press.modifiers) { return .handled }
                 return moveHorizontally(1) ? .handled : .ignored
             }
             // Plain ↵ runs an open menu's row or non-form selection; ⌘↵ submits forms.
@@ -572,6 +594,11 @@ struct RootPaletteView: View {
                 let option = press.modifiers.contains(.option)
                 if menuOpen, !command, !option {
                     activateMenuItem(menuSelection)
+                    return .handled
+                }
+                if isCompactLauncher, !command, !option {
+                    guard !vm.isComposing, !vm.isControlListOpen else { return .ignored }
+                    activateCompactSelection()
                     return .handled
                 }
                 if vm.mode.isNativeEditor { return .ignored }
@@ -609,13 +636,15 @@ struct RootPaletteView: View {
                 switch PaletteEscapeAction.resolve(
                     menuOpen: menuOpen, argumentFocused: argumentFocused != nil, query: vm.query,
                     mode: vm.mode, canGoBack: vm.canGoBack,
-                    behavior: settings.escapeKeyBehavior)
+                    behavior: settings.escapeKeyBehavior,
+                    compactRootExpanded: settings.compactMode && vm.mode == .launcher && !isCollapsed)
                 {
                 case .closeMenu:
                     closeMenus()
                 case .leaveArgumentField:
                     returnFocusToSearchField()
                 case .clearQuery:
+                    if settings.compactMode, vm.mode == .launcher { vm.forceExpanded = true }
                     vm.query = ""
                 case .exitExtensionScreen:
                     core.extensionCoordinator.exitExtensionScreen()
@@ -623,6 +652,9 @@ struct RootPaletteView: View {
                     core.pluginCoordinator.exitPluginScreen()
                 case .goBack:
                     goBack()
+                case .collapsePalette:
+                    vm.forceExpanded = false
+                    resetCompactSelection()
                 case .hidePalette:
                     core.paletteCoordinator.hidePalette()
                     // This behavior promises a root search on reopen, whatever the delay says.
@@ -728,7 +760,8 @@ struct RootPaletteView: View {
     /// A thin strip along the top edge for grabbing the window; the Appearance setting gates it.
     private var topDragStrip: some View {
         Color.clear
-            .frame(height: metrics.size.headerPadding)
+            // Compact, it stops at the capsule, so a button keeps its whole press.
+            .frame(width: compactCapsuleWidth, height: metrics.size.headerPadding)
             .windowDraggable(settings.paletteDraggable, onBegan: beginDrag, onEnded: endDrag)
     }
 
@@ -754,6 +787,62 @@ struct RootPaletteView: View {
     }
 
     private var header: some View {
+        headerBar
+            // The field stops where the capsule will, so it never runs under a button.
+            .frame(width: compactCapsuleWidth)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Behind the row, which a glass container would otherwise paint over.
+            .background(alignment: .topLeading) {
+                if isCompactLauncher {
+                    CompactBar(
+                        commands: compactCommands, selection: compactSelection.command,
+                        onRun: runCompactCommand)
+                }
+            }
+            // Next turn, once the show's `land()` and search refocus are done, so neither undoes it.
+            .onChange(of: vm.pendingArgumentEntryID) {
+                Task { @MainActor in focusPendingArgument() }
+            }
+            .onChange(of: core.aiChat.pendingAttachments.map(\.id)) { refreshAttachmentsMenu() }
+    }
+
+    private var compactCommands: [CommandID] {
+        settings.compactBarCommands.filter(appIndex.isCommandEnabled)
+    }
+
+    private func resetCompactSelection() {
+        compactSelection.command = nil
+    }
+
+    private func moveCompactSelection(_ step: Int, modifiers: EventModifiers = []) -> Bool {
+        guard isCompactLauncher, vm.query.isEmpty, !vm.isComposing, !menuOpen,
+            !vm.isControlListOpen,
+            modifiers.isDisjoint(with: [.command, .control, .option, .shift])
+        else { return false }
+        compactSelection.move(by: step, commands: compactCommands)
+        return true
+    }
+
+    private func activateCompactSelection() {
+        guard let command = compactSelection.command else { return }
+        runCompactCommand(command)
+    }
+
+    private func runCompactCommand(_ command: CommandID) {
+        guard isCompactLauncher, vm.isVisible, compactCommands.contains(command) else { return }
+        withTransaction(\.disablesAnimations, true) {
+            core.launcherCoordinator.runCommand(command)
+        }
+    }
+
+    /// Where the compact capsule ends beside its buttons; nil while expanded.
+    private var compactCapsuleWidth: CGFloat? {
+        guard isCompactLauncher else { return nil }
+        return CompactBarGeometry(metrics: metrics, count: compactCommands.count)
+            .capsuleWidth(revealed: true)
+    }
+
+    private var headerBar: some View {
         HStack(alignment: headerVerticalAlignment, spacing: 0) {
             // Matches the list rows and section headers' own indent below.
             headerGutter(width: metrics.spacing.md * 2)
@@ -780,6 +869,7 @@ struct RootPaletteView: View {
             headerGutter(width: metrics.spacing.xl)
             // One structural position: a field inside a branch loses first responder when it flips.
             headerField
+                .simultaneousGesture(TapGesture().onEnded { resetCompactSelection() })
             if let accessory = headerAccessory {
                 accessory.view
                 // Given room last: at the default priority it would split it with the field.
@@ -833,21 +923,6 @@ struct RootPaletteView: View {
                 headerGutter(width: metrics.spacing.md)
                 AIActionsButton(isOpen: openMenu == .actions, action: toggleActions)
             }
-            // Compact pins favorites beside the field; expanded shows them as rows.
-            if isCollapsed, settings.showFavoritesInCompactMode,
-                let launcher = screen as? LauncherScreen
-            {
-                let favorites = launcher.compactFavorites
-                if !favorites.isEmpty {
-                    headerGutter(width: metrics.spacing.md)
-                    CompactFavoritesRow(
-                        favorites: favorites,
-                        showsOverflow: launcher.hasUnshownFavorites,
-                        onLaunch: { core.launcherCoordinator.launch($0) },
-                        onOverflow: { core.paletteCoordinator.expandFromCompact() }
-                    )
-                }
-            }
             if !isCollapsed, let command = extensionCommandScreen,
                 let accessory = command.searchAccessory
             {
@@ -861,12 +936,8 @@ struct RootPaletteView: View {
         // Identical metrics in both states, so typing can't move the search bar.
         .frame(height: metrics.size.headerHeight + (vm.mode == .ai ? vm.aiComposerExtraHeight : 0))
         .padding(composeAtBottom ? .bottom : .top, metrics.size.headerPadding)
+        .padding(.bottom, isCompactLauncher ? metrics.size.headerPadding : 0)
         .frame(maxWidth: .infinity)
-        // A turn later, so the show's own search refocus has settled and can't take the field back.
-        .onChange(of: vm.pendingArgumentEntryID) {
-            Task { @MainActor in focusPendingArgument() }
-        }
-        .onChange(of: core.aiChat.pendingAttachments.map(\.id)) { refreshAttachmentsMenu() }
     }
 
     /// Mode-gated ahead of the cast, which would otherwise cost every other mode a list build.
@@ -1467,6 +1538,9 @@ struct RootPaletteView: View {
     private func installHeaderArrowHandler(in window: NSWindow?) {
         guard let panel = window as? PalettePanel else { return }
         panel.onHeaderFieldBoundaryArrow = { boundary in
+            if isCompactLauncher {
+                return moveCompactSelection(boundary == .leading ? -1 : 1)
+            }
             guard !menuOpen, !vm.isControlListOpen, !isCollapsed,
                 let accessory = headerAccessory, !accessory.fieldNames.isEmpty
             else { return false }
