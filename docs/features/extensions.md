@@ -700,7 +700,7 @@ runs that command when it's installed, anything else reopens the palette. Handin
 would launch Raycast itself.
 
 **Node built-ins** — `path`, `fs` (+ `fs/promises`, `createReadStream`/`createWriteStream`, a snapshot-backed `opendir`, and
-the descriptor calls `tar` unpacks through), `os`,
+the descriptor calls `tar` unpacks through), `os` (`networkInterfaces` reports every MAC as zeros),
 `child_process` (`exec`, `execFile`, `execSync`, `execFileSync`, `spawnSync`, and a buffered `spawn`,
 each async form reporting the child's real `pid` for `process.kill` — Timers pauses that way; a
 `timeout` ends the child's whole process group and reports Node's null status beside the signal, and
