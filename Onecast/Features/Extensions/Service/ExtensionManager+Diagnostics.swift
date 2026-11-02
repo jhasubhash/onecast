@@ -16,6 +16,9 @@ extension ExtensionManager {
         case .failed(let message):
             object["state"] = "failed"
             object["failure"] = message
+        case .needsPreferences(let message):
+            object["state"] = "needsPreferences"
+            object["failure"] = message
         case .rendered(let tree):
             object["state"] = "rendered"
             object["screens"] = tree.screens.map(\.inspection)
