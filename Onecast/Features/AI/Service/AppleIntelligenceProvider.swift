@@ -130,7 +130,8 @@ struct AppleIntelligenceProvider: AIProvider {
         case .unsupportedLanguageOrLocale:
             return .responseFailed("Apple Intelligence does not support this language yet.")
         case .assetsUnavailable:
-            return .unavailable("Apple Intelligence is still downloading its model.")
+            return .unavailable(
+                "Apple Intelligence is currently unavailable. Check its status in System Settings.")
         case .rateLimited:
             return .responseFailed("Apple Intelligence is busy. Try again shortly.")
         case .concurrentRequests:
