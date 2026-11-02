@@ -63,6 +63,9 @@ through a stand-in for the hosted redirect page and confirms that a callback who
 repeated, stale or wrong is refused, for each redirect method and for custom `{ url }` requests. The
 runtime fixture suite (`node Scripts/raycast-runtime/fixtures.mjs`) runs both as well.
 
+`ext-test` exercises `SharedArrayBuffer` allocation at command load and finite waits in JavaScriptCore
+through the shipped synchronous host bridge.
+
 Each harness compiles the **shipped sources** it guards rather than a copy of them, which is what makes
 the pure-layer boundary real: a harness that stops *compiling* means AppKit or SwiftUI has leaked into a
 `Model/` folder, or an effect has leaked into a decision. That is a more common failure than a broken
