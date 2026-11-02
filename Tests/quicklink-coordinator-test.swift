@@ -18,6 +18,7 @@ struct QuicklinkCoordinatorTests {
         try await hotKeySelectedTextTargets()
         try await hotKeyCopiesOnce()
         try await plainLink()
+        try ownSchemeLink()
         try copying()
         try revealing()
         try editorResumesAHiddenNewDraft()
@@ -217,6 +218,18 @@ struct QuicklinkCoordinatorTests {
             QuicklinkLauncher.opened.first?.link == fixture.link.link,
             "a plain link opens without selection input")
         expect(fixture.injector.copies == 0, "a link that reads no selection never sends ⌘C")
+    }
+
+    static func ownSchemeLink() throws {
+        let fixture = try Fixture(link: "onecast://command/search-files?fallbackText={argument}")
+        defer { fixture.cleanUp() }
+        fixture.coordinator.openQuicklink(id: fixture.link.id, values: ["Argument": "~/Downloads"])
+        expect(QuicklinkLauncher.opened.isEmpty, "Onecast's own link never leaves the process")
+        expect(
+            fixture.core.deepLinkCoordinator.opened.map(\.0.absoluteString)
+                == ["onecast://command/search-files?fallbackText=~%2FDownloads"]
+                && fixture.core.deepLinkCoordinator.opened.first?.1 == .onecast,
+            "it runs as a link Onecast chose, so it never asks")
     }
 
     static func copying() throws {
@@ -534,6 +547,19 @@ enum Paster {
 }
 
 @MainActor
+enum DeepLinkSource { case outside, onecast }
+
+@MainActor
+final class DeepLinkCoordinator {
+    var opened: [(URL, DeepLinkSource)] = []
+    func handles(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == "onecast"
+            && url.host(percentEncoded: false)?.lowercased() != "extensions"
+    }
+    func open(_ url: URL, source: DeepLinkSource = .outside) { opened.append((url, source)) }
+}
+
+@MainActor
 final class AppCore {
     let palette = PaletteState()
     let settings = AppSettings()
@@ -542,11 +568,20 @@ final class AppCore {
     lazy var quicklinkCoordinator: QuicklinkCoordinator = {
         fatalError("The fixture must wire the coordinator")
     }()
+    let deepLinkCoordinator = DeepLinkCoordinator()
+    var confirmations = 0
     func showNotice(title: String, message: String, symbol: String, tone: DialogTone) async {}
     func reportFailure(title: String, message: String, symbol: String, recovery: String) async -> Bool {
         false
     }
-    func confirm(title: String, message: String, symbol: String, confirmTitle: String) async -> Bool { false }
+    enum ConfirmRole { case standard, destructive }
+    func confirm(
+        title: String, message: String, symbol: String, confirmTitle: String,
+        tone: DialogTone = .danger, confirmRole: ConfirmRole = .destructive
+    ) async -> Bool {
+        confirmations += 1
+        return false
+    }
     struct Message: Equatable {
         let text: String
         let tone: DialogTone

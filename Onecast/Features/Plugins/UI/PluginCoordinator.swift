@@ -253,7 +253,7 @@ final class PluginCoordinator {
 /// ordinary Quicklink, intercepted at open time and dispatched to the plugin, not the browser.
 enum PluginRouteURL {
     private static let scheme = "onecast"
-    private static let host = "plugin"
+    static let host = "plugin"
 
     static func encode(identifier: String, payload: [String: String]) -> String {
         var components = URLComponents()

@@ -10,6 +10,7 @@ struct NotesTests {
         try testRepositoryAndSearch()
         testDerivedTitles()
         try testUnnamedNotesTitleThemselves()
+        try testCreatedNoteHoldsItsSource()
         testSwitcherInteraction()
         testWindowPlacement()
         try await testStoreCollectionAndAutosave()
@@ -160,6 +161,17 @@ struct NotesTests {
         check(
             "a wall of text is capped to one row",
             NoteTitle.firstLine(of: String(repeating: "a", count: 400))?.count == 120)
+    }
+
+    private static func testCreatedNoteHoldsItsSource() throws {
+        let root = temporaryRoot("created-source")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let repository = try repository(in: root)
+
+        let created = try repository.create(source: "Call Sam ☎️\n")
+        check(
+            "a note created with text starts out holding it",
+            try repository.load(created.id).source == "Call Sam ☎️\n")
     }
 
     private static func testUnnamedNotesTitleThemselves() throws {

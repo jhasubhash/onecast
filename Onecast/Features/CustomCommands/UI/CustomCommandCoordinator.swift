@@ -78,9 +78,9 @@ final class CustomCommandCoordinator {
     // MARK: - Browsing and editing
 
     /// The switch gates the browser, the way Search Snippets re-checks its own before opening.
-    func showCustomCommands() {
+    func showCustomCommands(query: String = "") {
         guard settings.customCommandsEnabled else { return }
-        paletteCoordinator.togglePalette(mode: .customCommands)
+        paletteCoordinator.togglePalette(mode: .customCommands, seeding: query.isEmpty ? nil : query)
     }
 
     /// Opens the in-palette editor on `command`; nil is a new one. Re-opening the draft the palette

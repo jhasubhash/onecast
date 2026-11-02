@@ -225,6 +225,7 @@ final class AIChatWindowChrome: NSObject, WindowChrome, NSToolbarDelegate, NSSea
         }
         if saved {
             menu.addItem(item("Copy Chat", "doc.on.clipboard") { coordinator.copyChat(id: id) })
+            menu.addItem(item("Copy Deeplink", "link") { coordinator.copyDeepLink(toChat: id) })
             menu.addItem(item("Export as Markdown…", "square.and.arrow.up") { coordinator.exportChat(id: id) })
             menu.addItem(.separator())
             let pinned = coordinator.isPinned(id: id)

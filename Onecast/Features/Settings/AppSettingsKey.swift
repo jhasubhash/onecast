@@ -162,4 +162,5 @@ enum AppSettingsKey: String, CaseIterable {
     case presentationStartShortcut = "presentationStartShortcut"
     case presentationEndShortcut = "presentationEndShortcut"
     case settingsFileEnabled = "settingsFileEnabled"
+    case allowedDeepLinks = "allowedDeepLinks"
 }

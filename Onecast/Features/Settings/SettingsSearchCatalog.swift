@@ -182,7 +182,10 @@ enum SettingsSearchCatalog {
             keywords: ["escape", "esc", "back", "close", "navigate"]),
         .init(
             .generalGeneral, "Auto-switch input source",
-            keywords: ["keyboard", "layout", "language", "abc"])
+            keywords: ["keyboard", "layout", "language", "abc"]),
+        .init(
+            group: .generalDeepLinks, "Deeplinks",
+            keywords: ["link", "url", "onecast://", "allow", "karabiner", "shortcuts", "automation"])
     ]
 
     private static let applications: [SettingsSearchEntry] = [

@@ -95,6 +95,7 @@ struct NoteSwitcherView: View {
                                 },
                                 onCommitRename: notes.commitSwitcherRename,
                                 onCancelRename: notes.cancelSwitcherRename,
+                                onCopyLink: { notes.copyDeepLink(to: summary.id) },
                                 onTrash: { notes.trash(summary.id) }
                             )
                             .id(summary.id)
@@ -139,6 +140,7 @@ private struct NoteSwitcherRow: View {
     let onBeginRename: () -> Void
     let onCommitRename: () -> Void
     let onCancelRename: () -> Void
+    let onCopyLink: () -> Void
     let onTrash: () -> Void
     @State private var hovered = false
     @FocusState private var titleFocused: Bool
@@ -168,6 +170,7 @@ private struct NoteSwitcherRow: View {
             Spacer(minLength: Theme.Spacing.md)
             if !editing, selected || hovered {
                 rowButton(title: "Rename \(summary.displayTitle)", symbol: "pencil", action: onBeginRename)
+                rowButton(title: "Copy Deeplink", symbol: "link", action: onCopyLink)
                 rowButton(title: "Move \(summary.displayTitle) to Trash", symbol: "trash", action: onTrash)
                     .foregroundStyle(Theme.Colors.destructive)
             }
@@ -195,6 +198,7 @@ private struct NoteSwitcherRow: View {
             guard !editing else { return }
             onBeginRename()
         }
+        .accessibilityAction(named: "Copy Deeplink", onCopyLink)
         .accessibilityAction(named: "Move \(summary.displayTitle) to Trash") {
             guard !editing else { return }
             onTrash()

@@ -877,6 +877,11 @@ final class AppSettings {
         didSet { defaults.set(settingsFileEnabled, forKey: Key.settingsFileEnabled.rawValue) }
     }
 
+    /// Rows a link from outside may run without asking; only `DeepLinkCoordinator` adds to it.
+    var allowedDeepLinks: [String] {
+        didSet { defaults.set(allowedDeepLinks, forKey: Key.allowedDeepLinks.rawValue) }
+    }
+
     init() {
         // A feature switch that defaults on: absence has to outrank a stored `false`.
         clipboardEnabled =
@@ -1190,5 +1195,6 @@ final class AppSettings {
         presentationStartShortcut = defaults.string(forKey: Key.presentationStartShortcut.rawValue) ?? ""
         presentationEndShortcut = defaults.string(forKey: Key.presentationEndShortcut.rawValue) ?? ""
         settingsFileEnabled = defaults.bool(forKey: Key.settingsFileEnabled.rawValue)
+        allowedDeepLinks = defaults.stringArray(forKey: Key.allowedDeepLinks.rawValue) ?? []
     }
 }

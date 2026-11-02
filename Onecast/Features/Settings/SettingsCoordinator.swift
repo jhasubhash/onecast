@@ -66,6 +66,12 @@ final class SettingsCoordinator {
             .environment(core.customQuickActions)
             .environment(core.chatGPTSubscription)
             .environment(core.installedAI)
+            .environment(
+                \.shortcutDeepLink,
+                ShortcutDeepLink(
+                    url: { [launcher = core.launcherCoordinator] in launcher.deepLink(for: $0) },
+                    copy: { [links = core.deepLinkCoordinator] in links.copy($0) })
+            )
             // Propagates down so the window's materials show through, not each list's backing.
             .scrollContentBackground(.hidden)
             .motionScope()

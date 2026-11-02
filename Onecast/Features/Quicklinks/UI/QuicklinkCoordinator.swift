@@ -219,6 +219,10 @@ final class QuicklinkCoordinator {
             return
         }
         if windowController.isVisible { paletteCoordinator.hidePalette(restoreFocus: false) }
+        // Onecast's own link stays in-process: chosen here, so it never asks or steals focus.
+        if let url = URL(string: link), core.deepLinkCoordinator.handles(url) {
+            return core.deepLinkCoordinator.open(url, source: .onecast)
+        }
         let openWith = forcingDefaultApp ? nil : quicklink.openWithBundleID
         Task {
             do throws(QuicklinkLauncher.Failure) {
@@ -346,6 +350,21 @@ final class QuicklinkCoordinator {
         }
     }
 
+    /// A new quicklink already filled in, from a link; nothing is written until it is saved.
+    func createQuicklink(name: String, link: String, openWithBundleID: String?) {
+        guard settings.quicklinksEnabled else { return }
+        let draft = QuicklinkDraft(quicklink: nil)
+        draft.name = name
+        draft.link = link
+        draft.openWithBundleID = openWithBundleID
+        editorDraft = draft
+        if paletteCoordinator.isVisible {
+            paletteCoordinator.navigate(to: .quicklinkEditor)
+        } else {
+            paletteCoordinator.showPalette(mode: .quicklinkEditor)
+        }
+    }
+
     /// The form's primary action: persist the draft, then leave the editor. A refused write keeps
     /// the form up with the reason, since quicklinks are authored data.
     func saveEditor() {
@@ -464,6 +483,24 @@ final class QuicklinkCoordinator {
     func addImportedQuicklinks(_ incoming: [Quicklink]) -> [Quicklink] {
         let merge = QuicklinkArchive.merge(incoming, into: store.quicklinks)
         return store.append(merge.additions)
+    }
+
+    /// A link's batch: nothing is added until the reader agrees, and duplicates are skipped.
+    func importQuicklinks(offered incoming: [Quicklink]) async {
+        guard settings.quicklinksEnabled, !incoming.isEmpty else { return }
+        guard
+            await core.confirm(
+                title: "Add \(incoming.count) quicklinks from a link?",
+                message: incoming.map { $0.name.isEmpty ? $0.link : "\($0.name) — \($0.link)" }
+                    .joined(separator: "\n"),
+                symbol: Quicklink.sfSymbol, confirmTitle: "Add", tone: .neutral,
+                confirmRole: .standard)
+        else { return }
+        let added = addImportedQuicklinks(incoming)
+        guard !added.isEmpty else {
+            return core.showMessage("Nothing to Import", tone: .neutral)
+        }
+        core.showMessage("Imported \(added.count) quicklinks.")
     }
 
     func importQuicklinks() async {

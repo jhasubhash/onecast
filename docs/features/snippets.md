@@ -255,6 +255,9 @@ which `LauncherScreen` and `AppActionsMenu` resolve to the stored record the way
 `SnippetFormControls` in its own chrome. The footer carries the actions: **Save Snippet** on ↵ or ⌘↵
 and, when editing, **Delete** and **Show in Finder** under ⌘K. The draft keeps the loaded record, so
 nothing touches disk before Save.
+The **Create Snippet** command alone — from the launcher, a hotkey or a link — starts from the text
+selected in the app in front, read through `AccessibilityText.selection(in:)` and never by sending
+⌘C; ⌘E and the pane's sheet start from their record or empty.
 
 The **template** is a `FormTextArea`: monospaced (`isCode`), at least `Theme.Size.editorTextHeight`
 tall, and growing with its text — the launcher form scrolls as a whole, and the pane's sheet scrolls

@@ -128,6 +128,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `hotkey-test` | `HotKeys/Model/DoubleTapModifier.swift`, `DoubleTapDetector.swift`, `ModifierKey.swift`, `ModifierKeyDetector.swift`, `HotKeyBinding.swift`, `HotKeySpelling.swift`, `HyperKey.swift`, `HIDKeyMapping.swift`, `HotKeyAction.swift`, `Service/KeyShortcut.swift` (including the 🎤 keycap), and the command→action mapping in `Launcher/Model/CommandID.swift` |
 | `hyper-key-test` | `HotKeys/Model/HIDKeyMapping.swift`, `HyperKeyConflictPolicy.swift`, `Service/KeyboardRemapper.swift`, `RemapInstanceLock.swift` — mapping ownership, refused writes, crash recovery, device reconnection, Caps Lock and 🎤 remaps sharing a keyboard, conflict severities, Modifier Keys and Karabiner parsing, another app taking over Caps Lock, one process per Hyper Key |
 | `hotkey-dispatch-test` | `HotKeys/Service/HotKeyManager.swift` — Secure Input side isolation, shared Control registrations, press/release routing, recording and cancellation; isolated preferences and simulated Carbon registration |
+| `deeplink-test` | `DeepLinks/Model/`, `HotKeys/Model/HotKeyAction+EntryID.swift`, `Settings/SettingsTab.swift` — every bindable command, window command and system action round-trips through its link and its entry ID, stored rows by UUID, snippet paths through percent-encoding, case folding, the channel's scheme, the links that must not resolve (Raycast schemes, the `extensions` host), input decoding, encoding and its refusals (bytes, not characters), batches, field filling, consent classes and keys, the quicklink loop rule, note, chat and window-size links, and every Settings tab slug |
 | `dictation-key-test` | `HotKeys/Service/DictationKeyManager.swift` — shared and separate preference domains, ownership handoff through the real health ticker, and retry cancellation on unbind or termination; isolated preferences, lock files and simulated keyboards |
 | `dictation-test` | `Dictation/Model/DictationModel.swift`, `DictationTextFormatter.swift`, `DictationLiveTranscript.swift` — model paths, text formatting, and live typing's word agreement, cut carry-over and continued context |
 | `dictation-field-test` | Composer rebinding and teardown, field-scoped dictation cancellation, queued insertion validity, and live typing (agreed words typed, changing words previewed, Escape keeps typed words), and sound cues against ducking; synthetic capture and real AppKit editors |
@@ -475,7 +476,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   input-source switching on, a short press switches sources only while Caps Lock is off
 - Right Command as Hyper with Left Command held keeps the chord; Left Shift as Hyper with Include
   Shift off sends ⌃⌥⇧⌘K when Right Shift is held with K
-- Run Tinycast Dev next to Tinycast: the second reads Blocked and names the first; quitting the
+- Run Onecast Dev next to Onecast: the second reads Blocked and names the first; quitting the
   first hands the Hyper Key over without a relaunch
 - Revoke Accessibility while Hyper is live: the key goes back to normal. Grant it again: Hyper
   returns within a couple of seconds without a relaunch
@@ -761,6 +762,61 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Cycling, Restore, custom sizes and display moves all work on Notes and on Settings
 - Fullscreen on Settings toggles it; on the Notes window it does nothing
 - With the note switcher open a command places Notes; the switcher and HUDs are never placed
+
+### Deeplinks
+
+Debug answers `onecast-dev://`; use that scheme for every link below.
+
+- ⇧⌘C on a command, window command, system action, quicklink and extension row says Deeplink
+  copied; ⌘K lists Copy Deeplink there, and not on an application or a System Settings pane. A
+  built-in row's link starts `onecast-dev://`, and so does an extension row's
+- Type into a quicklink's and a custom command's argument fields, then ⇧⌘C: the link carries the
+  values, and opening it fills the same fields
+- Right-click a shortcut field in Settings (a command, a quicklink, an extension command): Copy
+  Deeplink copies its link. Onboarding's and General's App Launcher field offer no menu
+- The note switcher's link button, and Copy Deeplink in the AI Chat sidebar and window menu, copy a
+  link that reopens that note or chat; a renamed note's old link reports the missing file
+- `open -g` each copied link with the palette closed: it runs what the row's shortcut runs
+- Quit Onecast, then `open -g` a command link: the app starts and runs it
+- Open a window command's link with a plain `open` (no `-g`): after the question, it moves the
+  window of the app you were in, not Onecast
+- Open a command's link twice: it toggles, as its shortcut does. Turn the feature off: the link shows
+  a HUD naming it and runs nothing
+- Hide a command from launcher search: its link still runs. Open a mistyped link, or a quicklink
+  link with a made-up UUID: a HUD says it can't open it, and nothing asks
+- The first link to a window command, system action or quicklink asks. Return chooses Cancel. Run
+  Once runs it and asks again next time; Always Allow runs it and never asks again. Settings →
+  General → Deeplinks lists it; remove it there and the next link asks again. A clipboard-history
+  link with no input never asks. Export a backup: the allowed list is not in it
+- `search?fallbackText=echo%20hi` asks first and shows `echo hi`; Cancel leaves the launcher closed.
+  Always Allow it: the same link no longer asks, `search?fallbackText=echo%20bye` still does
+- Open two asking links back to back: only the first asks; the second runs nothing
+- `command/search-files?fallbackText=~/Downloads/`, `command/clipboard-history?fallbackText=a`,
+  `command/switch-windows?fallbackText=a` and `search?fallbackText=2%2B2` (after allowing) open their
+  screen already searching. `command/ai-chat?fallbackText=hi` types into Quick AI and
+  `command/ai-chat-window?fallbackText=hi` into the window, and neither sends
+- A quicklink `https://example.com/?q={argument}`: `?arguments=%7B%22Argument%22%3A%22x%22%7D` and
+  `?fallbackText=x` both open `?q=x`; with no input it asks for the argument. A custom command with
+  one argument and `?arguments=%5B%22x%22%5D` runs with `$1` = `x`
+- `command/create-quicklink?context=%7B%22name%22%3A%22Docs%22%2C%22link%22%3A%22https%3A%2F%2Fexample.com%22%7D`
+  opens the editor filled in; Cancel saves nothing. `command/create-snippet?fallbackText=hello` and
+  `command/create-note?fallbackText=hello` start with `hello`
+- `command/create-quicklink?context=` with a list of two, one already in the library: it asks to add
+  two, showing each name and link, adds one, and the HUD says so. The same for `create-snippet`,
+  whose question shows names
+- Select text in TextEdit, then run Create Snippet from its hotkey and from the launcher: the editor
+  starts with that text, and the clipboard is untouched
+- `system-action/set-volume?fallbackText=30` sets 30% with no picker; `?fallbackText=300` reports the
+  link before asking and changes nothing. `note/..` reports it too
+- `window-size?arguments=%7B%22width%22%3A%22800%22%2C%22height%22%3A%2260%25%22%7D` sizes the front
+  window to 800 pt by 60%; `"width":"0"` reports the link
+- `?arguments=nope` on any link: a HUD says it can't open it, and nothing runs
+- `settings/permissions` opens Settings on Permissions; `settings/nope` shows the HUD
+- A quicklink whose link is `onecast-dev://window-command/left-half` moves the window without
+  asking. One whose link is another quicklink's says it can't, and nothing loops
+- `raycast://extensions/<owner>/<ext>/<cmd>` and `onecast-dev://extensions/<owner>/<ext>/<cmd>`
+  still run an installed extension command; `?context=` with a JSON object reaches it as
+  `props.launchContext`
 
 ### Extensions
 

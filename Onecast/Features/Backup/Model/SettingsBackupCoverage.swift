@@ -126,6 +126,8 @@ enum SettingsBackupCoverage {
         AppSettingsKey.dockWidgetsEnabled.rawValue:
             "Doubles as consent to load native DockWidget code that runs in-process with full "
             + "privileges; an import must not switch it on.",
+        AppSettingsKey.allowedDeepLinks.rawValue:
+            "Each entry lets a web page or app run a command unasked; an import must not grant that.",
         AppSettingsKey.palettePosition.rawValue:
             "Machine-local geometry: every entry names a display this Mac has, and no other one.",
         AppSettingsKey.aiBarPosition.rawValue:

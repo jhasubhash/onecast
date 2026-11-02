@@ -139,6 +139,7 @@ struct AIChatSidebarView: View {
         Button("Rename…") { beginRename(id) }
         Divider()
         Button("Copy Chat") { coordinator.copyChat(id: id) }
+        Button("Copy Deeplink") { coordinator.copyDeepLink(toChat: id) }
         Button("Export as Markdown…") { coordinator.exportChat(id: id) }
         Divider()
         Button("Delete Chat…", role: .destructive) { delete(id) }

@@ -257,6 +257,12 @@ final class AppCore {
     @ObservationIgnored private lazy var messageHUD = MessageHUDController(settings: settings)
     /// Every confirmation, report and prompt; it also stops a held hotkey stacking them.
     @ObservationIgnored private lazy var dialogs = DialogController(settings: settings)
+    @ObservationIgnored private(set) lazy var deepLinkCoordinator = DeepLinkCoordinator(
+        scheme: AppURLScheme.current, settings: settings, hotKeys: hotKeys,
+        paletteCoordinator: paletteCoordinator, settingsCoordinator: settingsCoordinator,
+        core: self)
+    /// A link that launched the app can arrive before `start` wires anything; it waits, then runs.
+    @ObservationIgnored private var pendingURLs: [URL]? = []
     private let healthTicker = HealthTicker()
     @ObservationIgnored let notificationPresenter = NotificationPresenter(
         screen: { NSScreen.primary })
@@ -446,13 +452,7 @@ final class AppCore {
                 self?.pluginCoordinator.removePluginReferences(entryIDs: entryIDs)
             }
             hotKeys.displayName = { [weak self] action in self?.hotKeyDisplayName(for: action) }
-            hotKeys.allowsAction = { [weak self] action in
-                guard let self, visibility.allowsHotKey(action) else { return false }
-                if action == .dictation { return settings.dictationEnabled }
-                // A disabled feature drops its commands from the launcher; their shortcuts go too.
-                guard case .command(let id) = action else { return true }
-                return appIndex.isCommandEnabled(id)
-            }
+            hotKeys.allowsAction = { [weak self] in self?.allowsHotKeyAction($0) ?? false }
             KeyShortcut.displayedHyperChord = { [settings] in
                 guard settings.hyperKey != .none else { return nil }
                 return KeyShortcut.hyperChord(includesShift: settings.hyperKeyIncludesShift)
@@ -509,6 +509,13 @@ final class AppCore {
                 showMessage(String(localized: "Updated to Onecast \(version.description)"))
             }
         }
+        openPendingURLs()
+    }
+
+    private func openPendingURLs() {
+        let waiting = pendingURLs ?? []
+        pendingURLs = nil
+        waiting.forEach(handleOpenURL)
     }
 
     /// Clicking the Dock icon: raise whichever window is already open, else summon the launcher.
@@ -522,8 +529,16 @@ final class AppCore {
     }
 
     func handleOpenURL(_ url: URL) {
+        if pendingURLs != nil {
+            pendingURLs?.append(url)
+            return
+        }
         if DockURL.claims(url) {
             dockSwitchCoordinator.handle(url)
+            return
+        }
+        if deepLinkCoordinator.handles(url) {
+            deepLinkCoordinator.open(url)
             return
         }
         guard ExtensionDeepLink.claims(url) else { return }
@@ -537,6 +552,14 @@ final class AppCore {
         case .storeInstall(let install):
             extensionCoordinator.showStoreInstall(install)
         }
+    }
+
+    func allowsHotKeyAction(_ action: HotKeyAction) -> Bool {
+        guard visibility.allowsHotKey(action) else { return false }
+        if action == .dictation { return settings.dictationEnabled }
+        // A disabled feature drops its commands from the launcher; their shortcuts go too.
+        guard case .command(let id) = action else { return true }
+        return appIndex.isCommandEnabled(id)
     }
 
     /// The store-backed half of the conflict message; `HotKeyManager` names the catalogs itself.

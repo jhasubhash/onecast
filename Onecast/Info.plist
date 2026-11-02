@@ -20,6 +20,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>OnecastURLScheme</key>
+	<string>$(ONECAST_URL_SCHEME)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -28,7 +30,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>raycast</string>
-				<string>onecast</string>
+				<string>$(ONECAST_URL_SCHEME)</string>
 				<string>com.raycast</string>
 			</array>
 		</dict>

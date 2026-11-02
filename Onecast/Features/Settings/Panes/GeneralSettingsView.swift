@@ -153,6 +153,8 @@ struct GeneralSettingsView: View {
             } header: {
                 SettingsSectionHeader(.generalGeneral)
             }
+
+            AllowedDeepLinksSection()
         }
         .formStyle(.grouped)
         .settingsScrollTarget(.general)

@@ -25,6 +25,7 @@ settings:
     ONECAST_BUNDLE_IDENTIFIER: com.onecast.app
     # The app's name, apart from PRODUCT_NAME so a channel build renames the app and no other target.
     ONECAST_PRODUCT_NAME: Onecast
+    ONECAST_URL_SCHEME: onecast
   configs:
     # Debug is its own channel, like a release: a distinct bundle id means a
     # locally-run build gets its own prefs, caches, TCC grants and login item instead of
@@ -33,6 +34,8 @@ settings:
       ONECAST_BUNDLE_IDENTIFIER: com.onecast.app.dev
       ONECAST_PRODUCT_NAME: Onecast Dev
       DICTATION_EXECUTABLE_NAME: Onecast Dev Dictation
+      # Its own scheme too, so a link never lands in whichever channel macOS happens to pick.
+      ONECAST_URL_SCHEME: onecast-dev
     Release:
       DICTATION_EXECUTABLE_NAME: Onecast Dictation
       # Signing identity + team now come from Signing.xcconfig (see configFiles), not pinned here.

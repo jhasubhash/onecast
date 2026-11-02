@@ -522,6 +522,34 @@ run notes-test             Onecast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
                            Onecast/Features/Notes/Model/*.swift \
                            Onecast/Features/Notes/Service/*.swift
+run deeplink-test          Onecast/Features/DeepLinks/Model/DeepLink.swift \
+                           Onecast/Features/DeepLinks/Model/DeepLinkInput.swift \
+                           Onecast/Features/DeepLinks/Model/DeepLinkConsentPolicy.swift \
+                           Onecast/Features/DeepLinks/Model/DeepLinkSource.swift \
+                           Onecast/Features/DeepLinks/Model/CustomWindowSize+DeepLink.swift \
+                           Onecast/Features/Settings/SettingsTab.swift \
+                           Onecast/Features/Launcher/Model/CommandID.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyAction.swift \
+                           Onecast/Features/HotKeys/Model/HotKeyAction+EntryID.swift \
+                           Onecast/Features/Notifications/Model/NotificationSpec.swift \
+                           Onecast/Features/Scheduler/Model/*.swift \
+                           Onecast/Features/QuickActions/Model/QuickAction.swift \
+                           Onecast/Features/QuickActions/Model/BuiltInQuickAction.swift \
+                           Onecast/Features/QuickActions/Model/CustomQuickAction.swift \
+                           Onecast/Features/Quicklinks/Model/Quicklink.swift \
+                           Onecast/Features/Quicklinks/Model/QuicklinkDestination.swift \
+                           Onecast/Features/SystemActions/Model/SystemAction.swift \
+                           Onecast/Features/CustomCommands/Model/CustomCommand.swift \
+                           Onecast/Features/AppleShortcuts/Model/AppleShortcut.swift \
+                           Onecast/Features/Snippets/Model/Snippet.swift \
+                           Onecast/Features/WindowManagement/Model/WindowCommand.swift \
+                           Onecast/Features/WindowManagement/Model/WindowCycle.swift \
+                           Onecast/Features/WindowManagement/Model/WindowPlacementEngine.swift \
+                           Onecast/Features/WindowManagement/Model/WindowLayoutAnchor.swift \
+                           Onecast/Features/WindowManagement/Model/WindowLayoutDisplay.swift \
+                           Onecast/Features/WindowManagement/Model/WindowLayout.swift \
+                           Onecast/Features/WindowManagement/Model/WindowLayoutGeometry.swift \
+                           Onecast/Features/WindowManagement/Model/CustomWindowSize.swift
 run notes-editor-test      Onecast/Platform/Signposts.swift \
                            Onecast/Platform/Appearance.swift \
                            Onecast/DesignSystem/Theme.swift \

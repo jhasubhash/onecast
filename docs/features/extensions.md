@@ -591,6 +591,11 @@ global Show in launcher switch, or this extension's — because the ranker never
 
 ## Deeplinks
 
+Onecast registers `raycast`, `com.raycast` and its own scheme to receive extension links. The own
+scheme is `onecast`, or `onecast-dev` in Debug; `ExtensionDeepLink.claims` accepts both, and Copy
+Deeplink builds an extension row's link in the running channel's scheme. An installed Raycast
+competes for its schemes, and macOS chooses which app receives a link.
+
 `raycast://extensions/<owner>/<extension>?source=webstore`, used by the Store website's Install
 buttons, opens Settings → Extensions and looks up that exact listing to offer the existing Install
 or Reinstall action. Nothing installs or runs until asked. When extensions are disabled, the link
@@ -599,15 +604,19 @@ opens their Settings pane so they can be enabled through the usual consent flow.
 `raycast://extensions/<owner>/<extension>/<command>` runs an installed command from outside the app —
 a browser link, another app, a Shortcut — and `onecast://` mirrors it so our own links never depend
 on Raycast winning the scheme. Both accept Raycast's query parameters: `arguments` as URL-encoded
-JSON, `fallbackText`, and `launchType=background`, which only a no-view command receives — a view
+JSON, `fallbackText`, `context` (or `launchContext`) as a URL-encoded JSON object that arrives as
+`props.launchContext`, and `launchType=background`, which only a no-view command receives — a view
 command always takes over the palette, so it launches as `userInitiated`. The owner is a hint: a
 scoped install matches by `owner/extension` first and falls back to the bare slug, so short links
-keep working. Anything else on a claimed scheme just reopens the palette, and an unknown command says
-so rather than failing silently. `ExtensionDeepLink` owns the claimed schemes and the parsing,
+keep working. Anything else on a Raycast scheme just reopens the palette, and an unknown command says
+so rather than failing silently. Every other `onecast://` link is a built-in's, and never reaches
+`ExtensionDeepLink`. `ExtensionDeepLink` owns the claimed schemes and the parsing,
 covered by `Tests/ext-test.swift`. Two-segment links without `source=webstore` keep running commands
 as `<extension>/<command>`; three-segment command links keep running even with that parameter.
 An extension's own `open("raycast://…")` resolves through the same
-`ExtensionManager.resolve(_:)` instead of launching Raycast.
+`ExtensionManager.resolve(_:)` instead of launching Raycast. Copy Deeplink on a command's launcher
+row, or on its Settings shortcut field, writes the `onecast://extensions/…` form, with any typed
+arguments as `arguments`; built-in rows have their own links, in [deeplinks.md](deeplinks.md).
 
 For view commands, nonempty `fallbackText` also prefills the search field: lists and grids filter
 locally or receive it through `onSearchTextChange` when their handler mounts. It remains available

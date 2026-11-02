@@ -270,6 +270,22 @@ final class AIChatCoordinator {
         }
     }
 
+    /// A link to one saved chat opens it in the chat window, whatever the open policy would pick.
+    func showChat(id: UUID) {
+        guard settings.aiEnabled else { return }
+        core.aiChatWindowController.openInWindow(id: id, scope: nil)
+    }
+
+    /// A link's text, typed into AI Chat but never sent: whether to ask is still the reader's call.
+    func show(draft: String) {
+        guard settings.aiEnabled else { return }
+        palette.activeAssistantID = nil
+        switchScope(to: nil, ephemeral: false)
+        applyOpenPolicy()
+        palette.aiBar = false
+        paletteCoordinator.showPalette(mode: .ai, seeding: draft)
+    }
+
     /// An Assistant's own servers, narrowed by the window's tools menu; nil is every server.
     private func allowedServers(for assistant: Assistant?) -> Set<UUID>? {
         let scope = chat.toolScope
@@ -420,6 +436,10 @@ final class AIChatCoordinator {
 
     func isPinned(id: UUID) -> Bool {
         history.conversation(id: id)?.isPinned ?? false
+    }
+
+    func copyDeepLink(toChat id: UUID) {
+        core.deepLinkCoordinator.copyLink(toChat: id)
     }
 
     /// The whole conversation as Markdown, each turn under its speaker.
