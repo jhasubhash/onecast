@@ -183,6 +183,8 @@ function syncHostCall(api, method, args) {
       return {
         size: stat.size,
         mode: stat.mode,
+        uid: stat.uid,
+        gid: stat.gid,
         mtimeMs: stat.mtimeMs,
         atimeMs: stat.atimeMs,
         ctimeMs: stat.ctimeMs,
@@ -352,6 +354,11 @@ export function bootConfig(overrides = {}) {
       homedir: homedir(),
       tmpdir: tmpdir(),
       username: "tester",
+      uid: process.getuid(),
+      gid: process.getgid(),
+      euid: process.geteuid(),
+      egid: process.getegid(),
+      groups: process.getgroups(),
     },
     environment: {
       extensionName: "fixture",
