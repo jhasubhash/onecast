@@ -10,24 +10,23 @@ Read this before touching any view body, `Theme` value, or the panel chrome.
 
 ## The look, in one paragraph
 
-Onecast is a **command palette**: a borderless floating panel whose surface is just the
-OS behind-window blur under a 40% black scrim — there is no gray chrome. Everything on that surface is
-white at a fixed alpha ramp. The header and bottom bar **float over the list as fully transparent
-overlays**; there are no hard-edged bars, strips, or dividers. Rows don't clip under the bars, they
+Onecast is a **command palette**: a borderless floating panel whose surface is native Liquid Glass,
+without an additional palette scrim. Everything on that surface uses an appearance-aware ink ramp.
+The header and bottom bar **float over the list as fully transparent overlays**; there are no hard-edged bars, strips, or dividers. Rows don't clip under the bars, they
 **dissolve**: a scroll-driven gradient mask ghosts them as they pass beneath. Floating controls (the
 action pill, the menu circle, popover menus) are **Liquid Glass**.
 
 That paragraph describes **Dark**, which is the design. Light is the same design with the ink
-inverted: a white scrim over the same blur, and a black-alpha ramp at matched stops. Nothing about
+inverted: the same native glass, and a black-alpha ramp at matched stops. Nothing about
 geometry, type, motion or state changes between them.
 
 Five load-bearing ideas, in priority order:
 
-1. **Surface = scrim over behind-window blur.** No solid backgrounds. Depth comes from the desktop showing through.
+1. **Surface = native glass.** No extra scrim or solid background on the expanded panel; the compact bar's shapes keep `panelScrim`. Depth comes from the desktop showing through.
 2. **One alpha ramp, never grays.** Ink at fixed stops — white over the dark surface, black over the light one.
 3. **Floating bars, not chrome.** Header/footer are transparent overlays; the list fills the whole panel.
 4. **Edges dissolve, they don't clip.** Scroll-driven mask, no separators between list and bars.
-5. **Glass only on floating controls.** The main surface is never glass; pills/menus/circles are.
+5. **Glass owns its contours.** The palette and floating controls use native glass without painted outlines.
 
 ---
 
@@ -41,8 +40,8 @@ These are the things that quietly break the look if changed. Preserve them unles
 - **Three things stay fixed in both appearances, on purpose.** The `EdgeDissolve`/`OverflowFade` gradients are **mask luminance, not color** — inverting them breaks the dissolve everywhere. `ExtensionTintColors` and a tinted `IconCache` tile keep white ink, because a saturated tile carries its own contrast. And `IconCache` cannot use a dynamic `NSColor` at all: it rasterizes off-main, so the surface is carried explicitly and is part of the cache key.
 - **An icon is drawn for a surface *and* a system icon style, and both move under you.** macOS restyles the icons `NSWorkspace` hands out when System Settings → Appearance → **Icon & widget style** changes, so `IconStyleMonitor` and Onecast's own appearance both call `IconCache.invalidateStyled()`. **The monitor may not invalidate on the notification itself.** AppKit posts `NSWorkspaceIconAppearanceConfigurationDidChange` before IconServices has swapped what `NSWorkspace` vends — measured at 25–120ms behind, jittering run to run — and the images it hands back are live objects macOS restyles in place, so flattening one on the signal freezes the *outgoing* style into a bitmap nothing ever invalidates again. `IconStyleMonitor` therefore polls `IconCache.styleFingerprint()` until the pixels actually move, and only then invalidates. Waiting also sidesteps the cost: re-flattening every icon the instant a restyle begins forces a cold IconServices regeneration, measured at 160× the settled draw cost. That drops the cached bitmaps, bumps every cache key so an in-flight decode cannot repopulate a stale one, and moves `IconCache.style.generation`. **Any view that draws an icon must key its fetch on that generation** — wrap the view's own key in `IconRequest`, or call `IconCache.observeStyle()` where the icon is resolved synchronously in a `body`. It is reached through `IconCache` rather than injected precisely because icons are drawn in menus, popovers and every list, where a missed injection would be a silent staleness bug.
 - **No hard dividers between the list and the bars.** The header and bottom bar are `safeAreaInset` overlays with no background; separation comes from `edgeDissolve()`, nothing else. (One deliberate exception: the vertical hairline between a list and its preview pane, as the clipboard and file search screens draw.)
-- **The panel corner is clipped once, at the root.** `RootPaletteView.body` ends with `.background(panelScrim) → .background(GlassEffectView()) → .clipShape(RoundedRectangle(26, .continuous))`. Keep that order; the scrim goes _over_ the glass, and the clip is last. Every borderless surface — pop-out windows, notification cards, dialogs, HUDs — takes the same `panelScrim` → `GlassEffectView()` → clip recipe. In compact mode the launcher's window is bare — the scrim and glass are hidden, not removed — and the `CompactBar`'s own glass capsule and buttons are the surface; the collapsed AI bar keeps the full recipe.
-- **Don't use the native scroll edge effect.** Inside a transparent panel it renders a hard-bounded rectangle. Use `edgeDissolve()`, or a gradient `mask` where a surface owns its own fade — `scrollEdgeEffectStyle` draws a *material* where a scroll view meets a safe area, so over a panel that already has `panelScrim` + `GlassEffectView` it composites to nothing. Tried and rejected on `QuickActionResultView`, with and without `safeAreaBar`. This is a rule about the borderless panels; the Settings window is a titled `NSWindow` whose system titlebar draws the band itself (see "Settings").
+- **The expanded panel corner is clipped once, at the root.** `RootPaletteView.body` ends with `.background(GlassEffectView()) → .clipShape(RoundedRectangle(26, .continuous))`. The clip is last, and the expanded panel adds no scrim over its glass. The compact launcher uses zero root corner radius and a four-point drawing outset so its native glass shapes own their contours without touching the window boundary. Dialogs, HUDs, Notes, the camera and Quick Action results take the same `GlassEffectView()` → clip recipe; the fork's own pop-out windows and notification cards still lay `panelScrim` under it. In compact mode the launcher's window is bare — its glass is hidden, not removed — and the `CompactBar`'s own glass capsule and buttons are the surface; the collapsed AI bar keeps the window's glass and shadow.
+- **Don't use the native scroll edge effect.** Inside a transparent panel it renders a hard-bounded rectangle. Use `edgeDissolve()`, or a gradient `mask` where a surface owns its own fade — `scrollEdgeEffectStyle` draws a *material* where a scroll view meets a safe area, so over a surface that already has `GlassEffectView` it composites to nothing. Tried and rejected on `QuickActionResultView`, with and without `safeAreaBar`. This is a rule about the borderless panels; the Settings window is a titled `NSWindow` whose system titlebar draws the band itself (see "Settings").
 - **Test over a light desktop.** Transparency and corner masking bugs only show over bright wallpaper. Dark wallpaper hides them.
 - **No `NSAlert`, no `NSSlider`, no system popovers.** Every confirmation, failure report, value prompt and transient readout is Onecast's own SwiftUI surface (see "Dialogs & HUD"). An Aqua alert on an alpha-over-vibrancy app reads as a different product, and its `runModal` run loop keeps Carbon hotkeys firing underneath.
 - **Animations follow one switch.** General → Appearance → **Show animations**
@@ -63,7 +62,7 @@ These are the things that quietly break the look if changed. Preserve them unles
 - **In the palette, a hover label is Onecast's `tooltip`, never `.help()`**: an AppKit tooltip never appears while the app sits inactive behind the non-activating panel. A Settings window activates the app, so `.help()` shows there and stays the label to use. The tooltip hangs above its control by default; a control in the palette header passes `edge: .bottom`, since above it is off the window, and a label may run to several lines — the chat's attachment pill lists every staged name.
   A form control passes `dismissOnPress: true` so its label clears on press instead of hanging over the menu it opened.
 - **A transient readout is a HUD, not a dialog.** `VolumeHUDController`'s box is volume and mute only, since that one needs an actual level and number; every other success or info confirmation goes through `MessageHUDController`'s pill, whose leading glyph *is* its `DialogTone`. A pill has no subject to name, so the icon rule above does not apply to it — and that mapping stays file-scoped so nothing can reach for it when building a `DialogRequest`. A new HUD means a new presenter, not a second shape bolted onto an existing controller.
-- **Glass is for controls; content takes the panel recipe.** `glassEffect` needs a backdrop to lens, so it only works *inside* a window that already has a `GlassEffectView` — the action capsule, the menu circle, `PopoverMenu`, a dialog's buttons. On a bare borderless panel it falls back to an opaque backing and shows as a dark edge. Both HUDs therefore use `panelScrim` → `GlassEffectView()` → `clipShape`, exactly like a dialog.
+- **Glass is for controls; content takes the panel recipe.** `glassEffect` needs a backdrop to lens, so it only works *inside* a window that already has a `GlassEffectView` — the action capsule, the menu circle, `PopoverMenu`, a dialog's buttons. On a bare borderless panel it falls back to an opaque backing and shows as a dark edge. Both HUDs therefore use `GlassEffectView()` → `clipShape`, exactly like a dialog.
 
 ---
 
@@ -208,7 +207,6 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 
 | Token             | Dark           | Light          | Use                                               |
 | ----------------- | -------------- | -------------- | ------------------------------------------------- |
-| `panelScrim`      | black **0.40** | white **0.55** | the panel scrim over the glass                    |
 | `selection`       | white 0.10     | black 0.09     | selected row fill (keyboard/active selection)     |
 | `rowHover`        | white 0.05     | black 0.045    | mouse-hover fill (always fainter than selection)  |
 | `menuHover`       | white 0.10     | black 0.09     | popover-menu row hover                            |
@@ -227,7 +225,7 @@ shipped. Light is the same stop with the ink inverted, and is the only column op
 | `dropGuide`       | white 0.35     | black 0.35     | the palette's drop guides while dragging         |
 
 `panelScrim` is the ramp's inverse — it darkens the dark surface and lightens the light one — so it
-is an `adaptive` pair, not a `ramp`.
+is an `adaptive` pair, not a `ramp`; only the fork's own surfaces (Docks, Shelf, notifications, pop-outs) still lay it under their glass.
 `brand`, `destructive`, `success` and `dropGuideArmed` are fixed hues and adapt on their own.
 
 Beyond these, `.secondary`/`.tertiary` foreground styles are fine for SF Symbols (they resolve against
@@ -246,7 +244,7 @@ Source: `Palette/PalettePanel.swift`, `Palette/RootPaletteView.swift`.
 - **`PalettePanel`** is a borderless `NSPanel`: `isOpaque = false`, `backgroundColor = .clear`, `.palette` level (one above `.modalPanel`, so other apps' open panels never cover it), `hasShadow`, `animationBehavior = .none`. It hosts SwiftUI via `NSHostingView`. `PaletteWindowController` centers it slightly above screen center (`+8%`) and dismisses it on `windowDidResignKey`.
 - **The results layer fills the whole panel.** The header and bottom bar attach via `.safeAreaInset(edge: .top/.bottom)` as transparent overlays that float _over_ the list. The list underlaps them and dissolves at the edges.
 - **Header** (`headerHeight 36`): a back-chevron _or_ mode glyph, then the plain `TextField` (no border/background). Sub-screens (Clipboard, Calculator History) show the back chevron; the launcher shows a magnifying glass. The search icon aligns horizontally with row content, and the query with the row titles.
-- **Compact bar** (`compactHeight 56`, a full capsule; the expanded panel keeps `panel 26`): the window itself is bare and the shapes are glass. `CompactBar` draws them behind the header row: a `panelScrim` + `.regular` glass `Capsule`, then one round button per enabled configured shortcut (zero to four) — Clipboard History, Emoji & Symbols, Search Files and Search Quicklinks by default — so the capsule takes whatever width they leave, and the row is narrowed to match. On every summon the capsule starts at full width and pulls back with an undershoot while each button, parked small inside its end, beads out a beat after the last; its glyph blurs in once the glass has formed. A shared masked scrim prevents overlapping shapes from painting the query area twice, without changing their fill timing. Keyboard selection uses a medium gray fill in Light, a subtle extra white wash in Dark, and a white monochrome glyph in both, without a ring. Activation runs its command synchronously with animations disabled, so no shortcut shapes animate beneath the expanded panel. Leaving fades the bar whole; it parks again after the window has gone. The glass shapes share one `GlassEffectContainer`, and `Theme.CompactBarMotion` holds every value. With **Show animations** off the bar lands at rest: `motionScope()` strips its springs, and the park wait runs through `Motion.duration(_:)`. The glyphs sit above the container, never inside it, where a morph would smear them — and the header row sits outside it, because a container paints its merged glass over any loose content within. The window drops its native shadow while compact: a shadow is cut once from the alpha shape and would miss moving buttons, and Tahoe glass carries its own elevation.
+- **Compact bar** (`compactHeight 56`, a full capsule; the expanded panel keeps `panel 26`): the window itself is bare and the shapes are glass. `CompactBar` draws them behind the header row: a `panelScrim` + `.regular` glass `Capsule`, then one round button per enabled configured shortcut (zero to four) — Clipboard History, Emoji & Symbols, Search Files and Search Quicklinks by default — so the capsule takes whatever width they leave, and the row is narrowed to match. On every summon the capsule starts at full width and pulls back with an undershoot while each button, parked small inside its end, beads out a beat after the last; its glyph blurs in once the glass has formed. A shared masked scrim prevents overlapping shapes from painting the query area twice, and hides native glass's dark contour on a light wallpaper. Keyboard selection uses a medium gray fill in Light, a subtle extra white wash in Dark, and a white monochrome glyph in both, without a ring. Activation runs its command synchronously with animations disabled, so no shortcut shapes animate beneath the expanded panel. Leaving fades the bar whole; it parks again after the window has gone. The glass shapes share one `GlassEffectContainer`, and `Theme.CompactBarMotion` holds every value. With **Show animations** off the bar lands at rest: `motionScope()` strips its springs, and the park wait runs through `Motion.duration(_:)`. The glyphs sit above the container, never inside it, where a morph would smear them — and the header row sits outside it, because a container paints its merged glass over any loose content within. The window drops its native shadow while compact: a shadow is cut once from the alpha shape, so it would hug the moving glass as a hard dark ring; Tahoe glass carries its own elevation.
 - **Compact keyboard entry:** pressing `↓` in the collapsed launcher expands the results and selects the first row without replacing or defocusing the shared search field.
 - **Bottom bar** (`bottomBarHeight 52`): a menu circle on the left, the action group on the right — both floating glass, no bar background. The action group is one glass `Capsule` holding the primary-action pill (label + `↵`) and the Actions toggle (`⌘K`).
 - **`BarButton`** is the shared bar control: bare label at rest, a `rowHover` capsule on hover, `barButtonHeight 28`. It carries the footer's two buttons and the clipboard header's type filter, so those hover identically. Hover state lives inside it, so sweeping one never re-renders the palette body.
@@ -258,9 +256,9 @@ Source: `Palette/PalettePanel.swift`, `Palette/RootPaletteView.swift`.
 Source: `Features/Notes/UI/`.
 
 Notes is a sibling surface, not a palette mode. `NotesPanel` is a **titled**, resizable,
-non-activating panel — AppKit draws the traffic lights, the drag and the resize — but it keeps the
-palette's transparent recipe and deliberately does not dismiss on resign-key. `NotesView`'s root
-applies `panelScrim` → `GlassEffectView()` → one continuous **`panel`** corner clip, so
+non-activating panel — AppKit draws the traffic lights, the drag and the resize — but it keeps a
+native glass surface and deliberately does not dismiss on resign-key. `NotesView`'s root
+applies `GlassEffectView()` → one continuous **`panel`** corner clip, so
 Notes and the palette round identically. The clip is larger than the theme frame's own corner, so it
 is what shows; `invalidateShadow()` on every show recuts the shadow to match.
 
@@ -423,7 +421,7 @@ sole owner rule) and is the only presenter, so every confirmation in the app loo
   red-glyph security warning can carry a plain white button — "Import executable commands?" does,
   since importing a file destroys nothing — and running a shell command the user wrote themselves is
   `.neutral` + `.standard` rather than a red alarm.
-- **Surface.** A dialog reuses the palette's recipe `panelScrim` → `GlassEffectView()` →
+- **Surface.** A dialog reuses the palette's recipe `GlassEffectView()` →
   `clipShape(RoundedRectangle(dialog 20))`, in that order at `dialogWidth 420`. Glass is reserved for
   the buttons, matching the "glass only on floating controls" rule. The **volume HUD takes the same
   recipe**, and so does the **message pill**. That is the line: glass needs a backdrop to lens, so it
@@ -546,7 +544,7 @@ per-scroll-view shim: chasing that flip after the fact is what caused the flash.
 ## The camera preview panel
 
 `CameraPreviewPanel` is the third borderless surface, beside the dialog and the notes panel. It takes
-the same recipe — `panelScrim`, then `GlassEffectView`, then the clip — and the same optical lift a
+the same recipe — `GlassEffectView`, then the clip — and the same optical lift a
 dialog takes, but sits at `.floating` rather than `.dialog` so a failure report still lands on
 top of it.
 

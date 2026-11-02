@@ -96,6 +96,8 @@ enum Theme {
         static let headerPadding: CGFloat = 10
         /// Collapsed compact bar: the search row centered in symmetric `headerPadding` slack.
         static let compactHeight: CGFloat = headerHeight + headerPadding * 2
+        /// Native glass contours and interaction effects draw outside their layout bounds.
+        static let paletteGlassOutset: CGFloat = 4
         /// How close a dragged palette must be to the invisible vertical centre line.
         static let paletteSnapDistance: CGFloat = 8
         /// A restored position needs this much bar on a display to still be grabbable.

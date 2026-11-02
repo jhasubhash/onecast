@@ -65,6 +65,8 @@ struct RootPaletteView: View {
         vm.mode == .plugin && core.plugins.surface != nil
     }
 
+    private var renderingOutset: CGFloat { isCompactLauncher ? Theme.Size.paletteGlassOutset : 0 }
+
     /// The current mode's screen: its rows are the visible order the flat selection indexes.
     private var screen: any PaletteScreen {
         switch vm.mode {
@@ -320,7 +322,8 @@ struct RootPaletteView: View {
                     header
                         .frame(height: pluginSurfaceActive ? 0 : nil, alignment: .top)
                         .opacity(pluginSurfaceActive ? 0 : 1)
-                        .clipped()
+                        // Compact's glass draws past the header's bounds, so only a plugin clips it.
+                        .clipShape(Rectangle().inset(by: pluginSurfaceActive ? 0 : -renderingOutset))
                         .allowsHitTesting(!pluginSurfaceActive)
                 }
                 .safeAreaInset(edge: footerEdge, spacing: 0) {
@@ -345,12 +348,16 @@ struct RootPaletteView: View {
                 // The window's frame is the size source, so the glass and clip stay matched.
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { paletteWidth = $0 }
-                // Compact, the bar's own glass shapes are the surface and the window is bare.
-                .background(isCompactLauncher ? .clear : Theme.Colors.panelScrim)
                 // Hidden rather than unmounted, so expanding never shows a frame without glass.
                 .background(GlassEffectView().opacity(isCompactLauncher ? 0 : 1))
-                .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))),
-            selection: sel)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: isCompactLauncher ? 0 : metrics.radius.panel, style: .continuous
+                    )
+                    .inset(by: -renderingOutset))),
+            selection: sel
+        )
+        .padding(renderingOutset)
     }
 
     /// The emoji grid's observers, split out so `stateObservers` stays within type-checker reach.

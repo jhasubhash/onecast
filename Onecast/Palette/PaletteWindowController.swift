@@ -17,6 +17,8 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     private(set) var isPoppedToRoot = false
     /// Resolved once per show; the top edge is the one that must not drift.
     private var anchor: CGPoint?
+    // The laid-out frame's inset, including during synchronous resize callbacks.
+    private var renderingOutset: CGFloat = 0
     /// Live only between mouse-down and mouse-up on a drag handle; nil means a move was ours.
     private var drag: DragSession?
     /// The anchor as a live resize found it, so only a resize that moved an edge stores placement.
@@ -82,7 +84,6 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             positionPanel(panel, collapsed: core.paletteCoordinator.paletteIsCollapsed)
             // Flush first-mount layout off-screen, so the safe-area settle isn't visible.
             panel.contentView?.layoutSubtreeIfNeeded()
-            panel.displayIfNeeded()
             core.inputSourceSwitcher.beginSession(
                 preferredInputSourceID: core.settings.autoSwitchInputSourceID)
             // Events go stale while the palette is closed, and the countdown only ticks while up.
@@ -92,8 +93,6 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             // Non-activating, so summoning never raises our own aux windows behind it.
             panel.makeKeyAndOrderFront(nil)
             panel.orderFrontRegardless()
-            // The corner is clipped in SwiftUI, so a stale square shadow rims the first frame.
-            panel.invalidateShadow()
             // A never-activated login item can drop the first key request, so re-assert.
             DispatchQueue.main.async { [weak panel] in
                 guard let panel, panel.isVisible, !panel.isKeyWindow else { return }
@@ -271,8 +270,11 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         let snapped = trackDrag(to: moved)
         anchor = snapped
         if snapped != moved {
-            // The anchor is the composer's top, which a bar growing up keeps above its bottom edge.
-            panel.setFrameOrigin(CGPoint(x: snapped.x, y: panel.frame.minY + snapped.y - moved.y))
+            // Shift by the snap alone: the composer's top and the glass outset both ride along.
+            panel.setFrameOrigin(
+                CGPoint(
+                    x: panel.frame.minX + snapped.x - moved.x,
+                    y: panel.frame.minY + snapped.y - moved.y))
         }
     }
 
@@ -299,9 +301,10 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     /// The composer's top edge: growing up moves the window's top, so read it off the fixed bottom.
     private func composerAnchor(of frame: NSRect) -> CGPoint {
-        let top =
-            core.palette.aiBarGrowsUp ? frame.minY + metrics.size.compactHeight : frame.maxY
-        return CGPoint(x: frame.minX, y: top)
+        guard core.palette.aiBarGrowsUp else {
+            return PalettePlacement.anchor(of: frame, outset: renderingOutset)
+        }
+        return CGPoint(x: frame.minX, y: frame.minY + metrics.size.compactHeight)
     }
 
     // MARK: - Dragging
@@ -606,7 +609,9 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         let originY = growsUp ? anchor.y - size.compactHeight : anchor.y - height
         let width = min(barWidth, visible?.width ?? .greatestFiniteMagnitude)
         applyResizeLimits(panel, collapsed: collapsed, height: height)
+        renderingOutset = collapsed && !core.palette.aiBar ? Theme.Size.paletteGlassOutset : 0
         let frame = NSRect(x: anchor.x, y: originY, width: width, height: height)
+            .insetBy(dx: -renderingOutset, dy: -renderingOutset)
         // A shadow is cut once from the window's alpha, so compact's moving glass relies on its own.
         panel.hasShadow = !collapsed || core.palette.aiBar
         guard animated else {

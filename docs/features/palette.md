@@ -278,19 +278,19 @@ selected button. Typing, pasting or clicking Search resets the selection. The Ap
 boundary-arrow hook handles navigation without moving input focus away from Search; marked IME text
 and modified arrows retain their normal editing behavior.
 
-Keyboard selection uses a filled circle and white monochrome glyph, without an outline. Symbols use
+Keyboard selection tints the existing glass circle and draws its glyph in white. Symbols use
 `SymbolImage`, including the appearance-aware outline for Emoji & Symbols. Settings keeps each icon
 beside its name in a command menu, with borderless move/remove controls at the trailing edge.
-The contrast fill sits behind the glyph above `GlassEffectContainer`, where the material cannot wash
-it out. Light uses a medium gray fill; Dark adds a subtle white wash over its existing glass selection.
+The system glass material draws the selected face and contour together; no fill or stroke is painted
+over it. The glyph stays above `GlassEffectContainer` so a morph cannot smear it.
 
 Mouse and keyboard activation synchronously call `LauncherCoordinator.runCommand` in a transaction
 with animations disabled. No merge animation or delayed activation survives beneath the destination
 screen. Palette screens push over root search as before; Show Notes closes the palette and opens
 its existing window. The summon reveal still animates independently.
-A shared scrim mask prevents overlapping surface fills from painting twice beneath the query.
-Selected Dark buttons keep their native glass scrim outside that mask to preserve their highlight.
-The original fill and travel timing is unchanged.
+The expanded surface uses native regular glass without a custom scrim; the compact bar keeps a
+`panelScrim` over its glass shapes, which hides the native contour's dark rim on a light wallpaper.
+The compact capsule and buttons have no additional surface mask or painted fill.
 
 At expanded launcher root, Escape clears the query while setting `forceExpanded`, so clearing and
 collapsing remain separate presses. The next Escape clears that flag and collapses; another closes.
@@ -302,9 +302,11 @@ narrowed to the capsule, and so is the top drag strip, so neither reaches under 
 
 ## Window placement
 
-`PaletteWindowController` resolves an anchor (left edge + top edge) **once per summon** and reuses it
+`PaletteWindowController` resolves the visible content anchor (left edge + top edge) **once per summon** and reuses it
 for every compact↔expanded resize, so only the height changes and the top edge never drifts. The
 anchor is dropped on hide, so the next summon re-resolves for wherever the user is then.
+The compact window adds a four-point transparent drawing margin for the native glass rim.
+Its content remains at the same anchor; dragging and snapping convert back to that visible anchor.
 
 **The AI Chat bar is the one summon that may grow *up*.** `toggleAIBar` gives it its own anchor
 (`AppSettings.aiBarPosition`) and, when the bar sits low enough that a downward transcript would run
