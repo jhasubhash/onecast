@@ -101,6 +101,17 @@ enum PersonalClaudeUsageClient {
                     canRetry: true))
         }
         let secret = Data(result.output.trimmingCharacters(in: .whitespacesAndNewlines).utf8)
+        if let reason = PersonalClaudeCredentials.endedReason(secret) {
+            // An ended login has no refresh token left: only a fresh sign-in brings it back.
+            let login = config.isCustom
+                ? "CLAUDE_CONFIG_DIR=\(config.folder.path) claude auth login"
+                : "claude auth login"
+            let why = reason == "time_limit" ? "its login reached its time limit" : "it signed out"
+            return .failure(
+                PersonalAIUsageLimitsProblem(
+                    message: "Claude Code is signed out: \(why). Run `\(login)` to sign in again.",
+                    canRetry: true))
+        }
         guard let credentials = PersonalClaudeCredentials.parse(secret) else {
             return .failure(
                 PersonalAIUsageLimitsProblem(

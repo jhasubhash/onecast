@@ -59,6 +59,16 @@ struct PersonalClaudeCredentials: Sendable, Equatable {
             accessToken: token, expiresAt: expiry, subscription: oauth["subscriptionType"] as? String)
     }
 
+    /// Why Claude Code cleared this sign-in ("time_limit": its refresh token ran out); nil if live.
+    static func endedReason(_ data: Data) -> String? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let oauth = root["claudeAiOauth"] as? [String: Any],
+            (oauth["accessToken"] as? String ?? "").isEmpty,
+            let reason = oauth["loginEnded"] as? String, !reason.isEmpty
+        else { return nil }
+        return reason
+    }
+
     /// Expired, or about to be: a minute's slack so a request never lands just after the edge.
     func isExpired(now: Date) -> Bool {
         guard let expiresAt else { return false }

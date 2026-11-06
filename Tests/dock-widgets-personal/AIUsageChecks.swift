@@ -139,6 +139,11 @@ enum AIUsageChecks {
         t.expect(
             PersonalClaudeCredentials.parse(Data(#"{"claudeAiOauth":{"accessToken":""}}"#.utf8)) == nil,
             "an empty token is no sign-in")
+        let ended = #"{"claudeAiOauth":{"accessToken":"","expiresAt":0,"loginEnded":"time_limit"}}"#
+        t.expect(
+            PersonalClaudeCredentials.endedReason(Data(ended.utf8)) == "time_limit"
+                && PersonalClaudeCredentials.endedReason(Data(stored.utf8)) == nil,
+            "a login Claude Code ended says why; a live one has no reason")
     }
 
     // MARK: - Fixtures
