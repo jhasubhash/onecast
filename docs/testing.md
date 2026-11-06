@@ -34,7 +34,9 @@ against the total and shows its run and compile time, a quiet stretch names the 
 than `ONECAST_TEST_TIMEOUT` seconds (default 300) is killed and reported as timed out. Parallelism is safe
 because each harness already roots its scratch state somewhere of its own — a UUID-suffixed
 `temporaryDirectory`, a `UserDefaults(suiteName:)`, or `NSPasteboard.withUniqueName()` — and a new
-harness must keep doing that rather than reach for a fixed path.
+harness must keep doing that rather than reach for a fixed path. The runner's own queue, logs and
+verdicts do live at a fixed path, so a second suite started in the same `$TMPDIR` waits for the first,
+and a run that reports fewer results than it queued fails rather than passing.
 
 Two consequences worth knowing. Status lines arrive in **completion order**, not the order the `run`
 lines are written; and a failing harness's compiler diagnostics or assertion output are replayed
@@ -182,6 +184,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `updates-test` | `Updates/Model/` — version precedence, channel filtering, install route, readiness |
 | `update-check-test` | `UpdateCheckStore` — stopping, in-flight cancellation, cached prompt suppression, restart and independent manual checking |
 | `support-test` | `Support/Model/` — when the support reminder comes due, and a clock moved backwards |
+| `ai-provider-test` | `AI/Model/` and `AISettingsStore` — provider requests and streams, route settings, protocol framing, and queued Codex writes across cancellation, timeout and Stop |
 | `mcp-test` | `MCP/Model/` and `MCPSettingsStore` — JSON-RPC framing, handles, tool names, output flattening, trust, `@server` addressing |
 | `mcp-stdio-test` | `MCP/Service/` against a stub server — handshake, listing, calling, and every way one can go away |
 | `mcp-oauth-test` | OAuth parsing, RFC 7636 PKCE, discovery and resource binding, loopback callback validation/cancellation, dynamic registration, supplied client credentials and their token-endpoint authentication, Keychain token rotation, concurrent refresh, redirects and one-retry 401 handling |

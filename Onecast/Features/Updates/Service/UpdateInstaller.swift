@@ -55,6 +55,7 @@ struct UpdateInstaller: Sendable {
         onProgress(.verifying)
         try verify(staged, is: release)
 
+        try Task.checkCancellation()
         onProgress(.replacing)
         do {
             _ = try FileManager.default.replaceItemAt(

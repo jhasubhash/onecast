@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 @MainActor
 final class CodexAppServerClient {
@@ -23,6 +24,7 @@ final class CodexAppServerClient {
     private struct PendingRequest {
         let continuation: CheckedContinuation<[String: JSONValue], Error>
         let timeout: Task<Void, Never>
+        var write: CodexInputWriter.Write?
     }
 
     var onNotification: ((String, [String: JSONValue]) -> Void)?
@@ -35,7 +37,7 @@ final class CodexAppServerClient {
     private let codexHome: URL?
     let workspace: URL
     private var process: Process?
-    private var input: FileHandle?
+    private var input: CodexInputWriter?
     private var outputBuffer = Data()
     private var stderrBuffer = Data()
     private var nextID = 1
@@ -146,7 +148,9 @@ final class CodexAppServerClient {
             throw ClientError.launchFailed(error.localizedDescription)
         }
         self.process = process
-        input = stdin.fileHandleForWriting
+        // A server that dies mid-write must fail the write, not SIGPIPE Onecast.
+        _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+        input = CodexInputWriter(stdin.fileHandleForWriting)
 
         // A failed handshake would otherwise leave `isRunning` true on an uninitialized server.
         do {
@@ -171,6 +175,7 @@ final class CodexAppServerClient {
     func request(
         method: String, params: [String: Any] = [:], timeout: Duration = .seconds(15)
     ) async throws -> [String: JSONValue] {
+        try Task.checkCancellation()
         guard isRunning else { throw ClientError.processExited("Codex is not running.") }
         let id = nextID
         nextID += 1
@@ -182,10 +187,15 @@ final class CodexAppServerClient {
                     self?.timeoutRequest(id)
                 }
                 pending[id] = PendingRequest(continuation: continuation, timeout: timeoutTask)
+                let failed: @MainActor @Sendable (Error) -> Void = { [weak self] error in
+                    self?.finishRequest(id, with: .failure(error))
+                }
                 do {
-                    try send(CodexAppServerProtocol.request(id: id, method: method, params: params))
+                    pending[id]?.write = try send(
+                        CodexAppServerProtocol.request(id: id, method: method, params: params),
+                        ifFailed: failed)
                 } catch {
-                    finishRequest(id, with: .failure(error))
+                    failed(error)
                 }
             }
         } onCancel: { [weak self] in
@@ -210,9 +220,15 @@ final class CodexAppServerClient {
         }
     }
 
-    private func send(_ data: Data) throws {
+    @discardableResult
+    private func send(
+        _ data: Data, ifFailed failed: (@MainActor @Sendable (Error) -> Void)? = nil
+    ) throws -> CodexInputWriter.Write {
         guard let input else { throw ClientError.processExited("Codex is not running.") }
-        try input.write(contentsOf: data)
+        return input.write(data) { error in
+            guard let failed else { return }
+            Task { @MainActor in failed(error) }
+        }
     }
 
     private func consumeOutput(_ data: Data) {
@@ -262,12 +278,12 @@ final class CodexAppServerClient {
         case "tool/requestUserInput":
             result = ["answers": [:]]
         default:
-            try? send(
+            _ = try? send(
                 CodexAppServerProtocol.errorResponse(
                     id: id, message: "Onecast does not expose Codex tools."))
             return
         }
-        try? send(CodexAppServerProtocol.response(id: id, result: result))
+        _ = try? send(CodexAppServerProtocol.response(id: id, result: result))
     }
 
     private func consumeStderr(_ data: Data) {
@@ -281,6 +297,7 @@ final class CodexAppServerClient {
 
     private func finishRequest(_ id: Int, with result: Result<[String: JSONValue], Error>) {
         guard let request = pending.removeValue(forKey: id) else { return }
+        request.write?.cancel()
         request.timeout.cancel()
         request.continuation.resume(with: result)
     }
@@ -297,7 +314,7 @@ final class CodexAppServerClient {
         process?.terminationHandler = nil
         (process?.standardOutput as? Pipe)?.fileHandleForReading.readabilityHandler = nil
         (process?.standardError as? Pipe)?.fileHandleForReading.readabilityHandler = nil
-        try? input?.close()
+        input?.close()
         process = nil
         input = nil
         outputBuffer.removeAll(keepingCapacity: false)
@@ -305,8 +322,55 @@ final class CodexAppServerClient {
         let requests = pending
         pending.removeAll()
         for request in requests.values {
+            request.write?.cancel()
             request.timeout.cancel()
             request.continuation.resume(throwing: error)
         }
+    }
+}
+
+/// A server that stops reading must block this queue, never the main actor and its timeouts.
+private final class CodexInputWriter: Sendable {
+    final class Write: Sendable {
+        private let data: Mutex<Data?>
+
+        init(_ data: Data) {
+            self.data = Mutex(data)
+        }
+
+        func take() -> Data? {
+            data.withLock { value in
+                defer { value = nil }
+                return value
+            }
+        }
+
+        func cancel() {
+            data.withLock { $0 = nil }
+        }
+    }
+
+    private let handle: FileHandle
+    private let queue = DispatchQueue(label: "com.onecast.codex-input")
+
+    init(_ handle: FileHandle) {
+        self.handle = handle
+    }
+
+    func write(_ data: Data, failed: @escaping @Sendable (Error) -> Void) -> Write {
+        let write = Write(data)
+        queue.async { [handle] in
+            guard let data = write.take() else { return }
+            do {
+                try handle.write(contentsOf: data)
+            } catch {
+                failed(error)
+            }
+        }
+        return write
+    }
+
+    func close() {
+        queue.async { [handle] in try? handle.close() }
     }
 }

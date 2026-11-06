@@ -600,6 +600,10 @@ account or asking for `codex login`. A missing or true flag still requires sign-
 a check found, account or provider, beside the models and rate limits it read with it, until the next
 check; a turn that finds nothing to run on leaves Codex signed out and stops the server, as a check does.
 
+Stdin writes run on a serial queue so a blocked server leaves the UI and request timeouts responsive.
+Cancelling, timing out or stopping a request releases its queued payload before the write begins.
+An in-flight frame finishes whole so the following JSON line remains readable.
+
 `CodexTurnRunner` is the generation half behind `CodexInstalledProvider`.
 
 It creates an ephemeral thread for each request, injects prior user/assistant messages, and

@@ -522,6 +522,9 @@ A checkout without `ray` runs its own build script and installs from the checkou
 install**: the running child is terminated and the workspace goes with it, so a cancelled build leaves
 nothing behind.
 
+Child output is drained while the command runs, retaining its last 64 KiB for error reports.
+Trimming compacts the buffer's backing storage so verbose builds cannot retain every byte they wrote.
+
 **An extension carrying a Rust package builds `-e dev` instead.** A `rust:` helper is Raycast's
 Windows counterpart to `swift:`, and `dist` cross-compiles it with `cargo xwin` for
 `x86_64-pc-windows-msvc` — a toolchain nobody on macOS has, so Color Picker failed its whole build on
