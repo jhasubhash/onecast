@@ -163,8 +163,8 @@ enum ExtensionAsyncProcess {
     struct Child: Sendable {
         let task: Process
         let exit: ProcessExit
-        let stdout: Pipe
-        let stderr: Pipe
+        let stdout: Pipe?
+        let stderr: Pipe?
 
         /// How long a stopped group gets to leave politely before the signal it cannot trap.
         private static let killGrace = 2.0
@@ -180,7 +180,8 @@ enum ExtensionAsyncProcess {
                 $0 > 0 ? DispatchTime.now() + .milliseconds(Int($0)) : nil
             }
             var output = OutputDrain(stdout: stdout, stderr: stderr)
-            let timedOut = !output.read(until: deadline)
+            // With both streams sent to descriptors the drain ends at once, so the exit keeps the clock.
+            let timedOut = !output.read(until: deadline) || !exit.wait(until: deadline)
             if timedOut {
                 stop()
                 _ = output.read(until: .now() + .milliseconds(Int(Self.killGrace * 1000) + 500))
@@ -213,12 +214,13 @@ enum ExtensionAsyncProcess {
     private struct OutputDrain {
         private(set) var stdout = Data()
         private(set) var stderr = Data()
-        private let stdoutDescriptor: Int32
+        private let stdoutDescriptor: Int32?
         private var open: Set<Int32>
 
-        init(stdout: Pipe, stderr: Pipe) {
-            stdoutDescriptor = stdout.fileHandleForReading.fileDescriptor
-            open = [stdoutDescriptor, stderr.fileHandleForReading.fileDescriptor]
+        /// A nil pipe is a stream `stdio` sent to a descriptor, so there is nothing to read from it.
+        init(stdout: Pipe?, stderr: Pipe?) {
+            stdoutDescriptor = stdout?.fileHandleForReading.fileDescriptor
+            open = Set([stdout, stderr].compactMap { $0?.fileHandleForReading.fileDescriptor })
         }
 
         /// True once both pipes reach EOF; false when the deadline passes first.

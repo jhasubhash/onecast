@@ -713,7 +713,8 @@ the descriptor calls `tar` unpacks through), `os` (`networkInterfaces` reports e
 `child_process` (`exec`, `execFile`, `execSync`, `execFileSync`, `spawnSync`, and a buffered `spawn`,
 each async form reporting the child's real `pid` for `process.kill` — Timers pauses that way; a
 `timeout` ends the child's whole process group and reports Node's null status beside the signal, and
-a command closing stops any non-detached child still running for it),
+a command closing stops any non-detached child still running for it; an `fs.openSync` descriptor in
+`spawn` or `spawnSync`'s `stdio` replaces that stream's pipe),
 `crypto` (hashes, HMAC, PBKDF2, AES-CBC/ECB, AES-GCM with 16-byte tags and nonces of 12 bytes or
 more — CryptoKit's limits, narrower than Node's — random, UUID), `zlib` (gzip/zlib/raw deflate, both
 directions, plus `create*` streams that buffer until `end`), `http`/`https` (`request`, `get` and `Agent`, buffered over the same URLSession bridge

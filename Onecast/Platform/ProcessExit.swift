@@ -22,4 +22,15 @@ struct ProcessExit: Sendable {
         semaphore.wait()
         semaphore.signal()
     }
+
+    /// False when the deadline passes first; a nil deadline waits for the exit.
+    func wait(until deadline: DispatchTime?) -> Bool {
+        guard let deadline else {
+            wait()
+            return true
+        }
+        guard semaphore.wait(timeout: deadline) == .success else { return false }
+        semaphore.signal()
+        return true
+    }
 }
