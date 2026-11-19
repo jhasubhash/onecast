@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 
 /// Why a source plugin couldn't be turned into a loadable dylib. Every payload is a plain string, so
 /// the error crosses back to the main actor as a `Sendable` value.
@@ -82,6 +83,12 @@ enum PluginBuilder {
     /// The built, signed dylib for `install`, compiling only when the source or the framework ABI it
     /// links against has changed since the last build.
     nonisolated static func build(_ install: some PluginSource) throws -> URL {
+        // One build of a plugin at a time: a launch that lands while the background prewarm is
+        // compiling the same plugin waits for it and takes the cached dylib, instead of compiling a
+        // second copy alongside it.
+        let lock = buildLock(for: buildDirectory(for: install).path)
+        lock.lock()
+        defer { lock.unlock() }
         guard !install.sources.isEmpty else { throw PluginBuildError.noSources }
         let dir = buildDirectory(for: install)
         let dylib = dir.appendingPathComponent("lib\(install.moduleName).dylib")
@@ -94,6 +101,17 @@ enum PluginBuilder {
         try compile(install, to: dylib)
         try? key.write(to: stamp, atomically: true, encoding: .utf8)
         return dylib
+    }
+
+    private static let buildLocks = OSAllocatedUnfairLock<[String: NSLock]>(initialState: [:])
+
+    private nonisolated static func buildLock(for key: String) -> NSLock {
+        buildLocks.withLock { locks in
+            if let lock = locks[key] { return lock }
+            let lock = NSLock()
+            locks[key] = lock
+            return lock
+        }
     }
 
     /// `build` wrapped as a `Sendable` result, so a caller can `await` it off-main and hop the

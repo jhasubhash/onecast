@@ -63,7 +63,7 @@ final class PluginManager {
         (identifier: String, sourceHash: String, dylib: URL, at: Date)?
     @ObservationIgnored private var launchToken = 0
     @ObservationIgnored private var environment = PluginEnvironment()
-    @ObservationIgnored private var directoryWatcher: DispatchSourceFileSystemObject?
+    @ObservationIgnored private var directoryWatcher: FileSystemWatcher?
     @ObservationIgnored private var watcherGeneration = 0
     @ObservationIgnored private var rescanTask: Task<Void, Never>?
 
@@ -92,32 +92,24 @@ final class PluginManager {
 
     // MARK: - Live install detection
 
-    /// Watches the plugins folder so a plugin dropped in — or a source file edited — while Onecast
-    /// runs is picked up without a relaunch: the debounced rescan rebuilds it, and reopening the
-    /// plugin maps the fresh dylib. The running session keeps its current image until you leave it.
+    /// Watches the plugins folder, every plugin's own folder inside it included, so a plugin dropped
+    /// in — or a source file edited, even overwritten in place — while Onecast runs is picked up
+    /// without a relaunch: the debounced rescan rebuilds it in the background, and reopening the
+    /// plugin maps the fresh dylib. FSEvents rather than a folder's own vnode events, which never fire
+    /// for a change one level down. The running session keeps its current image until you leave it.
     private func armDirectoryWatcher() {
-        directoryWatcher?.cancel()
-        let descriptor = Darwin.open(PluginCatalog.pluginsDirectory().path, O_EVTONLY)
-        guard descriptor >= 0 else { return }
         watcherGeneration &+= 1
         let generation = watcherGeneration
-        let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: descriptor,
-            eventMask: [.write, .extend, .attrib, .delete, .rename, .revoke],
-            queue: .main)
-        source.setEventHandler { [weak self] in
+        directoryWatcher = FileSystemWatcher(
+            paths: [PluginCatalog.pluginsDirectory().path],
+            since: FSEventStreamEventId(kFSEventStreamEventIdSinceNow), queue: .main
+        ) { [weak self] _ in
             MainActor.assumeIsolated { self?.handleDirectoryChange(generation: generation) }
         }
-        source.setCancelHandler { Darwin.close(descriptor) }
-        directoryWatcher = source
-        source.resume()
     }
 
     private func handleDirectoryChange(generation: Int) {
         guard isEnabled, generation == watcherGeneration else { return }
-        let events = directoryWatcher?.data ?? []
-        // The folder itself was replaced; re-arm against the fresh inode (scan recreates it).
-        if !events.isDisjoint(with: [.delete, .rename, .revoke]) { armDirectoryWatcher() }
         // Debounced: a burst of file copies from one install collapses into a single rescan.
         rescanTask?.cancel()
         rescanTask = Task { [weak self] in
@@ -131,7 +123,6 @@ final class PluginManager {
         watcherGeneration &+= 1
         rescanTask?.cancel()
         rescanTask = nil
-        directoryWatcher?.cancel()
         directoryWatcher = nil
     }
 
