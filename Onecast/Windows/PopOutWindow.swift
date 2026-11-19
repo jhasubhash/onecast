@@ -77,6 +77,10 @@ final class PopOutWindowPanel: NSPanel {
         isMovableByWindowBackground = true
         isOpaque = false
         backgroundColor = .clear
+        // A clear window passes presses on its fully transparent pixels to the window beneath — here
+        // the rounded-off corners, exactly where a resize starts. Set explicitly, every press inside
+        // the frame is the window's own, so a corner drag resizes it instead of clicking through.
+        ignoresMouseEvents = false
         hasShadow = true
         animationBehavior = .none
         isReleasedWhenClosed = false
