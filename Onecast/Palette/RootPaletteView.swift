@@ -527,6 +527,7 @@ struct RootPaletteView: View {
             }
             // A plugin surface owns Escape through its scaffold; this is how it leaves the plugin.
             .environment(\.pluginExit) { core.pluginCoordinator.exitPluginScreen() }
+            .environment(\.pluginCloseLauncher) { core.pluginCoordinator.closeLauncher() }
             .environment(\.pluginToggleMainMenu) { core.pluginCoordinator.toggleRoutePin($0) }
             .environment(\.pluginMainMenuPinned) { core.pluginCoordinator.isRoutePinned($0) }
             .environment(\.pluginCopyRouteLink) { core.pluginCoordinator.copyRouteLink($0) }

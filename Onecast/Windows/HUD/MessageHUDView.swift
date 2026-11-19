@@ -4,12 +4,14 @@ import SwiftUI
 struct MessageHUDView: View {
     enum Accessory {
         case tone(DialogTone)
-        case progress
+        /// A spinner when nil; a ring that fills with 0...1 when the work can say how far it is.
+        case progress(Double?)
     }
 
     private static let glowOpacity = 0.14
     private static let glowRadius: CGFloat = 150
     private static let rimOpacity = 0.25
+    private static let ringWidth: CGFloat = 2
 
     let message: String
     let accessory: Accessory
@@ -111,11 +113,22 @@ struct MessageHUDView: View {
         case .tone(let tone):
             Image(systemName: tone.hudSymbol)
                 .foregroundStyle(tone.tint)
-        case .progress:
+        case .progress(nil):
             // A `ProgressView` spinner is drawn by AppKit and ignores every tint it is given.
             Image(systemName: "progress.indicator")
                 .foregroundStyle(Theme.Colors.progress)
                 .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing)
+        case .progress(let fraction?):
+            // Drawn rather than a determinate `ProgressView`, for the same reason: it keeps the tint.
+            ZStack {
+                Circle().stroke(Theme.Colors.progress.opacity(0.25), lineWidth: Self.ringWidth)
+                Circle()
+                    .trim(from: 0, to: min(max(fraction, 0), 1))
+                    .stroke(Theme.Colors.progress, style: StrokeStyle(lineWidth: Self.ringWidth, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .padding(Self.ringWidth / 2)
+            .accessibilityValue(Text("\(Int((min(max(fraction, 0), 1) * 100).rounded())) percent"))
         }
     }
 }

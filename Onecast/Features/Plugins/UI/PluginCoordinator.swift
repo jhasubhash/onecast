@@ -174,6 +174,11 @@ final class PluginCoordinator {
     }
 
     /// Escape past an empty search field: pop the plugin's own stack, then leave the plugin.
+    /// A surface handed its work off: hide the launcher as a `.run` action's `closesLauncher` does.
+    func closeLauncher() {
+        paletteCoordinator.hidePalette()
+    }
+
     func exitPluginScreen() {
         if plugins.back() {
             palette.query = ""

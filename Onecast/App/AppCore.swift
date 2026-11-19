@@ -227,7 +227,13 @@ final class AppCore {
         store: scheduledTasks, settings: settings, notifications: notificationPresenter,
         appIndex: appIndex)
     @ObservationIgnored private(set) lazy var addonScheduleCoordinator = AddonScheduleCoordinator(
-        store: addonSchedules, notifications: notificationPresenter)
+        store: addonSchedules, notifications: notificationPresenter,
+        hud: AddonHUD(
+            show: { [unowned self] message, tone in self.showMessage(message, tone: tone) },
+            progress: { [unowned self] message, fraction, onCancel in
+                self.showProgress(message, fraction: fraction, onCancel: onCancel)
+            },
+            hide: { [unowned self] in self.hideProgress() }))
     @ObservationIgnored private(set) lazy var schedulerEditorCoordinator =
         SchedulerEditorCoordinator(store: scheduledTasks, core: self)
     @ObservationIgnored private(set) lazy var presentationCoordinator = PresentationCoordinator(
@@ -1062,8 +1068,8 @@ final class AppCore {
     }
 
     /// The same pill with a spinner, for work the reader started and cannot otherwise see running.
-    func showProgress(_ message: String, onCancel: (() -> Void)? = nil) {
-        messageHUD.showProgress(message: message, onCancel: onCancel)
+    func showProgress(_ message: String, fraction: Double? = nil, onCancel: (() -> Void)? = nil) {
+        messageHUD.showProgress(message: message, fraction: fraction, onCancel: onCancel)
     }
 
     func hideProgress() {

@@ -82,10 +82,30 @@ public struct OnecastScheduleFire: Sendable, Equatable {
     }
 }
 
+// MARK: - HUD
+
+/// The mark leading a HUD message pill: the same three Onecast's own confirmations use.
+@frozen public enum OnecastHUDTone: String, Sendable, CaseIterable {
+    case info, success, failure
+}
+
+/// Long-running work reported in the HUD pill. It stays up, without a dwell, until the next
+/// progress, a message, or `hideHUDProgress()` replaces it.
+public struct OnecastHUDProgress: Sendable, Equatable {
+    public var message: String
+    /// 0...1 draws a filling ring; nil draws the indeterminate spinner.
+    public var fraction: Double?
+
+    public init(message: String, fraction: Double? = nil) {
+        self.message = message
+        self.fraction = fraction
+    }
+}
+
 // MARK: - Services
 
-/// What Onecast offers a plugin or DockWidget beyond its own views: its notification cards and its
-/// scheduler. A DockWidget reads it from `DockWidgetContext.services`; a plugin is handed it once
+/// What Onecast offers a plugin or DockWidget beyond its own views: its notification cards, its HUD
+/// pill and its scheduler. A DockWidget reads it from `DockWidgetContext.services`; a plugin is handed it once
 /// through `OnecastPlugin.bind(services:)`.
 ///
 /// Schedules are code-owned: re-register them every time the owner is created (they are not
@@ -96,22 +116,32 @@ public struct OnecastScheduleFire: Sendable, Equatable {
 public struct OnecastHostServices: Sendable {
     public typealias ActionHandler = @MainActor @Sendable (String) -> Void
     public typealias FireHandler = @MainActor @Sendable (OnecastScheduleFire) -> Void
+    public typealias CancelHandler = @MainActor @Sendable () -> Void
 
     private let post: @MainActor @Sendable (OnecastNotification, ActionHandler?) -> String
     private let withdraw: @MainActor @Sendable (String) -> Void
     private let register: @MainActor @Sendable (OnecastSchedule, @escaping FireHandler) -> Void
     private let cancel: @MainActor @Sendable (String) -> Void
+    private let hud: @MainActor @Sendable (String, OnecastHUDTone) -> Void
+    private let hudProgress: @MainActor @Sendable (OnecastHUDProgress, CancelHandler?) -> Void
+    private let hudHide: @MainActor @Sendable () -> Void
 
     public init(
         notify: @escaping @MainActor @Sendable (OnecastNotification, ActionHandler?) -> String,
         dismissNotification: @escaping @MainActor @Sendable (String) -> Void,
         schedule: @escaping @MainActor @Sendable (OnecastSchedule, @escaping FireHandler) -> Void,
-        unschedule: @escaping @MainActor @Sendable (String) -> Void
+        unschedule: @escaping @MainActor @Sendable (String) -> Void,
+        showHUD: @escaping @MainActor @Sendable (String, OnecastHUDTone) -> Void,
+        showHUDProgress: @escaping @MainActor @Sendable (OnecastHUDProgress, CancelHandler?) -> Void,
+        hideHUDProgress: @escaping @MainActor @Sendable () -> Void
     ) {
         post = notify
         withdraw = dismissNotification
         register = schedule
         cancel = unschedule
+        hud = showHUD
+        hudProgress = showHUDProgress
+        hudHide = hideHUDProgress
     }
 
     /// Shows a card now and returns its id. `onAction` gets the tapped button's id; the card stays
@@ -136,8 +166,29 @@ public struct OnecastHostServices: Sendable {
         cancel(id)
     }
 
+    /// Onecast's message pill, the one its own confirmations use; it fades after a few seconds.
+    @MainActor
+    public func showHUD(_ message: String, tone: OnecastHUDTone = .success) {
+        hud(message, tone)
+    }
+
+    /// The pill with a spinner or, given a fraction, a filling ring, for background work the user
+    /// started and can't otherwise see. Call again to update it. With `onCancel`, clicking the pill
+    /// calls it. One pill is shared by the whole app, so another report may replace this one; the
+    /// next update brings it back.
+    @MainActor
+    public func showHUDProgress(_ progress: OnecastHUDProgress, onCancel: CancelHandler? = nil) {
+        hudProgress(progress, onCancel)
+    }
+
+    @MainActor
+    public func hideHUDProgress() {
+        hudHide()
+    }
+
     /// Accepts every call and does nothing: for previews and tests.
     public static let inert = OnecastHostServices(
         notify: { _, _ in UUID().uuidString }, dismissNotification: { _ in },
-        schedule: { _, _ in }, unschedule: { _ in })
+        schedule: { _, _ in }, unschedule: { _ in },
+        showHUD: { _, _ in }, showHUDProgress: { _, _ in }, hideHUDProgress: {})
 }

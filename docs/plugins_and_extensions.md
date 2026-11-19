@@ -60,7 +60,7 @@ running with the app's full privileges), and search the plugin by name in the la
    the next open with no app relaunch.
 
 **Editing is live.** The plugins folder is watched: dropping a plugin in, or editing a source, is
-picked up within a moment and rebuilt in the background. Reopening the plugin maps the new build; the
+picked up and rebuilt: installs within a moment, and an edit inside a plugin folder on its next open. Reopening maps the new build; the
 currently-running session keeps its image until you leave it.
 
 ### Requirements

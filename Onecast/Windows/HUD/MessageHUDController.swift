@@ -21,9 +21,9 @@ final class MessageHUDController {
     }
 
     /// Stays up until the work it reports ends and something replaces it, or `dismiss()` runs.
-    func showProgress(message: String, onCancel: (() -> Void)? = nil) {
+    func showProgress(message: String, fraction: Double? = nil, onCancel: (() -> Void)? = nil) {
         presenter.show(
-            MessageHUDView(message: message, accessory: .progress, onCancel: onCancel)
+            MessageHUDView(message: message, accessory: .progress(fraction), onCancel: onCancel)
                 .environment(\.metrics, metrics),
             dwells: false,
             interactive: onCancel != nil)

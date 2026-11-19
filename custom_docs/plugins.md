@@ -112,6 +112,22 @@ firing, and Onecast loads it at launch (and again after its sources change) so `
 re-register before anyone opens it. Register schedules in `bind(services:)` for that reason.
 Uninstalling the plugin forgets its schedules.
 
+**The HUD.** `showHUD(_:tone:)` flashes Onecast's HUD pill (`.info`, `.success`, `.failure`), the one
+the app's own copy and paste messages use. `showHUDProgress(_:onCancel:)` shows a pill that stays up:
+pass an `OnecastHUDProgress` with a `fraction` (0…1) for a filling ring, or nil for a spinner, and
+call it again to update. Clicking the pill runs `onCancel`. `hideHUDProgress()` takes it down; a
+following `showHUD` replaces it anyway. Long work that must outlive the palette (a render, a
+download) belongs in a `static` object: `stop()` drops the plugin instance, but the dylib stays
+mapped, so a static singleton and its tasks survive the palette closing (see the image-gen plugin).
+
+**Closing the launcher.** `@Environment(\.pluginCloseLauncher)` is an action that hides the palette
+(or closes a popped-out plugin window), for a surface that starts background work and gets out of
+the way.
+
+**Editing is live.** A source edit inside a plugin's folder is picked up on the next open: the
+launch re-reads the folder and rebuilds when the fingerprint changed (the folder watcher alone only
+sees the plugins folder itself, so it catches installs and removals, not edits inside one).
+
 `results(for:)` is re-asked on every keystroke — filter on `context.query` yourself. Pushed child
 lists are filtered by the host. A surface owns the entire panel and its own keyboard: wrap it in a
 `PluginScaffold` (below), which claims Escape, ⌘K and the list keys through a local monitor ahead of

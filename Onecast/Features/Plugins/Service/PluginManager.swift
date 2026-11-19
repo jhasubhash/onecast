@@ -240,11 +240,15 @@ final class PluginManager {
         launchToken &+= 1
         let token = launchToken
         Task { [weak self] in
-            let built = await Task.detached(priority: .userInitiated) {
-                PluginBuilder.buildResult(install)
+            // Re-read the folder first: the watcher sees only the plugins folder itself, so an edit
+            // inside one plugin's folder would otherwise open the build from before the edit.
+            let (current, built) = await Task.detached(priority: .userInitiated) {
+                let current = PluginCatalog.plugin(at: install.directory) ?? install
+                return (current, PluginBuilder.buildResult(current))
             }.value
             guard let self, self.launchToken == token else { return }
-            self.finishLaunch(install, built: built, route: route)
+            if current.sourceHash != install.sourceHash { self.refresh() }
+            self.finishLaunch(current, built: built, route: route)
         }
     }
 
@@ -380,7 +384,10 @@ final class PluginManager {
             unschedule: { [weak self, weak schedules] id in
                 base.unschedule(id)
                 if schedules?.hasSchedules(owner) == false { self?.background[identifier] = nil }
-            })
+            },
+            showHUD: { base.showHUD($0, tone: $1) },
+            showHUDProgress: { base.showHUDProgress($0, onCancel: $1) },
+            hideHUDProgress: { base.hideHUDProgress() })
         plugin.bind(services: services)
     }
 

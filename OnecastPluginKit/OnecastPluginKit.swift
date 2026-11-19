@@ -1044,6 +1044,12 @@ public struct PluginExitKey: EnvironmentKey {
     public static let defaultValue: @MainActor () -> Void = {}
 }
 
+/// How a surface closes the launcher once its work is handed off (a job queued to run in the
+/// background), as a `.run` action's `closesLauncher` does. In a pop-out window it closes the window.
+public struct PluginCloseLauncherKey: EnvironmentKey {
+    public static let defaultValue: @MainActor () -> Void = {}
+}
+
 /// How a scaffold pins/unpins the current view to the launcher, plus whether it already is: the
 /// host injects both, keyed on the route so a renamed pin still resolves. The scaffold's auto-added
 /// command toggles on the pinned state.
@@ -1075,6 +1081,10 @@ public extension EnvironmentValues {
     var pluginExit: @MainActor () -> Void {
         get { self[PluginExitKey.self] }
         set { self[PluginExitKey.self] = newValue }
+    }
+    var pluginCloseLauncher: @MainActor () -> Void {
+        get { self[PluginCloseLauncherKey.self] }
+        set { self[PluginCloseLauncherKey.self] = newValue }
     }
     var pluginToggleMainMenu: @MainActor (PluginRoute) -> Void {
         get { self[PluginToggleMainMenuKey.self] }

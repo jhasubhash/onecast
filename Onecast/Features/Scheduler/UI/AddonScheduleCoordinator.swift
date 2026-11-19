@@ -1,7 +1,14 @@
 import Foundation
 import OnecastPluginKit
 
-/// Onecast's notifications and scheduler as plugins and DockWidgets see them. A schedule fires only
+/// The app's HUD pill as `AppCore` lends it to add-ons, so `AppCore` stays its only owner.
+struct AddonHUD {
+    let show: @MainActor (String, DialogTone) -> Void
+    let progress: @MainActor (String, Double?, (() -> Void)?) -> Void
+    let hide: @MainActor () -> Void
+}
+
+/// Onecast's notifications, HUD and scheduler as plugins and DockWidgets see them. A schedule fires only
 /// while the code that registered it is loaded and holds a handler; its record persists, so the
 /// occurrence missed meanwhile fires once, late, when the owner registers again.
 @MainActor
@@ -9,6 +16,7 @@ import OnecastPluginKit
 final class AddonScheduleCoordinator {
     private let store: AddonScheduleStore
     private let notifications: NotificationPresenter
+    private let hud: AddonHUD
     private let calendar = Calendar.current
 
     /// The schedules whose owner is loaded now; Settings marks the rest as not running.
@@ -21,9 +29,10 @@ final class AddonScheduleCoordinator {
     /// A fire this far behind its occurrence reports `isLate`.
     private static let lateAfter: TimeInterval = 60
 
-    init(store: AddonScheduleStore, notifications: NotificationPresenter) {
+    init(store: AddonScheduleStore, notifications: NotificationPresenter, hud: AddonHUD) {
         self.store = store
         self.notifications = notifications
+        self.hud = hud
     }
 
     func start() {
@@ -57,7 +66,12 @@ final class AddonScheduleCoordinator {
             schedule: { [weak self] schedule, fire in
                 self?.register(schedule, owner: owner, ownerName: name, fire: fire)
             },
-            unschedule: { [weak self] id in self?.unregister(scheduleID: id, owner: owner) })
+            unschedule: { [weak self] id in self?.unregister(scheduleID: id, owner: owner) },
+            showHUD: { [hud] message, tone in hud.show(message, tone.dialogTone) },
+            showHUDProgress: { [hud] progress, onCancel in
+                hud.progress(progress.message, progress.fraction, onCancel.map { cancel in { cancel() } })
+            },
+            hideHUDProgress: { [hud] in hud.hide() })
     }
 
     @discardableResult
@@ -164,5 +178,15 @@ final class AddonScheduleCoordinator {
                     isLate: now.timeIntervalSince(date) > Self.lateAfter))
         }
         reschedule()
+    }
+}
+
+extension OnecastHUDTone {
+    fileprivate var dialogTone: DialogTone {
+        switch self {
+        case .info: .neutral
+        case .success: .success
+        case .failure: .danger
+        }
     }
 }
