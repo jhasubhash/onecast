@@ -186,6 +186,8 @@ struct PopOutWindowChrome<Content: View>: View {
     /// pixel with hit-testing content, defeating that. This top strip is the host's own drag handle,
     /// won on the way down like the palette's header, so a packed surface can still be moved.
     private static var dragStrip: CGFloat { 24 }
+    /// The top-left width left to the surface, for window buttons like a titled window's.
+    private static var buttonsInset: CGFloat { 84 }
 
     init(
         menu: PopOutWindowMenu,
@@ -205,7 +207,12 @@ struct PopOutWindowChrome<Content: View>: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous))
             .overlay(alignment: .top) {
-                Color.clear.frame(height: Self.dragStrip).windowDraggable(true)
+                // Starts clear of the top-left corner, where a surface may draw its own window
+                // buttons (close, minimise, zoom); the strip would otherwise take their clicks.
+                HStack(spacing: 0) {
+                    Color.clear.frame(width: Self.buttonsInset).allowsHitTesting(false)
+                    Color.clear.frame(height: Self.dragStrip).windowDraggable(true)
+                }
             }
             // A click anywhere off the palette closes it, as the app's own ⌘K menus do. Sits below
             // the pill and the palette overlays (added after), so their own clicks still register.
