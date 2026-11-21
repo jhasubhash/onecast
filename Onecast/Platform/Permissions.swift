@@ -2,10 +2,27 @@ import AVFoundation
 import AppKit
 import EventKit
 import IOKit.hidsystem
+import os
 // `@preconcurrency` downgrades AX diagnostics: the option key is a constant C global.
 @preconcurrency import ApplicationServices
 
 enum Permissions {
+    /// EventKit grants this launch: the status class method can keep saying "not asked" after one.
+    private static let eventKitGranted = OSAllocatedUnfairLock<Set<EKEntityType>>(initialState: [])
+
+    private static func eventKitStatus(_ type: EKEntityType) -> EKAuthorizationStatus {
+        let status = EKEventStore.authorizationStatus(for: type)
+        guard status == .notDetermined, eventKitGranted.withLock({ $0.contains(type) }) else {
+            return status
+        }
+        return .fullAccess
+    }
+
+    private static func noteEventKitGrant(_ granted: Bool, _ type: EKEntityType) -> Bool {
+        if granted { eventKitGranted.withLock { _ = $0.insert(type) } }
+        return granted
+    }
+
     static func isAccessibilityTrusted() -> Bool {
         AXIsProcessTrusted()
     }
@@ -78,7 +95,7 @@ enum Permissions {
     }
 
     static func calendarAccess() -> CalendarAccess {
-        switch EKEventStore.authorizationStatus(for: .event) {
+        switch eventKitStatus(.event) {
         case .fullAccess: return .granted
         case .notDetermined: return .notDetermined
         // Write-only is the same as nothing here: Onecast only ever reads.
@@ -88,7 +105,7 @@ enum Permissions {
 
     /// The store is built and dropped here: a grant is process-wide, so nothing travels.
     nonisolated static func requestCalendarAccess() async -> Bool {
-        (try? await EKEventStore().requestFullAccessToEvents()) ?? false
+        noteEventKitGrant((try? await EKEventStore().requestFullAccessToEvents()) ?? false, .event)
     }
 
     static func cameraAccess() -> CameraAccess {
@@ -131,7 +148,7 @@ enum Permissions {
     }
 
     static func remindersAccess() -> RemindersAccess {
-        switch EKEventStore.authorizationStatus(for: .reminder) {
+        switch eventKitStatus(.reminder) {
         case .fullAccess: return .granted
         case .notDetermined: return .notDetermined
         default: return .denied
@@ -140,7 +157,8 @@ enum Permissions {
 
     /// Built and dropped like the calendar's: the grant is process-wide, the store is not needed.
     nonisolated static func requestRemindersAccess() async -> Bool {
-        (try? await EKEventStore().requestFullAccessToReminders()) ?? false
+        noteEventKitGrant(
+            (try? await EKEventStore().requestFullAccessToReminders()) ?? false, .reminder)
     }
 
     @MainActor
