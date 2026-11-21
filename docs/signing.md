@@ -49,28 +49,28 @@ build cannot sync. `OnecastCloud.entitlements` is the same file plus CloudKit, t
 `iCloud.$(ONECAST_BUNDLE_IDENTIFIER)` and push; keep the two in step.
 
 Each channel (`com.onecast.app`, `com.onecast.app.dev`) needs an App ID with iCloud and Push and
-its container. Xcode registers both on a first automatic build with `-allowProvisioningUpdates`,
-and makes two profiles per App ID: a **development** one (Apple Development certificate, CloudKit
-Development) and a Developer ID **Team Direct** one, from exporting an archive with
-`method: developer-id`. The Team Direct profile reaches only CloudKit **Production**. So Debug
-signs with Apple Development and the Xcode-managed development profile, which also means the Dev
-app asks for Accessibility and other grants once more after the switch:
+its container, then a **Developer ID** provisioning profile created by hand in the developer portal
+(Profiles → + → Developer ID → the App ID). Xcode's own "Team Direct" profiles will not do: manual
+signing refuses an Xcode-managed profile, and automatic signing refuses a Developer ID identity.
+Do not sign Debug with Apple Development to get around it — macOS ties TCC grants to the
+certificate, so every permission is lost on each switch. Install both profiles, then:
 
 ```xcconfig
-CODE_SIGN_IDENTITY[config=Debug] = Apple Development
-ONECAST_ENTITLEMENTS[config=Debug] = Onecast/OnecastCloud.entitlements
-ONECAST_CODE_SIGN_STYLE[config=Debug] = Automatic
+ONECAST_ENTITLEMENTS = Onecast/OnecastCloud.entitlements
+ONECAST_PROVISIONING_PROFILE[config=Debug] = <Dev profile name>
+ONECAST_PROVISIONING_PROFILE[config=Release] = <Release profile name>
+ONECAST_CLOUDKIT_ENVIRONMENT[config=Debug] = Production
+ONECAST_APS_ENVIRONMENT[config=Debug] = production
 ```
 
-A Release opts in with `ONECAST_ENTITLEMENTS[config=Release]` and
-`ONECAST_PROVISIONING_PROFILE[config=Release] = Mac Team Direct Provisioning Profile: com.onecast.app`
-— only once Production has the schema, or every save fails there. The Development environment
-creates the record type on a Dev build's first save; the CloudKit Console's **Deploy Schema
-Changes** takes it to Production. `./Scripts/deploy-cloudkit-schema.sh iCloud.<bundle id>` and
-`check-cloudkit-schema.sh` do the same from the command line once `xcrun cktool save-token` holds a
-management token; both read the team from `DEVELOPMENT_TEAM` in `Signing.local.xcconfig` (or
-`ONECAST_TEAM_ID`). `verify-signature.sh` checks the container, environment and embedded profile
-only on a build that carries the iCloud entitlement.
+A Developer ID profile reaches only CloudKit **Production**, so Debug syncs there too (the
+environments default in `Signing.xcconfig`), and Production must have the schema first or every
+save fails. Deploy it from the CloudKit Console, or with
+`./Scripts/deploy-cloudkit-schema.sh iCloud.<bundle id>` once `xcrun cktool save-token` holds a
+management token; that script and `check-cloudkit-schema.sh` read the team from
+`DEVELOPMENT_TEAM` in `Signing.local.xcconfig` (or `ONECAST_TEAM_ID`). `verify-signature.sh` checks
+the container, environment and embedded profile only on a build that carries the iCloud
+entitlement.
 
 ## Hardened runtime
 

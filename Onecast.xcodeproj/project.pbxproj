@@ -2520,7 +2520,7 @@
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
 		FFEE3E52A2BABF365CFA8F82 /* PresentationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSession.swift; sourceTree = "<group>"; };
-		"TEMP_5F2D13FB-D21B-4120-9263-0EDFD38072F0" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_979CB504-5369-420A-BA81-211BF2102288" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -5416,10 +5416,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_D892CCEE-D174-4498-8774-3028C4860AAE" /* onecast */ = {
+		"TEMP_FABA70AE-1A5E-4E08-84C9-A83508D989E7" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_5F2D13FB-D21B-4120-9263-0EDFD38072F0" /* Signing.xcconfig */,
+				"TEMP_979CB504-5369-420A-BA81-211BF2102288" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -6925,7 +6925,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_5F2D13FB-D21B-4120-9263-0EDFD38072F0" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_979CB504-5369-420A-BA81-211BF2102288" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6979,9 +6979,7 @@
 				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				ONECAST_APS_ENVIRONMENT = production;
 				ONECAST_BUNDLE_IDENTIFIER = com.onecast.app;
-				ONECAST_CLOUDKIT_ENVIRONMENT = Production;
 				ONECAST_PRODUCT_NAME = Onecast;
 				ONECAST_URL_SCHEME = onecast;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -7225,7 +7223,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_5F2D13FB-D21B-4120-9263-0EDFD38072F0" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_979CB504-5369-420A-BA81-211BF2102288" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -7282,9 +7280,7 @@
 				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				ONECAST_APS_ENVIRONMENT = development;
 				ONECAST_BUNDLE_IDENTIFIER = com.onecast.app.dev;
-				ONECAST_CLOUDKIT_ENVIRONMENT = Development;
 				ONECAST_PRODUCT_NAME = "Onecast Dev";
 				ONECAST_URL_SCHEME = "onecast-dev";
 				ONLY_ACTIVE_ARCH = YES;

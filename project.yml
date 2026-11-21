@@ -36,12 +36,8 @@ settings:
       DICTATION_EXECUTABLE_NAME: Onecast Dev Dictation
       # Its own scheme too, so a link never lands in whichever channel macOS happens to pick.
       ONECAST_URL_SCHEME: onecast-dev
-      ONECAST_CLOUDKIT_ENVIRONMENT: Development
-      ONECAST_APS_ENVIRONMENT: development
     Release:
       DICTATION_EXECUTABLE_NAME: Onecast Dictation
-      ONECAST_CLOUDKIT_ENVIRONMENT: Production
-      ONECAST_APS_ENVIRONMENT: production
       # Signing identity + team now come from Signing.xcconfig (see configFiles), not pinned here.
       # Release-only: library validation refuses Debug's `.debug.dylib`, whose team never matches.
       ENABLE_HARDENED_RUNTIME: YES

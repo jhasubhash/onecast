@@ -11,6 +11,12 @@ DEVELOPMENT_TEAM =
 // a signer's local file points these at OnecastCloud.entitlements and its Developer ID profile.
 ONECAST_ENTITLEMENTS = Onecast/Onecast.entitlements
 ONECAST_PROVISIONING_PROFILE =
+// CloudKit and push environments: Debug on Development unless a local file signs it with a
+// Developer ID profile, which reaches only Production.
+ONECAST_CLOUDKIT_ENVIRONMENT[config=Debug] = Development
+ONECAST_APS_ENVIRONMENT[config=Debug] = development
+ONECAST_CLOUDKIT_ENVIRONMENT[config=Release] = Production
+ONECAST_APS_ENVIRONMENT[config=Release] = production
 // Manual everywhere but where a signer's local file uses an Xcode-managed iCloud profile.
 ONECAST_CODE_SIGN_STYLE = Manual
 
