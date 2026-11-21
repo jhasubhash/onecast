@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Onecast.entitlements plus iCloud Sync's: keep the two in step. -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+	<!-- JavaScriptCore compiles every extension command, so the hardened runtime must allow JIT. -->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<!-- Without this the hardened runtime refuses every Apple event with no prompt to recover from. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+	<!-- Undeclared, tccd refuses the prompt outright: no dialog, and the request resolves as denied. -->
+	<key>com.apple.security.device.camera</key>
+	<true/>
+	<!-- Microphone capture belongs to Onecast; the Dictation helper only receives audio over a pipe. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.personal-information.calendars</key>
+	<true/>
+	<!-- Undeclared, the hardened runtime refuses the Weather widget's location prompt outright. -->
+	<key>com.apple.security.personal-information.location</key>
+	<true/>
+	<!-- Plugins are user-built dylibs the app dlopens; library validation would refuse them. -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+	<!-- iCloud Sync; only a build signed with a matching provisioning profile may carry these. -->
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.$(ONECAST_BUNDLE_IDENTIFIER)</string>
+	</array>
+	<key>com.apple.developer.icloud-container-environment</key>
+	<string>$(ONECAST_CLOUDKIT_ENVIRONMENT)</string>
+	<key>com.apple.developer.aps-environment</key>
+	<string>$(ONECAST_APS_ENVIRONMENT)</string>
+</dict>
+</plist>

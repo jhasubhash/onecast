@@ -60,6 +60,11 @@ struct MCPServer: Codable, Equatable, Identifiable, Sendable {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? slug : trimmed
     }
+
+    /// The same server set up separately, as on two Macs before they sync.
+    func isTwin(of other: MCPServer) -> Bool {
+        name == other.name && transport == other.transport
+    }
 }
 
 /// The handle `@slug` addresses, derived from the name so nobody has to invent a second one.

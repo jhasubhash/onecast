@@ -159,6 +159,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `dock-strip-layout-test` | `Docks/Model/{DockStripLayout,DockPopupPlacement}.swift` — tile positions under the lens and where a popup hangs |
 | `dockwidget-catalog-test` | `Docks/Model/DockWidgetManifest.swift`, `Docks/Service/DockWidgetCatalog.swift` — manifest decoding and the folder scan |
 | `dock-widgets-time-test` / `-productivity-` / `-system-` / `-personal-` | `Docks/Model/Widgets/` — each built-in widget group's pure maths, parsing and formatting |
+| `cloud-sync-test` | `CloudSync/Model/` and `Settings/Model/SettingsFileKey.swift` — record names, the ledger's diff, last-write-wins, edit-beats-delete, echo-free apply and re-fetch skip, category merge, setting scope (every feature switch, folder, display and device stays local) and entry-key spelling |
 | `snippets-test` | all of `Snippets/Model/` and `Snippets/Service/`, plus `Platform/HealthTicker.swift`, `SnippetDraft` (Insert at the caret, Save's validity rule) and `Platform/TextInsertion.swift` |
 | `notes-test` | all of `Notes/Model/` and `Notes/Service/`, plus the real fuzzy matcher and signposts |
 | `notes-editor-test` | the literal Notes editor with real TextKit 2 and AppKit editing objects |
@@ -854,6 +855,27 @@ Debug answers `onecast-dev://`; use that scheme for every link below.
 - Cancelling the save panel leaves nothing in `~/Library/Caches/com.onecast.app.dev/backup-staging/`
 - **`snippetsEnabled` is not in the exported file**, and importing does not enable snippets
 - Nothing in the extracted tree names a Keychain item, an extension, or an AI conversation
+
+### iCloud Sync
+
+Needs a Dev build signed for iCloud through `Signing.local.xcconfig`
+([signing.md](signing.md#icloud-sync)). A second macOS user signed in to the same Apple ID is a
+second Mac on one machine.
+
+- A self-signed build shows that iCloud Sync needs a signed build, and nothing crashes
+- Turning sync on asks first, then shows "Setting up…" and settles on "Up to date"; the counts match
+- On the second Mac: notes, snippets, quicklinks, a hotkey, an alias, a favorite and an appearance
+  change arrive; no note is rewritten or renamed when both Macs already held it
+- Edit the same note on both while offline: the later edit wins; an open note with unsaved typing
+  keeps it and uploads it
+- Delete a note on one Mac: it moves to the Trash on the other
+- Install a store extension on one Mac: it installs on the other only once Extensions is on there;
+  uninstalling removes it from both
+- A clashing hotkey keeps each Mac's own choice and is not bounced back
+- Unchecking a category stops it in both directions; checking it again merges rather than deletes
+- Remove the other Mac: it turns sync off there and says why
+- Delete iCloud Data turns sync off on every Mac and leaves their data
+- Signing out of iCloud shows the reason; signing back in resumes on its own
 
 ### Clean install
 

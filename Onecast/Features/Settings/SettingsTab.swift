@@ -1,6 +1,6 @@
 enum SettingsTab: CaseIterable, Identifiable {
-    case general, applications, systemSettings, systemActions, commands, quicklinks, appleShortcuts,
-        fallbacks, ai, quickActions, dictation, fileSearch, notes, shelf, snippets, navigation,
+    case general, iCloudSync, applications, systemSettings, systemActions, commands, quicklinks,
+        appleShortcuts, fallbacks, ai, quickActions, dictation, fileSearch, notes, shelf, snippets, navigation,
         windowManagement, presentation, teleprompter, docks, clipboard, emoji, calendar, extensions, plugins,
         scheduler, permissions, backup, about
     /// The case, never an index: a selectable `List` flattens section and row IDs together.
@@ -15,6 +15,7 @@ enum SettingsTab: CaseIterable, Identifiable {
     var slug: String {
         switch self {
         case .general: "general"
+        case .iCloudSync: "icloud-sync"
         case .applications: "applications"
         case .systemSettings: "system-settings"
         case .systemActions: "system-actions"
@@ -49,6 +50,7 @@ enum SettingsTab: CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general: return "General"
+        case .iCloudSync: return "iCloud Sync"
         case .applications: return "Applications"
         case .systemSettings: return "System Settings"
         case .systemActions: return "System Actions"
@@ -83,6 +85,7 @@ enum SettingsTab: CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .general: return "switch.2"
+        case .iCloudSync: return "icloud"
         case .applications: return "square.grid.2x2"
         case .systemSettings: return "gearshape"
         case .systemActions: return "bolt"
@@ -132,7 +135,7 @@ enum SettingsSection: CaseIterable, Identifiable {
 
     var tabs: [SettingsTab] {
         switch self {
-        case .general: return [.general, .permissions]
+        case .general: return [.general, .iCloudSync, .permissions]
         case .launcher:
             return [
                 .applications, .systemSettings, .systemActions, .commands, .quicklinks,

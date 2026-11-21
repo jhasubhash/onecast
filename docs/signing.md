@@ -41,6 +41,31 @@ security find-identity -p codesigning | grep "Onecast Self-Signed"
 
 Now local builds (Xcode, VS Code F5, `xcodebuild`) sign with it, and you grant Accessibility once.
 
+## iCloud Sync
+
+CloudKit needs a provisioning profile, so a self-signed build — and any clone without a signer's
+`Signing.local.xcconfig` — keeps `Onecast/Onecast.entitlements`, and the iCloud Sync pane says the
+build cannot sync. `OnecastCloud.entitlements` is the same file plus CloudKit, the container
+`iCloud.$(ONECAST_BUNDLE_IDENTIFIER)` and push; keep the two in step. A signer opts in with three
+more lines in `Signing.local.xcconfig`:
+
+```xcconfig
+ONECAST_ENTITLEMENTS = Onecast/OnecastCloud.entitlements
+ONECAST_PROVISIONING_PROFILE = <name of the Developer ID profile for this bundle id>
+CODE_SIGN_STYLE = Manual
+```
+
+One-time setup in the Apple Developer account, per channel (`com.onecast.app` and
+`com.onecast.app.dev`): an App ID with iCloud (CloudKit) and Push Notifications, the container
+`iCloud.<bundle id>` assigned to it, and a **Developer ID** provisioning profile for that App ID,
+downloaded into `~/Library/Developer/Xcode/UserData/Provisioning Profiles`. Then load the record
+type: `./Scripts/deploy-cloudkit-schema.sh iCloud.<bundle id>` imports `Config/CloudKit/schema.ckdb`
+into Development, and the CloudKit Console's **Deploy Schema Changes** takes it to Production, which
+a Release build talks to. `./Scripts/check-cloudkit-schema.sh iCloud.<bundle id>` confirms
+Production has every field. Both read the team from `DEVELOPMENT_TEAM` in `Signing.local.xcconfig`
+(or `ONECAST_TEAM_ID`). `verify-signature.sh` checks the container, environment and embedded
+profile only on a build that carries the iCloud entitlement.
+
 ## Hardened runtime
 
 **Release only**, on both targets: `ENABLE_HARDENED_RUNTIME: YES`, which notarization requires. Debug

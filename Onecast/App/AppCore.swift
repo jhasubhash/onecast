@@ -35,8 +35,7 @@ final class AppCore {
     let settings: AppSettings
     /// Mirrors settings into settings.json; nil while the Backup pane's switch is off.
     @ObservationIgnored private var settingsFile: SettingsFileRepository?
-    /// The file's launcher items, kept to apply a waiting record once its app is installed.
-    @ObservationIgnored private var launcherSettingsFile: LauncherSettingsFile?
+    @ObservationIgnored private(set) lazy var settingsBindings = makeSettingsBindings()
     @ObservationIgnored private var appearanceObservation: NSKeyValueObservation?
     @ObservationIgnored private let iconStyle = IconStyleMonitor()
     let favorites = FavoritesStore()
@@ -242,6 +241,7 @@ final class AppCore {
         AIToolBridge(ComputerUseTool.toolset(controller: computerController))
     @ObservationIgnored private(set) lazy var browserRelayBridge = AIToolBridge(
         BrowserRelayTool.toolset(port: { [aiSettings] in aiSettings.browserRelayPort }))
+    @ObservationIgnored private(set) lazy var cloudSyncCoordinator = CloudSyncCoordinator(core: self)
     @ObservationIgnored private(set) lazy var mcpCoordinator = MCPCoordinator(
         settings: settings, store: mcpSettings, manager: mcp, core: self)
     @ObservationIgnored private(set) lazy var aiChatCoordinator = AIChatCoordinator(
@@ -450,9 +450,11 @@ final class AppCore {
                 // After the first scan, so the file's apps and panes have entries to match.
                 if settings.settingsFileEnabled, settingsFile == nil {
                     startSettingsFile(importing: true)
-                } else if let launcherSettingsFile {
-                    reportSettingsFileIssues(launcherSettingsFile.applyInstalled())
+                } else {
+                    let issues = settingsBindings.launcher.applyInstalled()
+                    if settingsFile != nil { reportSettingsFileIssues(issues) }
                 }
+                cloudSyncCoordinator.appIndexDidScan()
             }
             plugins.onDidUninstall = { [weak self] entryIDs in
                 self?.pluginCoordinator.removePluginReferences(entryIDs: entryIDs)
@@ -675,6 +677,7 @@ final class AppCore {
     func prepareForTermination() {
         if settings.dictationEnabled { dictationCoordinator.prepareForTermination() }
         settingsFile?.flush()
+        cloudSyncCoordinator.flush()
         clipboardTextIndexer?.stop()
         // HID remaps first: they outlive the process.
         hyperKey.prepareForTermination()
@@ -768,6 +771,7 @@ final class AppCore {
         track(
             { _ = $0.automaticallyCheckForUpdates },
             reproject: { $0.updateCoordinator.applyAutomaticChecking() })
+        track({ _ = $0.iCloudSyncEnabled }, reproject: { $0.cloudSyncCoordinator.applyEnabled() })
         track(
             {
                 _ = $0.windowManagementEnabled
@@ -1001,21 +1005,11 @@ final class AppCore {
     /// Mirrors settings into settings.json from now on; `importing` applies the file's own first.
     func startSettingsFile(importing: Bool) {
         guard settingsFile == nil else { return }
-        let shortcuts = HotKeySettingsFile(hotKeys: hotKeys)
-        let launcher = LauncherSettingsFile(
-            appIndex: appIndex, aliases: aliases, visibility: visibility, shortcuts: shortcuts)
         let file = SettingsFileRepository(
-            fileURL: AppPaths.settingsFile(),
-            bindings: SettingsFileSchema.bindings(
-                settings: settings, ai: aiSettings, quickActions: quickActionSettings,
-                shortcuts: shortcuts, launcher: launcher,
-                windowManagement: WindowManagementSettingsFile(
-                    sizes: customWindowSizes, layouts: windowLayouts, aliases: aliases,
-                    shortcuts: shortcuts)),
-            commit: shortcuts.commit)
+            fileURL: AppPaths.settingsFile(), bindings: settingsBindings.bindings,
+            commit: settingsBindings.commit)
         file.onIssues = { [weak self] issues in self?.reportSettingsFileIssues(issues) }
         settingsFile = file
-        launcherSettingsFile = launcher
         settings.settingsFileEnabled = true
         file.start(importing: importing)
     }
@@ -1024,8 +1018,20 @@ final class AppCore {
     func stopSettingsFile() {
         settingsFile?.flush()
         settingsFile = nil
-        launcherSettingsFile = nil
         settings.settingsFileEnabled = false
+    }
+
+    private func makeSettingsBindings() -> SettingsBindingSet {
+        let shortcuts = HotKeySettingsFile(hotKeys: hotKeys)
+        let launcher = LauncherSettingsFile(
+            appIndex: appIndex, aliases: aliases, visibility: visibility, shortcuts: shortcuts)
+        let bindings = SettingsFileSchema.bindings(
+            settings: settings, ai: aiSettings, quickActions: quickActionSettings,
+            shortcuts: shortcuts, launcher: launcher,
+            windowManagement: WindowManagementSettingsFile(
+                sizes: customWindowSizes, layouts: windowLayouts, aliases: aliases,
+                shortcuts: shortcuts))
+        return SettingsBindingSet(bindings: bindings, commit: shortcuts.commit, launcher: launcher)
     }
 
     private func reportSettingsFileIssues(_ issues: [SettingsFileIssue]) {

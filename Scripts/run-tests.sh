@@ -123,6 +123,8 @@ run() {
 }
 
 L=Onecast/Features/Launcher/Model
+# What a sync source needs from iCloud Sync, for harnesses compiling a whole Service folder.
+SYNC="Onecast/Features/CloudSync/Model/*.swift Onecast/Features/CloudSync/Service/SyncSource.swift Onecast/Features/CloudSync/Service/RecordSyncSource.swift Onecast/Features/Settings/Model/SettingsFileKey.swift"
 run slow -O fuzz-test      $L/SearchRelevance.swift $L/ScriptRomanization.swift \
                            $L/LauncherMatch.swift $L/EntryNaming.swift $L/LauncherOrder.swift \
                            $L/LauncherRankingStore.swift $L/LauncherSuggestions.swift
@@ -520,14 +522,14 @@ run slow snippets-test     Onecast/Platform/NotificationToken.swift \
                            Onecast/Platform/HealthTicker.swift \
                            Onecast/Platform/AccessibilityText.swift \
                            Onecast/Features/Snippets/Model/*.swift \
-                           Onecast/Features/Snippets/Service/*.swift \
+                           Onecast/Features/Snippets/Service/*.swift $SYNC \
                            Onecast/Features/TextInjection/Service/*.swift \
                            Onecast/Platform/TextInsertion.swift \
                            Onecast/Features/Snippets/UI/SnippetDraft.swift
 run notes-test             Onecast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
                            Onecast/Features/Notes/Model/*.swift \
-                           Onecast/Features/Notes/Service/*.swift
+                           Onecast/Features/Notes/Service/*.swift $SYNC
 run deeplink-test          Onecast/Features/DeepLinks/Model/DeepLink.swift \
                            Onecast/Features/DeepLinks/Model/DeepLinkInput.swift \
                            Onecast/Features/DeepLinks/Model/DeepLinkConsentPolicy.swift \
@@ -568,6 +570,8 @@ run slow -O raycast-test   Onecast/Features/Backup/Model/RaycastImportError.swif
                            Onecast/Features/Backup/Service/RaycastDecoder.swift \
                            Onecast/Features/Backup/Service/Scrypt.swift \
                            Onecast/Platform/Compression/Zlib.swift
+run cloud-sync-test        Onecast/Features/CloudSync/Model/*.swift \
+                           Onecast/Features/Settings/Model/SettingsFileKey.swift
 run settings-backup-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/Backup/Model/SettingsBackupCoverage.swift
 run hyper-key-engine-test  Onecast/Features/HotKeys/Model/HyperKeyEngine.swift \
@@ -798,7 +802,7 @@ run mcp-oauth-test         Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/JSONValue.swift \
                            Onecast/Features/MCP/Model/*.swift \
-                           Onecast/Features/MCP/Service/*.swift
+                           Onecast/Features/MCP/Service/*.swift $SYNC
 run slow mcp-stdio-test    Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Platform/ProcessExit.swift \
                            Onecast/Platform/KeychainSecretStore.swift \
@@ -812,7 +816,7 @@ run slow mcp-stdio-test    Onecast/Platform/ExecutableLocator.swift \
                            Onecast/Features/AI/Model/AIRequest.swift \
                            Onecast/Features/AI/Model/JSONValue.swift \
                            Onecast/Features/MCP/Model/*.swift \
-                           Onecast/Features/MCP/Service/*.swift
+                           Onecast/Features/MCP/Service/*.swift $SYNC
 run slow codex-turn-test   Onecast/Platform/AppPaths.swift \
                            Onecast/Platform/ProcessExit.swift \
                            Onecast/Features/AI/Model/*.swift \

@@ -134,9 +134,11 @@ final class ExtensionCoordinator {
             guard
                 await core.confirm(
                     title: "Uninstall \(owner.title)?",
-                    message:
-                        "Removes the extension and everything it stored — its preferences, its cache "
-                        + "and its own files. Its commands leave the launcher.",
+                    message: core.cloudSyncCoordinator.syncs(.extensions)
+                        ? "Removes the extension and everything it stored — its preferences, its cache "
+                            + "and its own files — on this Mac and your other Macs."
+                        : "Removes the extension and everything it stored — its preferences, its cache "
+                            + "and its own files. Its commands leave the launcher.",
                     symbol: "trash", confirmTitle: "Uninstall")
             else { return }
             await extensions.uninstall(owner)

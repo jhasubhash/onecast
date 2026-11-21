@@ -7,5 +7,9 @@
 // A clone without that file (CI) signs self-signed, so official releases stay self-signed.
 CODE_SIGN_IDENTITY = Onecast Self-Signed
 DEVELOPMENT_TEAM =
+// iCloud Sync needs a provisioning profile, so a self-signed build keeps the plain entitlements;
+// a signer's local file points these at OnecastCloud.entitlements and its Developer ID profile.
+ONECAST_ENTITLEMENTS = Onecast/Onecast.entitlements
+ONECAST_PROVISIONING_PROFILE =
 
 #include? "Signing.local.xcconfig"
