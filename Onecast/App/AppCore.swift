@@ -478,6 +478,7 @@ final class AppCore {
                 scheduledTaskIDs: Set(scheduledTasks.tasks.map(\.id)),
                 dockSetupIDs: Set(docks.configuration.setups.map(\.id)),
                 dockIDs: Set(docks.docks.map(\.id)))
+            trackHotKeyAllowance()
             // After `hotKeys.start`: Secure Input equivalents are built from the loaded bindings.
             hyperKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             hyperKey.start()
@@ -562,10 +563,37 @@ final class AppCore {
 
     func allowsHotKeyAction(_ action: HotKeyAction) -> Bool {
         guard visibility.allowsHotKey(action) else { return false }
-        if action == .dictation { return settings.dictationEnabled }
         // A disabled feature drops its commands from the launcher; their shortcuts go too.
-        guard case .command(let id) = action else { return true }
-        return appIndex.isCommandEnabled(id)
+        switch action {
+        case .dictation: return settings.dictationEnabled
+        case .command(let id): return appIndex.isCommandEnabled(id)
+        case .windowCommand, .customWindowSize, .windowLayout:
+            return settings.windowManagementEnabled
+        case .customCommand(let id):
+            return settings.customCommandsEnabled && customCommands.command(id: id)?.isEnabled == true
+        // Snippets load after `start()`; observing `snippets` re-registers them once they arrive.
+        case .snippet(let id):
+            return settings.snippetsEnabled && snippetsStore.record(id: id)?.snippet.isEnabled == true
+        case .quickAction: return settings.quickActionsEnabled
+        case .quicklink(let id):
+            return settings.quicklinksEnabled && quicklinks.quicklink(id: id)?.isEnabled == true
+        case .appleShortcut: return settings.appleShortcutsEnabled
+        case .extensionCommand: return settings.extensionsEnabled
+        case .toggleAIBar, .assistant: return settings.aiEnabled
+        case .pluginCommand: return settings.pluginsEnabled
+        case .scheduledTask: return settings.schedulerEnabled
+        case .dockSetup, .dockVisibility: return settings.docksEnabled
+        case .togglePalette, .app, .settingsPane, .systemAction: return true
+        }
+    }
+
+    /// Re-arms on whatever `allowsHotKeyAction` read: feature switches, visibility, dictation.
+    private func trackHotKeyAllowance() {
+        withObservationTracking {
+            hotKeys.applyAllowance()
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.trackHotKeyAllowance() }
+        }
     }
 
     /// The store-backed half of the conflict message; `HotKeyManager` names the catalogs itself.

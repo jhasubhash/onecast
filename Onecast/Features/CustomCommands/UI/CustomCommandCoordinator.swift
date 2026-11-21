@@ -258,7 +258,6 @@ final class CustomCommandCoordinator {
 
     /// The one funnel for palette and hotkey, so neither form nor confirmation is bypassed.
     func runCustomCommand(id: UUID) {
-        // Also the feature switch: with it off a registered hotkey must run nothing.
         guard settings.customCommandsEnabled else { return }
         guard let command = store.command(id: id), command.isEnabled else { return }
         guard command.arguments.isEmpty else {
