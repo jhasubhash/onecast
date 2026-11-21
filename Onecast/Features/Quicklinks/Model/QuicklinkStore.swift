@@ -281,9 +281,6 @@ final class QuicklinkStore {
             sqlite3_exec(db, Self.schema, nil, nil, nil) == SQLITE_OK
         else { return false }
         // `IF NOT EXISTS` leaves an older table as it was, so its new column is added by hand.
-        sqlite3_exec(
-            db, "ALTER TABLE quicklinks ADD COLUMN is_enabled INTEGER NOT NULL DEFAULT 1", nil, nil,
-            nil)
         sqlite3_exec(db, "ALTER TABLE quicklinks ADD COLUMN triggers TEXT", nil, nil, nil)
         // After the schema, so a column added later can be indexed the same way.
         sqlite3_exec(
