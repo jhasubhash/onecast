@@ -31,11 +31,12 @@ enum StockSymbols {
     }
 
     /// `$aapl` is how traders write a cashtag; the `$` is not part of the ticker.
+    // Closures, not `CharacterSet.contains` references: Swift 6.4 -O miscompiles those pairs.
     private static func normalised(_ token: String) -> String? {
         let symbol = String(token.drop { $0 == "$" }).uppercased()
         guard !symbol.isEmpty, symbol.count <= maximumLength,
-            symbol.unicodeScalars.allSatisfy(allowed.contains),
-            symbol.unicodeScalars.contains(where: alphanumerics.contains)
+            symbol.unicodeScalars.allSatisfy({ allowed.contains($0) }),
+            symbol.unicodeScalars.contains(where: { alphanumerics.contains($0) })
         else { return nil }
         return symbol
     }
