@@ -56,16 +56,15 @@ Do not sign Debug with Apple Development to get around it — macOS ties TCC gra
 certificate, so every permission is lost on each switch. Install both profiles, then:
 
 ```xcconfig
-ONECAST_ENTITLEMENTS = Onecast/OnecastCloud.entitlements
-ONECAST_PROVISIONING_PROFILE[config=Debug] = <Dev profile name>
+ONECAST_ENTITLEMENTS[config=Release] = Onecast/OnecastCloud.entitlements
 ONECAST_PROVISIONING_PROFILE[config=Release] = <Release profile name>
-ONECAST_CLOUDKIT_ENVIRONMENT[config=Debug] = Production
-ONECAST_APS_ENVIRONMENT[config=Debug] = production
 ```
 
-A Developer ID profile reaches only CloudKit **Production**, so Debug syncs there too (the
-environments default in `Signing.xcconfig`), and Production must have the schema first or every
-save fails. Deploy it from the CloudKit Console, or with
+Leaving Debug out keeps Onecast Dev off iCloud. To sync it too, add the same two lines for Debug
+with the `.dev` profile, plus `ONECAST_CLOUDKIT_ENVIRONMENT[config=Debug] = Production` and
+`ONECAST_APS_ENVIRONMENT[config=Debug] = production`: a Developer ID profile reaches only CloudKit
+**Production** (the environments default in `Signing.xcconfig`). Production must have the schema
+first or every save fails. Deploy it from the CloudKit Console, or with
 `./Scripts/deploy-cloudkit-schema.sh iCloud.<bundle id>` once `xcrun cktool save-token` holds a
 management token; that script and `check-cloudkit-schema.sh` read the team from
 `DEVELOPMENT_TEAM` in `Signing.local.xcconfig` (or `ONECAST_TEAM_ID`). `verify-signature.sh` checks
