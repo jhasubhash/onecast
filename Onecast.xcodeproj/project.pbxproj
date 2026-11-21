@@ -2520,7 +2520,7 @@
 		FF3494D4C0E46BE859A4F612 /* ExtensionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionCoordinator.swift; sourceTree = "<group>"; };
 		FF7B03680077CDB948CA3F13 /* QuickActionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionCoordinator.swift; sourceTree = "<group>"; };
 		FFEE3E52A2BABF365CFA8F82 /* PresentationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSession.swift; sourceTree = "<group>"; };
-		"TEMP_BC721F6F-A67A-41DC-8C8D-8AB7872FDF62" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_5F2D13FB-D21B-4120-9263-0EDFD38072F0" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -5416,10 +5416,10 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_DF8918B1-33C1-4A57-B9A1-79CAB3DCC5AA" /* onecast */ = {
+		"TEMP_D892CCEE-D174-4498-8774-3028C4860AAE" /* onecast */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_BC721F6F-A67A-41DC-8C8D-8AB7872FDF62" /* Signing.xcconfig */,
+				"TEMP_5F2D13FB-D21B-4120-9263-0EDFD38072F0" /* Signing.xcconfig */,
 			);
 			path = onecast;
 			sourceTree = "<group>";
@@ -5550,27 +5550,27 @@
 				TargetAttributes = {
 					31FF90E909242862DA745ABB = {
 						DevelopmentTeam = "";
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = "$(ONECAST_CODE_SIGN_STYLE)";
 					};
 					45395C93740B71A93868A541 = {
 						DevelopmentTeam = "";
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = "$(ONECAST_CODE_SIGN_STYLE)";
 					};
 					50AEBC4AA476185CD2289800 = {
 						DevelopmentTeam = "";
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = "$(ONECAST_CODE_SIGN_STYLE)";
 					};
 					5661B6775AD220F087DFE378 = {
 						DevelopmentTeam = "";
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = "$(ONECAST_CODE_SIGN_STYLE)";
 					};
 					DA288FC089CD08695C6F0DEE = {
 						DevelopmentTeam = "";
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = "$(ONECAST_CODE_SIGN_STYLE)";
 					};
 					E7D6D2A6AD68D9D5D36FAA25 = {
 						DevelopmentTeam = "";
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = "$(ONECAST_CODE_SIGN_STYLE)";
 					};
 				};
 			};
@@ -6925,7 +6925,7 @@
 /* Begin XCBuildConfiguration section */
 		076FC79DF0EF6D52CF625E82 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_BC721F6F-A67A-41DC-8C8D-8AB7872FDF62" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_5F2D13FB-D21B-4120-9263-0EDFD38072F0" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -6957,7 +6957,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = "$(ONECAST_CODE_SIGN_STYLE)";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
@@ -7084,7 +7084,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = "$(ONECAST_CODE_SIGN_STYLE)";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
@@ -7199,7 +7199,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = "$(ONECAST_CODE_SIGN_STYLE)";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
@@ -7225,7 +7225,7 @@
 		};
 		EF45B5B156D39C4F5E39C046 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_BC721F6F-A67A-41DC-8C8D-8AB7872FDF62" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_5F2D13FB-D21B-4120-9263-0EDFD38072F0" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -7257,7 +7257,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = "$(ONECAST_CODE_SIGN_STYLE)";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;

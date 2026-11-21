@@ -11,5 +11,7 @@ DEVELOPMENT_TEAM =
 // a signer's local file points these at OnecastCloud.entitlements and its Developer ID profile.
 ONECAST_ENTITLEMENTS = Onecast/Onecast.entitlements
 ONECAST_PROVISIONING_PROFILE =
+// Manual everywhere but where a signer's local file uses an Xcode-managed iCloud profile.
+ONECAST_CODE_SIGN_STYLE = Manual
 
 #include? "Signing.local.xcconfig"
