@@ -571,6 +571,7 @@ run slow -O raycast-test   Onecast/Features/Backup/Model/RaycastImportError.swif
 run settings-backup-test   Onecast/Features/Settings/AppSettingsKey.swift \
                            Onecast/Features/Backup/Model/SettingsBackupCoverage.swift
 run hyper-key-engine-test  Onecast/Features/HotKeys/Model/HyperKeyEngine.swift \
+                           Onecast/Features/HotKeys/Model/PhysicalHyperKeyPress.swift \
                            Onecast/Features/HotKeys/Model/HyperKey.swift \
                            Onecast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Onecast/Features/HotKeys/Model/ModifierKey.swift \
